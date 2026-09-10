@@ -3,6 +3,17 @@ const FORM_AUTOMATION_FORM_ID = '1xnDZARmNjZtz8OwLCkVv8Tw14JC-M_VS2pjdA7fdCqA';
 const FORM_CARD_HEADERS = ['cardId','googleAccountEmail','publicToken','published','isActive','nameKo','nameEn','department','jobTitleKo','jobTitleEn','roleItem1Ko','roleItem2Ko','roleItem3Ko','roleItem4Ko','roleItem5Ko','roleItem1En','roleItem2En','roleItem3En','roleItem4En','roleItem5En','mobilePhone','publicEmail','profileImageFileId','roleBackgroundMode','roleBackgroundFileId','contactBackgroundMode','contactBackgroundFileId','companyBackgroundMode','companyBackgroundFileId','linksBackgroundMode','linksBackgroundFileId','publicUrl','qrUrl','nfcStatus','formResponseId','createdAt','updatedAt','processingStatus','errorMessage'];
 const FORM_BG_KEYS = ['role','contact','company','links'];
 const FORM_REQUIRED = ['nameKo','nameEn','department','jobTitleKo','jobTitleEn','roleItem1Ko','roleItem2Ko','roleItem3Ko','roleItem4Ko','roleItem5Ko','roleItem1En','roleItem2En','roleItem3En','roleItem4En','roleItem5En'];
+const FORM_UPLOAD_KEYS = ['profileImageFileId'].concat(FORM_BG_KEYS.map(function (key) { return key + 'BackgroundFileId'; }));
+const FORM_QUESTION_TITLES = {
+  nameKo: '이름 (국문)', nameEn: '이름 (영문)', department: '부서', jobTitleKo: '직책 (국문)', jobTitleEn: '직책 (영문)',
+  roleItem1Ko: '주요 업무 1 (국문)', roleItem2Ko: '주요 업무 2 (국문)', roleItem3Ko: '주요 업무 3 (국문)', roleItem4Ko: '주요 업무 4 (국문)', roleItem5Ko: '주요 업무 5 (국문)',
+  roleItem1En: '주요 업무 1 (영문)', roleItem2En: '주요 업무 2 (영문)', roleItem3En: '주요 업무 3 (영문)', roleItem4En: '주요 업무 4 (영문)', roleItem5En: '주요 업무 5 (영문)',
+  mobilePhone: '공개 휴대전화', publicEmail: '공개 이메일', profileImageFileId: '프로필 사진',
+  roleBackgroundMode: '직무 카드 배경', contactBackgroundMode: '연락처 카드 배경', companyBackgroundMode: '회사 카드 배경', linksBackgroundMode: '링크 카드 배경',
+  roleBackgroundFileId: '직무 카드 배경 파일', contactBackgroundFileId: '연락처 카드 배경 파일', companyBackgroundFileId: '회사 카드 배경 파일', linksBackgroundFileId: '링크 카드 배경 파일'
+};
+const FORM_BACKGROUND_MODE_CHOICES = ['기본 디자인 사용', '이미지로 변경', '영상으로 변경'];
+const FORM_MODE_LABELS = { '기본 디자인 사용': 'DEFAULT', '이미지로 변경': 'IMAGE', '영상으로 변경': 'VIDEO' };
 
 // 최초 1회만 실행합니다. 필요한 Google 권한을 한 번에 승인하고,
 // 데이터 시트·입력 Form·제출 트리거를 모두 구성합니다.
@@ -30,19 +41,27 @@ function setupFormAutomationWorkspace() {
 
 function setupFormAutomationForm() {
   const form = FormApp.openById(FORM_AUTOMATION_FORM_ID);
+  const existingTitles = form.getItems().map(function (item) { return item.getTitle(); });
+  const existingUploadTitles = FORM_UPLOAD_KEYS.map(formQuestionTitle_).filter(function (title) { return existingTitles.indexOf(title) >= 0; });
+  if (existingUploadTitles.length) {
+    throw new Error('파일 업로드 질문은 Google Forms 화면에서 수동으로 관리합니다. 기존 파일 질문을 보존하기 위해 자동 재구성을 중단했습니다: ' + existingUploadTitles.join(', '));
+  }
   form.setTitle('ZNUS 디지털 명함 입력').setDescription('신규 명함 생성과 기존 명함 수정을 위한 입력 양식입니다. 수정 시 기존 공개 토큰과 주소는 유지됩니다.').setCollectEmail(true).setLimitOneResponsePerUser(false).setShowLinkToRespondAgain(true);
   form.getItems().forEach(function (item) { form.deleteItem(item); });
-  FORM_REQUIRED.forEach(function (key) { form.addTextItem().setTitle(key).setHelpText('최대 ' + (key.indexOf('roleItem') === 0 ? 200 : 100) + '자').setRequired(true); });
-  form.addTextItem().setTitle('mobilePhone').setHelpText('공개 휴대전화').setRequired(true);
-  form.addTextItem().setTitle('publicEmail').setRequired(true);
-  form.addFileUploadItem().setTitle('profileImageFileId').setHelpText('JPG, PNG, WEBP 이미지 1개').setRequired(true);
+  FORM_REQUIRED.forEach(function (key) { form.addTextItem().setTitle(formQuestionTitle_(key)).setHelpText(formQuestionHelp_(key)).setRequired(true); });
+  form.addTextItem().setTitle(formQuestionTitle_('mobilePhone')).setHelpText('명함에 공개할 번호를 입력하세요. 예: 010-1234-5678').setRequired(true);
+  form.addTextItem().setTitle(formQuestionTitle_('publicEmail')).setHelpText('명함에 공개할 이메일 주소를 입력하세요.').setRequired(true);
   FORM_BG_KEYS.forEach(function (key) {
-    form.addMultipleChoiceItem().setTitle(key + 'BackgroundMode').setChoiceValues(['KEEP_CURRENT','DEFAULT','IMAGE','VIDEO']).setRequired(true);
-    form.addFileUploadItem().setTitle(key + 'BackgroundFileId').setRequired(false);
+    const item = form.addMultipleChoiceItem();
+    item.setTitle(formQuestionTitle_(key + 'BackgroundMode'));
+    item.setHelpText('변경하지 않으면 선택하지 마세요. 기본 디자인으로 되돌리거나 이미지·영상으로 바꿀 수 있습니다.');
+    item.setChoiceValues(FORM_BACKGROUND_MODE_CHOICES);
+    item.setRequired(false);
   });
+  form.addSectionHeaderItem().setTitle('사진과 배경 파일 업로드').setHelpText('파일 업로드 질문은 Google Forms 화면에서 수동으로 추가해야 합니다. 프로필 사진은 필수 이미지(JPG/PNG/WEBP) 1개, 카드별 배경 파일은 선택 이미지 또는 MP4 영상 1개로 설정하세요. 필요한 질문: ' + FORM_UPLOAD_KEYS.map(formQuestionTitle_).join(', '));
   form.setDestination(FormApp.DestinationType.SPREADSHEET, FORM_AUTOMATION_SHEET_ID);
   if (!ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'onFormSubmitCard'; })) ScriptApp.newTrigger('onFormSubmitCard').forForm(form).onFormSubmit().create();
-  return { editUrl: form.getEditUrl(), publishedUrl: form.getPublishedUrl(), itemCount: form.getItems().length };
+  return { editUrl: form.getEditUrl(), publishedUrl: form.getPublishedUrl(), itemCount: form.getItems().length, manualUploadQuestionTitles: FORM_UPLOAD_KEYS.map(formQuestionTitle_) };
 }
 
 function onFormSubmitCard(e) {
@@ -60,12 +79,15 @@ function onFormSubmitCard(e) {
       FORM_BG_KEYS.forEach(function (key) { next[key + 'BackgroundFileId'] = formApplyBackground_(data, existing.value, key); });
       formWrite_(sheet, next, existing.row); return { status: 'UPDATED', cardId: existing.value.cardId, publicToken: existing.value.publicToken };
     }
-    const token = formUniqueToken_(ss), cardId = Utilities.getUuid().toLowerCase(), record = Object.assign({}, data, { cardId: cardId, googleAccountEmail: account, publicToken: token, published: false, isActive: true, publicUrl: formPublicUrl_(token), qrUrl: '', nfcStatus: '', formResponseId: responseId, createdAt: now, updatedAt: now, processingStatus: 'COMPLETED', errorMessage: '' });
+    const token = formUniqueToken_(ss), cardId = Utilities.getUuid().toLowerCase(), record = Object.assign({}, data, { cardId: cardId, googleAccountEmail: account, publicToken: token, published: true, isActive: true, publicUrl: formPublicUrl_(token), qrUrl: '', nfcStatus: '', formResponseId: responseId, createdAt: now, updatedAt: now, processingStatus: 'COMPLETED', errorMessage: '' });
     record.profileImageFileId = formStoreAsset_(data.profileImageFileId, '', cardId, 'profile'); FORM_BG_KEYS.forEach(function (key) { record[key + 'BackgroundFileId'] = formApplyBackground_(data, {}, key, cardId); }); formWrite_(sheet, record); return { status: 'CREATED', cardId: cardId, publicToken: token, publicUrl: record.publicUrl };
   });
 }
 
-function formAnswers_(response) { const out = {}; if (!response) return out; response.getItemResponses().forEach(function (ir) { let v = ir.getResponse(); if (Array.isArray(v)) v = v[0] || ''; out[ir.getItem().getTitle()] = String(v == null ? '' : v).trim(); }); return out; }
+function formQuestionTitle_(key) { return FORM_QUESTION_TITLES[key] || key; }
+function formQuestionKey_(title) { return Object.keys(FORM_QUESTION_TITLES).find(function (key) { return FORM_QUESTION_TITLES[key] === title; }) || title; }
+function formQuestionHelp_(key) { if (key.indexOf('roleItem') === 0) return '명함의 업무 목록에 순서대로 표시됩니다. 최대 200자까지 입력할 수 있습니다.'; if (key === 'nameKo') return '명함에 표시할 한글 이름을 입력하세요. 예: 홍길동'; if (key === 'nameEn') return '명함에 표시할 영문 이름을 입력하세요. 예: Gildong Hong'; if (key === 'department') return '소속 부서를 입력하세요. 예: 브랜드전략팀'; return '명함에 표시할 내용을 입력하세요. 최대 100자까지 입력할 수 있습니다.'; }
+function formAnswers_(response) { const out = {}; if (!response) return out; response.getItemResponses().forEach(function (ir) { const key = formQuestionKey_(ir.getItem().getTitle()); let v = ir.getResponse(); if (Array.isArray(v)) v = v[0] || ''; v = String(v == null ? '' : v).trim(); out[key] = key.endsWith('BackgroundMode') ? (FORM_MODE_LABELS[v] || v) : v; }); return out; }
 function formValidate_(input, existing) { const out = {}; FORM_REQUIRED.forEach(function (key) { out[key] = formRequired_(input[key], key, key.indexOf('roleItem') === 0 ? 200 : 100); }); out.mobilePhone = formRequired_(input.mobilePhone, 'mobilePhone', 40); if (!/^\+?[0-9 ()-]+$/.test(out.mobilePhone) || out.mobilePhone.replace(/\D/g, '').length < 7) throw new Error('mobilePhone 형식이 올바르지 않습니다.'); out.publicEmail = formEmail_(input.publicEmail, 'publicEmail'); out.profileImageFileId = formFile_(input.profileImageFileId, 'profileImageFileId'); formInspectAsset_(out.profileImageFileId, 'IMAGE', 'profileImageFileId'); FORM_BG_KEYS.forEach(function (key) { const modeKey = key + 'BackgroundMode', fileKey = key + 'BackgroundFileId', mode = String(input[modeKey] || '').trim() || (existing ? 'KEEP_CURRENT' : 'DEFAULT'), id = String(input[fileKey] || '').trim(); if (mode === 'KEEP_CURRENT') { out[modeKey] = existing ? existing[modeKey] : 'DEFAULT'; out[fileKey] = existing ? existing[fileKey] : ''; } else if (mode === 'DEFAULT') { if (id) throw new Error(key + ': DEFAULT에는 파일을 지정할 수 없습니다.'); out[modeKey] = mode; out[fileKey] = ''; } else if (mode === 'IMAGE' || mode === 'VIDEO') { out[modeKey] = mode; out[fileKey] = formFile_(id, fileKey); formInspectAsset_(out[fileKey], mode, fileKey); } else throw new Error(key + ': 배경 유형이 올바르지 않습니다.'); }); return out; }
 function formInspectAsset_(id, mode, label) { const file = DriveApp.getFileById(id), mime = String(file.getMimeType() || '').toLowerCase(), size = Number(file.getSize() || 0); if (mode === 'IMAGE' && ['image/jpeg', 'image/png', 'image/webp'].indexOf(mime) < 0) throw new Error(label + ': JPG, PNG, WEBP 이미지만 허용합니다.'); if (mode === 'VIDEO' && mime !== 'video/mp4') throw new Error(label + ': MP4 영상만 허용합니다.'); if (mode === 'VIDEO' && size > 18 * 1024 * 1024) throw new Error(label + ': 영상은 18MiB 이하여야 합니다.'); if (size <= 0) throw new Error(label + ': 빈 파일은 사용할 수 없습니다.'); return { id: id, mimeType: mime, sizeBytes: size }; }
 function formApplyBackground_(data, old, key, cardId) { const modeKey = key + 'BackgroundMode', fileKey = key + 'BackgroundFileId'; if (data[modeKey] === 'DEFAULT') { if (old[fileKey]) formTrashById_(old[fileKey]); return ''; } if (data[modeKey] === 'KEEP_CURRENT') return old[fileKey] || ''; return formStoreAsset_(data[fileKey], old[fileKey] || '', cardId || old.cardId, key + '_background'); }
