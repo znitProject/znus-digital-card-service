@@ -4,6 +4,19 @@ const FORM_CARD_HEADERS = ['cardId','googleAccountEmail','publicToken','publishe
 const FORM_BG_KEYS = ['role','contact','company','links'];
 const FORM_REQUIRED = ['nameKo','nameEn','department','jobTitleKo','jobTitleEn','roleItem1Ko','roleItem2Ko','roleItem3Ko','roleItem4Ko','roleItem5Ko','roleItem1En','roleItem2En','roleItem3En','roleItem4En','roleItem5En'];
 
+// 최초 1회만 실행합니다. 필요한 Google 권한을 한 번에 승인하고,
+// 데이터 시트·입력 Form·제출 트리거를 모두 구성합니다.
+function setupFormAutomationAll() {
+  const spreadsheetUrl = setupFormAutomationWorkspace();
+  const form = setupFormAutomationForm();
+  return {
+    spreadsheetUrl: spreadsheetUrl,
+    formEditUrl: form.editUrl,
+    formPublishedUrl: form.publishedUrl,
+    formItemCount: form.itemCount
+  };
+}
+
 function setupFormAutomationWorkspace() {
   return withWorkspaceLock_(function () {
     const ss = SpreadsheetApp.openById(FORM_AUTOMATION_SHEET_ID);
