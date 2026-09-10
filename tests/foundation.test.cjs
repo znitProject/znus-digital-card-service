@@ -198,9 +198,9 @@ test('validation enforces required texts, profile, public contact; system fields
   for(const field of ['cardId','publicToken','published','isActive'])assert.equal(out[field],undefined);
 });
 test('media validation checks allowed formats and inclusive boundaries',()=>{
-  const f=fixture(),video={mimeType:'video/mp4',sizeBytes:18*1024*1024,durationSeconds:3,width:2560,height:1440};
+  const f=fixture(),video={mimeType:'video/mp4',sizeBytes:18*1024*1024,durationSeconds:5,width:2560,height:1440};
   assert.equal(f.context.validateMediaMetadata_(video,'VIDEO'),video);
-  for(const patch of [{sizeBytes:video.sizeBytes+1},{durationSeconds:3.01},{durationSeconds:undefined},{width:2561},{height:1441},{mimeType:'video/webm'}])
+  for(const patch of [{sizeBytes:video.sizeBytes+1},{durationSeconds:5.01},{durationSeconds:undefined},{width:2561},{height:1441},{mimeType:'video/webm'}])
     assert.throws(()=>f.context.validateMediaMetadata_({...video,...patch},'VIDEO'));
   for(const mimeType of ['image/jpeg','image/png','image/webp'])f.context.validateMediaMetadata_({mimeType,sizeBytes:1},'IMAGE');
   assert.throws(()=>f.context.validateMediaMetadata_({mimeType:'image/gif',sizeBytes:1},'IMAGE'));
