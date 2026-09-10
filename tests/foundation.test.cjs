@@ -292,3 +292,33 @@ test('Form writes escape spreadsheet formulas',()=>{
   f.context.formWrite_(sheet,{nameKo:'=IMPORTXML("x")'});
   assert.equal(sheet.writes.at(-1)[0][sheet.data[0].indexOf('nameKo')],"'=IMPORTXML(\"x\")");
 });
+
+test('Form connection uses explicit account properties without legacy fallback',()=>{
+  const f=fixture();
+  assert.throws(()=>f.context.formSpreadsheetId_(),/ZNUS_SPREADSHEET_ID/);
+  assert.throws(()=>f.context.formId_(),/ZNUS_FORM_ID/);
+  f.properties.ZNUS_SPREADSHEET_ID='personal-sheet';f.properties.ZNUS_FORM_ID='personal-form';
+  assert.equal(f.context.formSpreadsheetId_(),'personal-sheet');
+  assert.equal(f.context.formId_(),'personal-form');
+});
+test('existing Form connection validates destination and does not mutate Form or triggers',()=>{
+  const f=ready();let destination='wrong-sheet',collects=true;
+  f.context.FormApp={openById:id=>({getDestinationId:()=>destination,collectsEmail:()=>collects,getEditUrl:()=> 'https://docs.google.com/forms/d/'+id+'/edit'})};
+  const before=JSON.stringify(f.properties);
+  assert.throws(()=>f.context.connectExistingForm('personal-form'),/저장 위치/);
+  assert.equal(JSON.stringify(f.properties),before);
+  destination='sheet-id';collects=false;
+  assert.throws(()=>f.context.connectExistingForm('personal-form'),/이메일 수집/);
+  assert.equal(JSON.stringify(f.properties),before);
+  collects=true;f.context.connectExistingForm('personal-form');
+  assert.equal(f.properties.ZNUS_FORM_ID,'personal-form');
+  f.context.connectExistingForm('personal-form');
+  assert.throws(()=>f.context.connectExistingForm('different-form'),/이전/);
+  assert.equal(f.properties.ZNUS_FORM_ID,'personal-form');
+});
+test('Form workspace setup validates all schemas before mutation',()=>{
+  const f=ready();f.sheets.get('CompanySettings').data=[['companyName','companyName'],['existing','duplicate']];
+  const before=JSON.stringify([...f.sheets.values()].map(sheet=>sheet.data));
+  assert.throws(()=>f.context.setupFormAutomationWorkspace());
+  assert.equal(JSON.stringify([...f.sheets.values()].map(sheet=>sheet.data)),before);
+});

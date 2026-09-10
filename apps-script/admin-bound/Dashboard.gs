@@ -5,7 +5,7 @@ function showAdminDashboard() {
 function getAdminDashboard() {
   const cards = readRecords_(workspace_().getSheetByName('Cards'), 'Cards').map(entry => entry.value);
   const yes = value => value === true || String(value).toLowerCase() === 'true';
-  return JSON.parse(JSON.stringify({cards: cards, company: getCompanySettings(), stats: {
+  return JSON.parse(JSON.stringify({cards: cards, company: getCompanySettings() || {}, stats: {
     total: cards.length, public: cards.filter(card => yes(card.published) && yes(card.isActive)).length,
     private: cards.filter(card => !yes(card.published) || !yes(card.isActive)).length,
     processing: cards.filter(card => card.processingStatus === 'PROCESSING').length,

@@ -1,5 +1,11 @@
-const FORM_AUTOMATION_SHEET_ID = '1FlJ8xn523nMo07iVwm-5TaWCfCHt4Q8_KqdZhyjrO_Y';
-const FORM_AUTOMATION_FORM_ID = '1xnDZARmNjZtz8OwLCkVv8Tw14JC-M_VS2pjdA7fdCqA';
+// Each account supplies its own connection. Never fall back to another account's IDs.
+function formSpreadsheetId_() { return formConnectionId_('ZNUS_SPREADSHEET_ID'); }
+function formId_() { return formConnectionId_('ZNUS_FORM_ID'); }
+function formConnectionId_(key) {
+  const id = PropertiesService.getScriptProperties().getProperty(key);
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) throw new Error(key + ' 연결 설정을 먼저 확인해 주세요.');
+  return id;
+}
 const FORM_CARD_HEADERS = ['cardId','googleAccountEmail','publicToken','published','isActive','nameKo','nameEn','department','jobTitleKo','jobTitleEn','roleItem1Ko','roleItem2Ko','roleItem3Ko','roleItem4Ko','roleItem5Ko','roleItem1En','roleItem2En','roleItem3En','roleItem4En','roleItem5En','mobilePhone','publicEmail','profileImageFileId','roleBackgroundMode','roleBackgroundFileId','contactBackgroundMode','contactBackgroundFileId','companyBackgroundMode','companyBackgroundFileId','linksBackgroundMode','linksBackgroundFileId','publicUrl','qrUrl','nfcStatus','formResponseId','createdAt','updatedAt','processingStatus','errorMessage'];
 const FORM_BG_KEYS = ['role','contact','company','links'];
 const FORM_REQUIRED = ['nameKo','nameEn','department','jobTitleKo','jobTitleEn','roleItem1Ko','roleItem2Ko','roleItem3Ko','roleItem4Ko','roleItem5Ko','roleItem1En','roleItem2En','roleItem3En','roleItem4En','roleItem5En'];
@@ -29,18 +35,17 @@ function setupFormAutomationAll() {
 
 function setupFormAutomationWorkspace() {
   return withWorkspaceLock_(function () {
-    const ss = SpreadsheetApp.openById(FORM_AUTOMATION_SHEET_ID);
-    ensureFormSheet_(ss, 'Cards', FORM_CARD_HEADERS);
-    ensureFormSheet_(ss, 'CompanySettings', ['companyName','companyWebsite','companyPhone','companyFax','officeAddress','companyLogoFileId','sloganLine1','sloganLine2','sloganLine3']);
-    ensureFormSheet_(ss, 'DeletedTokens', ['publicToken']);
-    PropertiesService.getScriptProperties().setProperties({ ZNUS_SPREADSHEET_ID: FORM_AUTOMATION_SHEET_ID, ZNUS_SCHEMA_VERSION: '1' });
+    const ss = SpreadsheetApp.openById(formSpreadsheetId_());
+    Object.keys(ZNUS_SCHEMA).forEach(name => inspectSchema_(ss.getSheetByName(name), name));
+    Object.keys(ZNUS_SCHEMA).forEach(name => ensureSheet_(ss, name));
+    PropertiesService.getScriptProperties().setProperties({ ZNUS_SCHEMA_VERSION: '1' });
     ensureWorkspaceFolders_();
     return ss.getUrl();
   });
 }
 
 function setupFormAutomationForm() {
-  const form = FormApp.openById(FORM_AUTOMATION_FORM_ID);
+  const form = FormApp.openById(formId_());
   const existingTitles = form.getItems().map(function (item) { return item.getTitle(); });
   const existingUploadTitles = FORM_UPLOAD_KEYS.map(formQuestionTitle_).filter(function (title) { return existingTitles.indexOf(title) >= 0; });
   if (existingUploadTitles.length) {
@@ -52,7 +57,7 @@ function setupFormAutomationForm() {
   form.addTextItem().setTitle(formQuestionTitle_('mobilePhone')).setHelpText('명함에 공개할 번호를 입력하세요. 예: 010-1234-5678').setRequired(true);
   form.addTextItem().setTitle(formQuestionTitle_('publicEmail')).setHelpText('명함에 공개할 이메일 주소를 입력하세요.').setRequired(true);
   form.addSectionHeaderItem().setTitle('사진과 배경 파일 업로드').setHelpText('프로필 사진은 필수입니다. 카드 배경은 바꾸려는 카드에만 파일을 올려 주세요. 배경 영상은 MP4, 최대 5초까지 사용할 수 있습니다. 업로드한 파일 형식에 따라 이미지 또는 영상 배경으로 자동 적용됩니다. 파일을 올리지 않으면 기존 배경을 유지합니다. 필요한 질문: ' + FORM_UPLOAD_KEYS.map(formQuestionTitle_).join(', '));
-  form.setDestination(FormApp.DestinationType.SPREADSHEET, FORM_AUTOMATION_SHEET_ID);
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, formSpreadsheetId_());
   if (!ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'onFormSubmitCard'; })) ScriptApp.newTrigger('onFormSubmitCard').forForm(form).onFormSubmit().create();
   return { editUrl: form.getEditUrl(), publishedUrl: form.getPublishedUrl(), itemCount: form.getItems().length, manualUploadQuestionTitles: FORM_UPLOAD_KEYS.map(formQuestionTitle_) };
 }
@@ -60,7 +65,7 @@ function setupFormAutomationForm() {
 // 파일 업로드 질문을 이미 추가한 Form을 새 입력 방식으로 바꿀 때 한 번 실행합니다.
 // 배경 선택 질문을 제거하고, 업로드 질문을 Form 맨 아래로 이동합니다.
 function simplifyFormBackgroundUploads() {
-  const form = FormApp.openById(FORM_AUTOMATION_FORM_ID);
+  const form = FormApp.openById(formId_());
   const modeTitles = FORM_BG_KEYS.map(function (key) { return formQuestionTitle_(key + 'BackgroundMode'); });
   form.getItems().filter(function (item) { return modeTitles.indexOf(item.getTitle()) >= 0; }).forEach(function (item) { form.deleteItem(item); });
   const header = form.getItems().find(function (item) { return item.getTitle() === '사진과 배경 파일 업로드'; });
@@ -74,7 +79,7 @@ function simplifyFormBackgroundUploads() {
 
 function onFormSubmitCard(e) {
   return withWorkspaceLock_(function () {
-    const ss = SpreadsheetApp.openById(FORM_AUTOMATION_SHEET_ID), sheet = ss.getSheetByName('Cards');
+    const ss = SpreadsheetApp.openById(formSpreadsheetId_()), sheet = ss.getSheetByName('Cards');
     const answers = formAnswers_(e && e.response), account = String((e && e.response && e.response.getRespondentEmail()) || '').trim().toLowerCase();
     if (!account) throw new Error('응답자 Google 계정을 확인할 수 없습니다. Form의 이메일 수집을 켜세요.');
     answers.googleAccountEmail = account;

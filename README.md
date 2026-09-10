@@ -22,6 +22,8 @@ Google 운영 프로젝트 반영과 기본 영상 호스팅, 완전 삭제 기�
 
 ## 구조
 
+전체 후속 작업은 [검증·회사 계정 전환·Cafe24 배포 체크리스트](docs/release-roadmap.md)를 기준으로 진행합니다.
+
 - apps-script/admin-bound: 운영 Google Sheet에 바인드합니다. 공개 웹 앱으로 배포하지 않습니다.
 - apps-script/public-web: 별도 읽기 전용 공개 웹 앱 프로젝트입니다.
 - cardDesign: 공개 명함 및 간략 명함 디자인 원본
