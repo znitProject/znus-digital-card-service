@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><style>
+body{font:14px/1.6 system-ui,sans-serif;padding:16px;color:#17213b}button{padding:10px 14px;cursor:pointer}pre{white-space:pre-wrap;word-break:break-all}.error{color:#b42318}
+</style></head><body>
+<h2>ZNUS 운영 기반</h2>
+<p>시트 구조와 비공개 미디어 폴더를 준비합니다. 반복 실행해도 기존 데이터를 지우지 않습니다.</p>
+<button id="setup" type="button">초기 설정 / 점검</button>
+<p>직원 Form 자동화와 명함 관리 화면은 후속 개발 단계에서 연결됩니다.</p>
+<pre id="status" role="status">설정 확인 중…</pre>
+<script>
+const statusNode=document.getElementById('status'),button=document.getElementById('setup');
+function done(info){statusNode.className='';statusNode.textContent=JSON.stringify(info,null,2);button.disabled=false;}
+function fail(error){statusNode.className='error';statusNode.textContent=error.message;button.disabled=false;}
+button.addEventListener('click',()=>{button.disabled=true;statusNode.textContent='초기 설정 중…';google.script.run.withSuccessHandler(done).withFailureHandler(fail).setupWorkspace();});
+google.script.run.withSuccessHandler(done).withFailureHandler(fail).getWorkspaceInfo();
+</script></body></html>

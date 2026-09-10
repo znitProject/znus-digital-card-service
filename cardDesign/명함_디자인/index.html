@@ -1,0 +1,4321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+>
+<meta name="theme-color" content="#050505">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ZNUS">
+<meta property="og:title" content="ZNUS">
+<meta property="og:description" content="ZNUS Digital Profile">
+<meta property="og:url" content="https://www.znus.co.kr/">
+<meta property="og:image" content="assets/logo_s_aw.svg">
+<meta property="og:locale" content="ko_KR">
+<meta
+  name="format-detection"
+  content="telephone=no"
+>
+<link
+  rel="apple-touch-icon"
+  sizes="180x180"
+  href="assets/logo_s_v.svg"
+>
+<link
+  rel="icon"
+  type="image/svg+xml"
+  href="assets/logo_s_v.svg"
+>
+<title>ZNUS Digital Profile</title>
+<style>
+/* =========================================================
+   FONT
+   ========================================================= */
+
+/*
+  한글
+  Pretendard
+*/
+@font-face {
+    font-family: "Pretendard";
+    src: url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Pretendard";
+    src: url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+/*
+  영문
+  Paperlogy
+*/
+@font-face {
+    font-family: "Paperlogy";
+    src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Paperlogy";
+    src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+/* =========================================================
+   ROOT
+   ========================================================= */
+
+:root {
+--black:#050505;
+--white:#ffffff;
+--ease:cubic-bezier(.22, 1, .36, 1);
+--ease-soft:cubic-bezier(.16, 1, .3, 1);
+--blur:24px;
+--card-radius:24px;
+--page-margin:20px;
+--intro-card-width:min(72vw, 520px);
+}
+/* =========================================================
+   RESET
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+html {
+    width: 100%;
+    min-height: 100%;
+    background: #000;
+    scroll-behavior: smooth;
+}
+body {
+    width: 100%;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: "Pretendard", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+button, a {
+    color: inherit;
+    font: inherit;
+}
+button {
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+a {
+    text-decoration: none;
+}
+/* =========================================================
+   ENGLISH FONT
+   ========================================================= */
+
+.en {
+    font-family: "Paperlogy", sans-serif;
+}
+/* =========================================================
+   GLOBAL UNIVERSE BACKGROUND
+   ========================================================= */
+
+.universe-background {
+    position: fixed;
+    z-index: -100;
+    inset: -6%;
+    background: linear-gradient( 180deg, rgba(0,0,0,.08), rgba(0,0,0,.32) ), url("assets/universe.jpg") center center / cover no-repeat;
+    transform: scale(1.04);
+    animation: universeDrift 22s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+@keyframes universeDrift {
+from {
+transform:
+scale(1.04) translate3d(0, 0, 0);
+}
+to {
+transform:
+scale(1.10) translate3d(-.5%, -.5%, 0);
+}
+}
+.universe-background:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient( circle at 50% 45%, rgba(255,255,255,.04), transparent 55% );
+}
+/* =========================================================
+   FIXED LOGO
+   ========================================================= */
+
+.fixed-header {
+    position: fixed;
+    z-index: 3000;
+    top: max( 40px, env(safe-area-inset-top) );
+    left: max( 40px, env(safe-area-inset-left) );
+    pointer-events: none;
+}
+.logo-button {
+    width: 24px;
+    display: block;
+    pointer-events: auto;
+    opacity: .95;
+    transition: opacity .3s ease, transform .3s var(--ease);
+}
+.logo-button:hover {
+    opacity: 1;
+}
+.logo-button:active {
+    transform: scale(.9);
+}
+.logo-button img {
+    width: 100%;
+    display: block;
+}
+/*
+  intro에서도 확실하게 보이도록
+*/
+.intro .fixed-intro-logo {
+    position: absolute;
+    z-index: 30;
+    top: max( 40px, env(safe-area-inset-top) );
+    left: max( 40px, env(safe-area-inset-left) );
+    width: 24px;
+}
+.fixed-intro-logo img {
+    width: 100%;
+    display: block;
+}
+/* =========================================================
+   INTRO
+   ========================================================= */
+
+.intro {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    transition: opacity 1.1s var(--ease), visibility 1.1s;
+}
+.intro.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+/*
+  intro universe layer
+  전체 화면을 universe.jpg로 채움
+*/
+.intro-universe {
+    position: absolute;
+    inset: -8%;
+    background: linear-gradient( 180deg, rgba(0,0,0,.05), rgba(0,0,0,.38) ), url("assets/universe.jpg") center center / cover no-repeat;
+    transform: scale(1.04);
+    animation: introUniverse 18s ease-in-out infinite alternate;
+}
+@keyframes introUniverse {
+from {
+transform:scale(1.04);
+}
+to {
+transform:scale(1.11);
+}
+}
+.intro-universe:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient( ellipse at center, transparent 15%, rgba(0,0,0,.28) 85%, rgba(0,0,0,.48) );
+}
+/* =========================================================
+   INTRO CONTENT
+   ========================================================= */
+
+.intro-content {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* =========================================================
+   VIDEO START GATE
+   ========================================================= */
+.video-start-gate {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 100;
+    width: 92px;
+    height: 92px;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 50%;
+    background: rgba(0,0,0,.28);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 18px 60px rgba(0,0,0,.45), inset 0 0 28px rgba(255,255,255,.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .65s var(--ease), transform .65s var(--ease), visibility .65s;
+    -webkit-tap-highlight-color: transparent;
+}
+.video-start-gate.is-hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translate(-50%, -50%) scale(.88) !important;
+}
+
+.video-start-gate:before {
+    content: "";
+    position: absolute;
+    inset: -9px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 50%;
+    animation: gatePulse 2s ease-in-out infinite;
+    pointer-events: none;
+    animation: none !important;
+}
+.video-start-gate.is-hidden:before,
+.video-start-gate.is-hidden:after {
+    animation: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* 첫 터치를 자연스럽게 유도하는 손짓 */
+.video-start-gate:after {
+    content: "";
+    position: absolute;
+    inset: -18px;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 50%;
+    opacity: 0;
+    animation: touchRipple 2.2s ease-out infinite;
+    pointer-events: none;
+}
+
+.video-start-gate .palm-icon {
+    display: block;
+    font-size: 34px;
+    line-height: 1;
+    transform: translateY(-1px);
+    filter: grayscale(1) brightness(3);
+    user-select: none;
+    -webkit-user-select: none;
+    animation: touchHand 1.5s ease-in-out infinite;
+}
+
+.video-start-gate:active {
+    transform: translate(-50%, -50%) scale(.92);
+}
+
+@keyframes touchHand {
+    0%, 100% { transform: translateY(-1px) scale(1); }
+    45% { transform: translateY(5px) scale(.96); }
+    65% { transform: translateY(-1px) scale(1.03); }
+}
+
+@keyframes touchRipple {
+    0% { opacity: 0; transform: scale(.72); }
+    18% { opacity: .65; }
+    70%, 100% { opacity: 0; transform: scale(1.18); }
+}
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.loading-area {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min( 75vw, 360px );
+    transform: translate(-50%, -50%);
+    transition: opacity .7s var(--ease), transform .7s var(--ease);
+}
+.loading-area.started {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: none;
+}
+.loading-area.complete {
+    opacity: 0;
+    transform: translate(-50%, -80%);
+}
+.loading-track {
+    position: relative;
+    width: 100%;
+    height: 1px;
+    background: rgba(255,255,255,.25);
+}
+.loading-progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 100%;
+    background: #fff;
+}
+.rocket {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+    font-size: 20px;
+    line-height: 1;
+}
+#loading-text {
+    display: block;
+    margin-top: 14px;
+    text-align: center;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 10px;
+    letter-spacing: .18em;
+    opacity: .65;
+}
+/* =========================================================
+   INTRO STACK
+   ========================================================= */
+
+.intro-stack {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    /*
+      실제 .screen-card와 가로/세로 크기를 완전히 동일하게 사용한다.
+      따라서 화면이 세로로 길면 세로형 카드,
+      화면이 가로로 길면 가로형 카드가 자동으로 된다.
+    */
+    width: calc(100vw - (var(--page-margin) * 2));
+    height: calc(100dvh - (var(--page-margin) * 2));
+    aspect-ratio: auto;
+
+    transform: translate(-50%, -50%) scale(.78);
+    opacity: 0;
+    perspective: 1800px;
+    transform-style: preserve-3d;
+    transition: opacity .9s var(--ease), transform 1.15s var(--ease);
+}
+.intro-stack.ready {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(.95);
+}
+/* =========================================================
+   STACK CARD
+   ========================================================= */
+
+.stack-card {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: clamp( 18px, 2vw, 30px );
+    background: #090909;
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 40px 120px rgba(0,0,0,.58), 0 10px 40px rgba(0,0,0,.45);
+    transform-origin: center center;
+    transition: transform 1.35s var(--ease), opacity .8s var(--ease);
+    will-change: transform;
+}
+/*
+  stack 내부의 실제 screen-card
+*/
+.stack-card .screen-card {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    scroll-snap-align: none;
+}
+/*
+  intro stack에서는 요소를 모두 제거하고
+  영상/배경만 보이게 한다.
+*/
+
+.stack-card .card-content, .stack-card .card-number, .stack-card .circle-action, .stack-card .video-overlay + *, .stack-card .reveal-item {
+    visibility: hidden !important;
+}
+/*
+  실제 영상만 표시
+*/
+.stack-card .card-media {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+.stack-card .card-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+/*
+  intro 카드에는 강한 어두운 UI 오버레이를
+  적용하지 않는다.
+*/
+.stack-card .video-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient( 180deg, rgba(0,0,0,.03), rgba(0,0,0,.08) );
+}
+/*
+  카드 자체의 glossy edge
+*/
+.stack-card:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    pointer-events: none;
+}
+/* =========================================================
+   STACK POSITION
+   ========================================================= */
+
+.stack-card-1 {
+    z-index: 5;
+    transform: translate3d(0, 0, 40px) rotate(-2deg);
+}
+.stack-card-2 {
+    z-index: 4;
+    transform: translate3d(18px, -4px, 20px) rotate(4deg);
+}
+.stack-card-3 {
+    z-index: 3;
+    transform: translate3d(-17px, -8px, 0) rotate(-6deg);
+}
+.stack-card-4 {
+    z-index: 2;
+    transform: translate3d(27px, -24px, -20px) rotate(8deg);
+}
+.stack-card-5 {
+    z-index: 1;
+    transform: translate3d(-27px, -16px, -40px) rotate(-10deg);
+}
+/* =========================================================
+   STACK FLOAT
+   ========================================================= */
+
+.intro-stack.ready:not(.spread) {
+    animation: introFloat 5.5s ease-in-out infinite;
+}
+@keyframes introFloat {
+0%, 100% {
+margin-top:0;
+}
+50% {
+margin-top:-8px;
+}
+}
+/* =========================================================
+   CARD DROP → RISE
+   겹쳐진 카드가 아래로 주르륵 내려갔다가 다시 위로 올라온다.
+   ========================================================= */
+.intro-stack.spread { animation: none; transform: translate(-50%, -50%) scale(1); }
+.intro-stack.spread .stack-card { animation-duration: 1250ms; animation-timing-function: cubic-bezier(.22,.78,.2,1); animation-fill-mode: both; animation-iteration-count: 1; transition:none; }
+.intro-stack.spread .stack-card-1 { animation-name:cardDropRise1; animation-delay:0ms; }
+.intro-stack.spread .stack-card-2 { animation-name:cardDropRise2; animation-delay:100ms; }
+.intro-stack.spread .stack-card-3 { animation-name:cardDropRise3; animation-delay:200ms; }
+.intro-stack.spread .stack-card-4 { animation-name:cardDropRise4; animation-delay:300ms; }
+.intro-stack.spread .stack-card-5 { animation-name:cardDropRise5; animation-delay:400ms; }
+@keyframes cardDropRise1 { 0%{transform:translate3d(0,0,40px) rotate(-2deg)} 38%{transform:translate3d(0,78vh,40px) rotate(-1deg)} 100%{transform:translate3d(0,0,40px) rotate(0)} }
+@keyframes cardDropRise2 { 0%{transform:translate3d(18px,-4px,20px) rotate(4deg)} 38%{transform:translate3d(18px,calc(78vh - 4px),20px) rotate(2deg)} 100%{transform:translate3d(0,0,20px) rotate(0)} }
+@keyframes cardDropRise3 { 0%{transform:translate3d(-17px,-8px,0) rotate(-6deg)} 38%{transform:translate3d(-17px,calc(78vh - 8px),0) rotate(-2deg)} 100%{transform:translate3d(0,0,0) rotate(0)} }
+@keyframes cardDropRise4 { 0%{transform:translate3d(27px,-24px,-20px) rotate(8deg)} 38%{transform:translate3d(27px,calc(78vh - 24px),-20px) rotate(3deg)} 100%{transform:translate3d(0,0,-20px) rotate(0)} }
+@keyframes cardDropRise5 { 0%{transform:translate3d(-27px,-16px,-40px) rotate(-10deg)} 38%{transform:translate3d(-27px,calc(78vh - 16px),-40px) rotate(-3deg)} 100%{transform:translate3d(0,0,-40px) rotate(0)} }
+
+/* =========================================================
+   INTRO PERSON
+   ========================================================= */
+
+.intro-person {
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    bottom: max( 9vh, 55px );
+    width: 90%;
+    text-align: center;
+    opacity: 0;
+    transform: translate(-50%, 50px);
+    transition: opacity .8s var(--ease), transform 1s var(--ease);
+}
+.intro-person.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.intro-person strong {
+    display: block;
+    font-size: clamp( 34px, 13vw, 70px );
+    line-height: 1;
+    font-weight: 700;
+}
+.intro-person span {
+    display: block;
+    margin-top: 8px;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 1.2em;
+    opacity: .7;
+}
+.intro-person small {
+    display: block;
+    margin-top: 14px;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 9px;
+    letter-spacing: .2em;
+    opacity: .45;
+}
+/* =========================================================
+   INTRO HINT
+   ========================================================= */
+
+.intro-hint {
+    position: absolute;
+    z-index: 30;
+    left: 50%;
+    bottom: 25px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 1em;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity .6s ease;
+}
+.intro-hint.visible {
+    opacity: .65;
+}
+.intro-hint i {
+    display: block;
+    width: 28px;
+    height: 1px;
+    background: #fff;
+    animation: hintLine 1.4s ease-in-out infinite;
+}
+@keyframes hintLine {
+0%, 100% {
+transform:scaleX(.4);
+opacity:.3;
+}
+50% {
+transform:scaleX(1);
+opacity:1;
+}
+}
+/* =========================================================
+   MORPH LAYER
+   ========================================================= */
+
+/*
+  실제 첫 카드로 넘어가는 순간
+  stack의 01번 카드가 이 layer로 이동한다.
+*/
+.morph-layer {
+    position: fixed;
+    z-index: 2500;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: var(--card-radius);
+    background: #090909;
+    transform-origin: top left;
+    will-change: left, top, width, height, transform, opacity;
+}
+.morph-layer.active {
+    opacity: 1;
+}
+.morph-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/*
+  실제 카드로 연결될 때
+  살짝 어두운 layer
+*/
+.morph-layer:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient( 180deg, rgba(0,0,0,.04), rgba(0,0,0,.20) );
+}
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+#main {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100dvh;
+    padding: var(--page-margin) 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    scroll-snap-type: y mandatory;
+    overscroll-behavior-y: contain;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .7s ease, visibility .7s;
+}
+#main.active {
+    opacity: 1;
+    visibility: visible;
+}
+#main::-webkit-scrollbar {
+display:none;
+}
+/* =========================================================
+   SCREEN CARD
+   ========================================================= */
+
+.screen-card {
+    position: relative;
+width:
+calc( 100% - (var(--page-margin) * 2) );
+height:
+calc( 100dvh - (var(--page-margin) * 2) );
+min-height:
+calc( 100dvh - (var(--page-margin) * 2) );
+    margin: 0 var(--page-margin) var(--page-margin);
+    overflow: hidden;
+    border-radius: var(--card-radius);
+    background: #090909;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    isolation: isolate;
+}
+/* =========================================================
+   CARD MEDIA
+   ========================================================= */
+
+.card-media {
+    position: absolute;
+    inset: 0;
+    z-index: -3;
+    overflow: hidden;
+    background: #090909;
+}
+.card-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    background: #090909;
+}
+.video-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background: linear-gradient( 180deg, rgba(0,0,0,.06), rgba(0,0,0,.12) 45%, rgba(0,0,0,.76) 100% );
+    pointer-events: none;
+}
+.screen-card:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient( circle at 50% 50%, transparent 15%, rgba(0,0,0,.26) 100% );
+    pointer-events: none;
+}
+/* =========================================================
+   CARD NUMBER
+   ========================================================= */
+
+.card-number {
+    position: absolute;
+    z-index: 10;
+    top: 24px;
+    right: 22px;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 10px;
+    letter-spacing: .2em;
+    opacity: .55;
+	visibility: hidden;
+}
+/* =========================================================
+   CARD CONTENT
+   ========================================================= */
+
+.card-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 30px 24px 35px;
+    display: flex;
+}
+.reveal-item {
+    opacity: 0;
+    transform: translateY(35px) scale(.98);
+    transition: opacity .9s var(--ease), transform 1s var(--ease);
+}
+.screen-card.is-active .reveal-item {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+/* =========================================================
+   PROFILE
+   ========================================================= */
+
+.profile-content {
+    align-items: flex-end;
+}
+.profile-name {
+    margin-bottom: 8vh;
+}
+.profile-name h1 {
+    font-family: "Pretendard", sans-serif;
+    font-size: clamp( 46px, 13vw, 90px );
+    line-height: .95;
+    font-weight: 700;
+    letter-spacing: -.07em;
+}
+.profile-name p {
+    margin-top: 12px;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 24px;
+    letter-spacing: .15em;
+    opacity: .65;
+}
+/* =========================================================
+   CIRCLE ACTION
+   ========================================================= */
+
+.circle-action {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    cursor: pointer;
+    position: absolute;
+    right: 20px;
+    bottom: 25px;
+    z-index: 20;
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(var(--blur));
+    -webkit-backdrop-filter: blur(var(--blur));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 15px 40px rgba(0,0,0,.3);
+    transition: transform .35s var(--ease), background .35s ease;
+}
+.circle-action:hover {
+    background: rgba(255,255,255,.18);
+}
+.circle-action:active {
+    transform: scale(.9);
+}
+.circle-action svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+/* =========================================================
+   HEART
+   ========================================================= */
+
+.floating-heart {
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    display: block;
+    pointer-events: none;
+    font-size: clamp(90px, 18vw, 180px);
+    line-height: 1;
+    color: #fff;
+    opacity: 0;
+    -webkit-transform: translate3d(-50%, -50%, 0) scale(.2);
+    transform: translate3d(-50%, -50%, 0) scale(.2);
+    -webkit-animation: none;
+    animation: none;
+    will-change: transform, opacity;
+}
+.floating-heart.is-active {
+    -webkit-animation: heartPop 1s var(--ease) forwards;
+    animation: heartPop 1s var(--ease) forwards;
+    -webkit-font-smoothing: antialiased;
+}
+@-webkit-keyframes heartPop {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(-50%, -50%, 0) scale(.35);
+    transform: translate3d(-50%, -50%, 0) scale(.35);
+  }
+  22% {
+    opacity: 1;
+    -webkit-transform: translate3d(-50%, -50%, 0) scale(1.12);
+    transform: translate3d(-50%, -50%, 0) scale(1.12);
+  }
+  52% {
+    opacity: 1;
+    -webkit-transform: translate3d(-50%, -50%, 0) scale(1);
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    -webkit-transform: translate3d(-50%, -50%, 0) scale(1.28);
+    transform: translate3d(-50%, -50%, 0) scale(1.28);
+  }
+}
+
+@keyframes heartPop {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) scale(.35);
+  }
+  22% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) scale(1.12);
+  }
+  52% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) scale(1.28);
+  }
+}
+
+/* =========================================================
+   ROLE
+   ========================================================= */
+
+.role-content {
+    align-items: center;
+}
+.role-text {
+    width: min( 100%);
+}
+.eyebrow {
+    display: block;
+    margin-bottom: 13px;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 1em;
+    letter-spacing: .1em;
+    opacity: 1;
+}
+.role-text h2 {
+    max-width: 100%;
+    font-family: "Pretendard", sans-serif;
+    font-size: clamp(34px, 11vw, 180px);
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -.06em;
+    word-wrap: normal;
+}
+.role-list {
+    margin-top: 35px;
+    list-style: none;
+}
+.role-list li {
+ padding: 1em 0;
+    border-top: 1px dotted rgba(255, 255, 255, .18);
+    font-family: "Pretendard", sans-serif;
+    font-size: 1.2em;
+    opacity: .75;
+}
+.role-list li:last-child {
+    border-bottom: 1px solid rgba(255,255,255,.18);
+}
+/* =========================================================
+   CONTACT
+   ========================================================= */
+
+.contact-content {
+    align-items: center;
+}
+.phone-number {
+    display: block;
+    width: 100%;
+    font-family: "pretendard", sans-serif;
+    font-size: clamp(120px, 90vw, 9em);
+    line-height: .95;
+    letter-spacing: -.065em;
+    white-space: pre-line;
+    font-weight: 200;
+}
+}
+.phone-number:active {
+    opacity: .5;
+}
+.contact-details {
+    position: absolute;
+    left: 24px;
+    bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+.contact-link {
+    width: fit-content;
+    text-align: left;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 1em;
+    letter-spacing: .04em;
+    opacity: .65;
+    transition: opacity .3s ease;
+}
+.contact-link:hover {
+    opacity: 1;
+}
+/* =========================================================
+   COMPANY
+   ========================================================= */
+
+.company-content {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.company-inner {
+     display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3vh;
+}
+.company-logo {
+    width: min(80vw );
+    max-height: 120px;
+    object-fit: contain;
+}
+.slogan {
+display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 30px;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 1.4em;
+    letter-spacing: -.02em;
+    opacity: 1;
+}
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+.links-content {
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: 34px;
+}
+.qr-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+.qr-code {
+    width: 180px;
+    height: 180px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 25px 60px rgba(0,0,0,.45);
+}
+.qr-code img, .qr-code canvas {
+    width: 100%!important;
+    height: 100%!important;
+}
+.qr-wrap>span {
+    font-family: "Paperlogy", sans-serif;
+    font-size: 1em;
+    letter-spacing: 0;
+    opacity: 1;
+}
+.link-actions {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.large-action {
+    width: 100%;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    gap: 13px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.13);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    font-family: "Pretendard", sans-serif;
+    font-size: 1em;
+    transition: background .3s ease, transform .3s var(--ease);
+}
+.large-action:hover {
+    background: rgba(255,255,255,.14);
+}
+.large-action:active {
+    transform: scale(.97);
+}
+.action-icon {
+    width: 27px;
+    height: 27px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,.1);
+}
+.action-icon svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+.card-navigation {
+    position: fixed;
+    z-index: 3000;
+    right: max( 18px, env(safe-area-inset-right) );
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+.nav-dot {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,.3);
+    transition: transform .4s var(--ease), background .4s ease;
+}
+.nav-dot:after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    transition: border-color .4s ease;
+}
+.nav-dot.active {
+    background: #fff;
+    transform: scale(1.35);
+}
+.nav-dot.active:after {
+    border-color: rgba(255,255,255,.4);
+}
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+.toast {
+    position: fixed;
+    z-index: 5000;
+    left: 50%;
+    bottom: 35px;
+    padding: 24px 18px;
+    border-radius: 100px;
+    background: rgba(20,20,20,.78);
+    border: 1px solid rgba(255,255,255,.14);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    font-family: "Pretendard", sans-serif;
+    font-size: 11px;
+    opacity: 0;
+    transform: translate(-50%, 20px);
+    pointer-events: none;
+    transition: opacity .4s ease, transform .4s var(--ease);
+}
+.toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .4s ease, visibility .4s;
+}
+.modal.open {
+    opacity: 1;
+    visibility: visible;
+}
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(10px);
+}
+.modal-card {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 440px;
+    padding: 30px 22px 22px;
+    border-radius: 25px 25px 15px 15px;
+    background: linear-gradient( 145deg, rgba(40,40,40,.85), rgba(10,10,10,.92) );
+    border: 1px solid rgba(255,255,255,.14);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    transform: translateY(50px);
+    transition: transform .6s var(--ease);
+}
+.modal.open .modal-card {
+    transform: translateY(0);
+}
+.modal-close {
+    position: absolute;
+    top: 24px;
+    right: 18px;
+    font-size: 28px;
+    opacity: .5;
+}
+.modal-eyebrow {
+    font-family: "Paperlogy", sans-serif;
+    font-size: 9px;
+    letter-spacing: .2em;
+    opacity: .45;
+}
+.modal-card h3 {
+    margin-top: 8px;
+    font-family: "Pretendard", sans-serif;
+    font-size: 25px;
+    letter-spacing: -.04em;
+}
+.address {
+    margin-top: 13px;
+    font-size: 24px;
+    line-height: 1.7;
+    opacity: .65;
+}
+.map-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+}
+.map-buttons button {
+    min-height: 65px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0 16px;
+    border-radius: 13px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.13);
+}
+.map-buttons button span {
+    font-size: 13px;
+}
+.map-buttons button small {
+    margin-top: 4px;
+    font-family: "Paperlogy", sans-serif;
+    font-size: 9px;
+    opacity: .45;
+}
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+
+@media (min-width:768px) {
+:root {
+--page-margin:20px;
+--intro-card-width:
+min( 38vw, 560px );
+}
+.card-content {
+    padding-left: 8vw;
+    padding-right: 8vw;
+}
+.contact-details {
+    left: 8vw;
+}
+.circle-action {
+    right: 35px;
+}
+.fixed-header {
+    left: 30px;
+}
+.fixed-intro-logo {
+    left: 30px!important;
+}
+}
+
+/* =========================================================
+   LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width:1440px) {
+:root {
+--intro-card-width:
+min( 30vw, 600px );
+}
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+@media (max-width:767px) {
+ .fixed-header,.fixed-intro-logo{width:34px}.screen-card{border-radius:20px}
+ .intro-stack.spread .stack-card{animation-duration:1150ms}
+ @keyframes cardDropRise1{0%{transform:translate3d(0,0,40px) rotate(-2deg)}38%{transform:translate3d(0,76vh,40px) rotate(-1deg)}100%{transform:translate3d(0,0,40px) rotate(0)}}
+ @keyframes cardDropRise2{0%{transform:translate3d(18px,-4px,20px) rotate(4deg)}38%{transform:translate3d(18px,calc(76vh - 4px),20px) rotate(2deg)}100%{transform:translate3d(0,0,20px) rotate(0)}}
+ @keyframes cardDropRise3{0%{transform:translate3d(-17px,-8px,0) rotate(-6deg)}38%{transform:translate3d(-17px,calc(76vh - 8px),0) rotate(-2deg)}100%{transform:translate3d(0,0,0) rotate(0)}}
+ @keyframes cardDropRise4{0%{transform:translate3d(27px,-24px,-20px) rotate(8deg)}38%{transform:translate3d(27px,calc(76vh - 24px),-20px) rotate(3deg)}100%{transform:translate3d(0,0,-20px) rotate(0)}}
+ @keyframes cardDropRise5{0%{transform:translate3d(-27px,-16px,-40px) rotate(-10deg)}38%{transform:translate3d(-27px,calc(76vh - 16px),-40px) rotate(-3deg)}100%{transform:translate3d(0,0,-40px) rotate(0)}}
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion:reduce) {
+*, *:before, *:after {
+    scroll-behavior: auto!important;
+    animation-duration: .01ms!important;
+    animation-iteration-count: 1!important;
+    transition-duration: .01ms!important;
+}
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     GLOBAL BACKGROUND
+     ========================================================= -->
+
+<div class="universe-background"></div>
+
+<!-- =========================================================
+     FIXED LOGO
+     ========================================================= -->
+
+<header class="fixed-header">
+  <button
+    id="logo-button"
+    class="logo-button"
+    aria-label="페이지 새로고침"> <img
+      src="assets/logo_s_aw.svg"
+      alt="ZNUS"> </button>
+</header>
+
+<!-- =========================================================
+     INTRO
+     ========================================================= -->
+
+<section
+  id="intro"
+  class="intro">
+  <div class="intro-universe"></div>
+  
+  <!--
+    INTRO에서도 로고가 항상 보인다.
+  -->
+  <div class="fixed-intro-logo"> <img
+      src="assets/logo_s_aw.svg"
+      alt="ZNUS"> </div>
+  <div class="intro-content"> 
+    
+    <!-- =====================================================
+         VIDEO START GATE
+         로딩 전에 사용자의 터치/클릭으로 영상 재생을 승인한다.
+         ===================================================== -->
+    <button
+      id="video-start-gate"
+      class="video-start-gate"
+      type="button"
+      aria-label="배경 영상 시작">
+      <span class="palm-icon" aria-hidden="true">✋</span>
+    </button>
+    
+    <!-- =====================================================
+         LOADING
+         ===================================================== -->
+    
+    <div class="loading-area">
+      <div class="loading-track">
+        <div
+          id="loading-progress"
+          class="loading-progress"> </div>
+        <div
+          id="rocket"
+          class="rocket"
+          aria-hidden="true"> 🚀 </div>
+      </div>
+      <span id="loading-text"> 0% </span> </div>
+    
+    <!-- =====================================================
+         STACK
+         ===================================================== -->
+    
+    <div
+      id="intro-stack"
+      class="intro-stack">
+      <div
+        class="stack-card stack-card-1"
+        data-index="0"> </div>
+      <div
+        class="stack-card stack-card-2"
+        data-index="1"> </div>
+      <div
+        class="stack-card stack-card-3"
+        data-index="2"> </div>
+      <div
+        class="stack-card stack-card-4"
+        data-index="3"> </div>
+      <div
+        class="stack-card stack-card-5"
+        data-index="4"> </div>
+    </div>
+    
+    <!-- =====================================================
+         PERSON
+         ===================================================== -->
+    
+    <div
+      id="intro-person"
+      class="intro-person"> <strong> 김가원  </strong> <span class="en"> Kim Gawon </span> </div>
+  </div>
+  
+  <!-- =====================================================
+       HINT
+       ===================================================== -->
+  
+  <div
+    id="intro-hint"
+    class="intro-hint"> <span class="en"> ZNUS Mobile </span> </div>
+</section>
+
+<!-- =========================================================
+     MORPH LAYER
+     ========================================================= -->
+
+<div
+  id="morph-layer"
+  class="morph-layer">
+  <video
+    id="morph-video"
+    class="morph-video"
+    muted
+    playsinline
+    preload="auto"> </video>
+</div>
+
+<!-- =========================================================
+     NAVIGATION
+     ========================================================= -->
+
+<nav
+  class="card-navigation"
+  aria-label="프로필 카드 이동">
+  <button
+    class="nav-dot active"
+    data-target="0"
+    aria-label="프로필"> </button>
+  <button
+    class="nav-dot"
+    data-target="1"
+    aria-label="직무"> </button>
+  <button
+    class="nav-dot"
+    data-target="2"
+    aria-label="연락처"> </button>
+  <button
+    class="nav-dot"
+    data-target="3"
+    aria-label="회사소개"> </button>
+  <button
+    class="nav-dot"
+    data-target="4"
+    aria-label="링크"> </button>
+</nav>
+
+<!-- =========================================================
+     MAIN
+     ========================================================= -->
+
+<main id="main"> 
+  
+  <!-- =======================================================
+       CARD 01
+       ======================================================= -->
+  
+  <section
+    class="profile-card screen-card"
+    data-index="0">
+    <div class="card-media">
+      <video
+        class="card-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        poster="assets/universe.jpg">
+        <source
+          src="assets/profile.mp4"
+          type="video/mp4">
+      </video>
+    </div>
+    <div class="video-overlay"></div>
+    <span class="card-number"> 01 </span>
+    <div
+      class="card-content profile-content">
+      <div
+        class="profile-name reveal-item">
+        <h1> 김가원 </h1>
+        <p class="en"> Kim Gawon </p>
+      </div>
+    </div>
+    <button
+      class="circle-action reveal-item"
+      id="heart-button"
+      aria-label="좋아요">
+    <svg viewBox="0 0 24 24">
+      <path
+          d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"> </path>
+    </svg>
+    </button>
+  </section>
+  
+  <!-- =======================================================
+       CARD 02
+       ======================================================= -->
+  
+  <section
+    class="role-card screen-card"
+    data-index="1">
+    <div class="card-media">
+      <video
+        class="card-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        poster="assets/universe.jpg">
+        <source
+          src="assets/role.mp4"
+          type="video/mp4">
+      </video>
+    </div>
+    <div class="video-overlay"></div>
+    <span class="card-number"> 02 </span>
+    <div
+      class="card-content role-content">
+      <div
+        class="role-text reveal-item"> <span class="eyebrow en"> 디자인 사업부 </span>
+        <h2
+          data-ko="UI/UX"
+          data-en="UI/UX"> UI/UX </h2>
+        <ul class="role-list">
+          <li
+            data-ko="브랜드 전략"
+            data-en="Brand Strategy"> 브랜드 전략 </li>
+          <li
+            data-ko="디지털 콘텐츠"
+            data-en="Digital Content"> 디지털 콘텐츠 </li>
+          <li
+            data-ko="UX / UI 디자인"
+            data-en="UX / UI Design"> UX / UI 디자인 </li>
+          <li
+            data-ko="웹 개발"
+            data-en="Web Development"> 웹 개발 </li>
+          <li
+            data-ko="글로벌 커뮤니케이션"
+            data-en="Global Communication"> 글로벌 커뮤니케이션 </li>
+        </ul>
+      </div>
+    </div>
+    <button
+      class="circle-action reveal-item"
+      id="language-button"
+      aria-label="언어 변경">
+    <svg viewBox="0 0 24 24">
+      <circle
+          cx="12"
+          cy="12"
+          r="9"> </circle>
+      <path
+          d="M3 12h18"> </path>
+      <path
+          d="M12 3c3 3.2 3 14.8 0 18"> </path>
+      <path
+          d="M12 3c-3 3.2-3 14.8 0 18"> </path>
+    </svg>
+    </button>
+  </section>
+  
+  <!-- =======================================================
+       CARD 03
+       ======================================================= -->
+  
+  <section
+    class="contact-card screen-card"
+    data-index="2">
+    <div class="card-media">
+      <video
+        class="card-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        poster="assets/universe.jpg">
+        <source
+          src="assets/contact.mp4"
+          type="video/mp4">
+      </video>
+    </div>
+    <div class="video-overlay"></div>
+    <span class="card-number"> 03 </span>
+    <div
+      class="card-content contact-content"> <a
+        class="phone-number reveal-item en"
+        href="tel:01012345678"> 010 1234 5678 </a>
+      <div
+        class="contact-details reveal-item">
+        <button
+          class="contact-link"
+          data-copy="hello@znus.co.kr"> hello@znus.co.kr </button>
+        <button
+          class="contact-link"
+          data-copy="0319964824"> FAX&nbsp;&nbsp;031 996 4824 </button>
+        <a
+          class="contact-link"
+          href="tel:0319964823"> TEL&nbsp;&nbsp;031 996 4823 </a> </div>
+    </div>
+  </section>
+  
+  <!-- =======================================================
+       CARD 04
+       ======================================================= -->
+  
+  <section
+    class="company-card screen-card"
+    data-index="3">
+    <div class="card-media">
+      <video
+        class="card-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        poster="assets/universe.jpg">
+        <source
+          src="assets/web.mp4"
+          type="video/mp4">
+      </video>
+    </div>
+    <div class="video-overlay"></div>
+    <span class="card-number"> 04 </span>
+    <div
+      class="card-content company-content">
+      <div
+        class="company-inner reveal-item"> <img
+          class="company-logo"
+          src="assets/logo_w_2.svg"
+          alt="ZNUS">
+        <div class="slogan"> <span class="en"> Sharing Information </span> <span class="en"> Connecting the World </span> <span class="en"> Shaping the Future </span> </div>
+      </div>
+    </div>
+    <button
+      class="circle-action reveal-item"
+      id="home-button"
+      aria-label="ZNUS 홈페이지">
+    <svg viewBox="0 0 24 24">
+      <path
+          d="M3 11.5 12 4l9 7.5"> </path>
+      <path
+          d="M5 10.5V20h14v-9.5"> </path>
+      <path
+          d="M9 20v-5h6v5"> </path>
+    </svg>
+    </button>
+  </section>
+  
+  <!-- =======================================================
+       CARD 05
+       ======================================================= -->
+  
+  <section
+    class="links-card screen-card"
+    data-index="4">
+    <div class="card-media">
+      <video
+        class="card-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        poster="assets/universe.jpg">
+        <source
+          src="assets/links.mp4"
+          type="video/mp4">
+      </video>
+    </div>
+    <div class="video-overlay"></div>
+    <span class="card-number"> 05 </span>
+    <div
+      class="card-content links-content">
+      <div
+        class="qr-wrap reveal-item">
+        <div
+          id="qr-code"
+          class="qr-code"> </div>
+        <span class="en"> 카메라로 스캔하세요. </span> </div>
+      <div
+        class="link-actions reveal-item">
+        <button
+          class="large-action"
+          id="share-button"> <span class="action-icon">
+        <svg viewBox="0 0 24 24">
+          <path
+                d="M12 16V3"> </path>
+          <path
+                d="m7 8 5-5 5 5"> </path>
+          <path
+                d="M5 13v6h14v-6"> </path>
+        </svg>
+        </span> <span> 프로필 공유하기 </span> </button>
+        <a
+          class="large-action"
+          href="assets/profile.jpg"
+          download="ZNUS-profile.jpg"> <span class="action-icon">
+        <svg viewBox="0 0 24 24">
+          <path
+                d="M12 3v12"> </path>
+          <path
+                d="m7 10 5 5 5-5"> </path>
+          <path
+                d="M4 21h16"> </path>
+        </svg>
+        </span> <span> 이미지로 명함저장 </span> </a>
+        <button
+          class="large-action"
+          id="direction-button"> <span class="action-icon">
+        <svg viewBox="0 0 24 24">
+          <path
+                d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"> </path>
+          <circle
+                cx="12"
+                cy="9"
+                r="2.5"> </circle>
+        </svg>
+        </span> <span> 찾아오시는 길 </span> </button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- =========================================================
+     TOAST
+     ========================================================= -->
+
+<div
+  id="toast"
+  class="toast"> <span></span> </div>
+
+<!-- =========================================================
+     MODAL
+     ========================================================= -->
+
+<div
+  id="map-modal"
+  class="modal"
+  aria-hidden="true">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <button
+      id="modal-close"
+      class="modal-close"
+      aria-label="닫기"> × </button>
+    <span class="modal-eyebrow en"> LOCATION </span>
+    <h3> 찾아오시는 길 </h3>
+    <p class="address"> 경기도 김포시 장차로5번길 20<br>
+      4층 ZNUS </p>
+    <div class="map-buttons">
+      <button id="kakao-map"> <span> 카카오맵 </span> <small class="en"> DIRECTIONS </small> </button>
+      <button id="naver-map"> <span> 네이버지도 </span> <small class="en"> DIRECTIONS </small> </button>
+    </div>
+  </div>
+</div>
+<script src="qrcode.min.js"></script> 
+<script>
+(() => {
+
+"use strict";
+
+/* =========================================================
+   CONFIG
+   ========================================================= */
+
+const CONFIG = {
+
+  companyUrl:
+    "https://znus.co.kr",
+
+  address:
+    "경기도 김포시 장차로5번길 20 4층 ZNUS",
+
+  loadingDuration:
+    2200,
+
+  stackRevealDelay:
+    350,
+
+  personDelay:
+    900,
+
+  hintDelay:
+    1700,
+
+  spreadDuration:
+    1700,
+
+  morphDuration:
+    1100,
+
+  toastDuration:
+    1800
+
+};
+
+
+/* =========================================================
+   DOM
+   ========================================================= */
+
+const DOM = {
+
+  intro:
+    document.querySelector("#intro"),
+
+  introStack:
+    document.querySelector("#intro-stack"),
+
+  introPerson:
+    document.querySelector("#intro-person"),
+
+  introHint:
+    document.querySelector("#intro-hint"),
+
+  loadingArea:
+    document.querySelector(".loading-area"),
+
+  videoStartGate:
+    document.querySelector("#video-start-gate"),
+
+  loadingProgress:
+    document.querySelector("#loading-progress"),
+
+  loadingText:
+    document.querySelector("#loading-text"),
+
+  rocket:
+    document.querySelector("#rocket"),
+
+  main:
+    document.querySelector("#main"),
+
+  cards:
+    document.querySelectorAll(".screen-card"),
+
+  stackCards:
+    document.querySelectorAll(".stack-card"),
+
+  morphLayer:
+    document.querySelector("#morph-layer"),
+
+  morphVideo:
+    document.querySelector("#morph-video"),
+
+  logoButton:
+    document.querySelector("#logo-button"),
+
+  navDots:
+    document.querySelectorAll(".nav-dot"),
+
+  heartButton:
+    document.querySelector("#heart-button"),
+
+  languageButton:
+    document.querySelector("#language-button"),
+
+  homeButton:
+    document.querySelector("#home-button"),
+
+  shareButton:
+    document.querySelector("#share-button"),
+
+  directionButton:
+    document.querySelector("#direction-button"),
+
+  toast:
+    document.querySelector("#toast"),
+
+  mapModal:
+    document.querySelector("#map-modal"),
+
+  modalClose:
+    document.querySelector("#modal-close"),
+
+  kakaoMap:
+    document.querySelector("#kakao-map"),
+
+  naverMap:
+    document.querySelector("#naver-map"),
+
+  qrCode:
+    document.querySelector("#qr-code")
+
+};
+
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+const state = {
+
+  introComplete:
+    false,
+
+  spread:
+    false,
+
+  morphing:
+    false,
+
+  currentCard:
+    0,
+
+  language:
+    "ko",
+
+  toastTimer:
+    null,
+
+  touchStartY:
+    0,
+
+  videoApproved:
+    false
+
+};
+
+
+/* =========================================================
+   INIT
+   ========================================================= */
+
+function init(){
+
+  createIntroCards();
+
+  bindEvents();
+
+  prepareVideos();
+
+  setupVideoStartGate();
+
+  createQRCode();
+
+  setupIntersectionObserver();
+
+}
+
+
+/* =========================================================
+   CREATE INTRO CARDS
+   ========================================================= */
+
+function createIntroCards(){
+
+  DOM.stackCards.forEach(
+    (stack,index) => {
+
+      const source =
+        DOM.cards[index];
+
+      if(!source){
+        return;
+      }
+
+      /*
+        실제 카드를 그대로 복제
+      */
+
+      const clone =
+        source.cloneNode(true);
+
+      clone.classList.add(
+        "intro-preview-card"
+      );
+
+
+      /*
+        intro에서는 UI 요소를 숨긴다.
+      */
+
+      stack.innerHTML =
+        "";
+
+      stack.appendChild(
+        clone
+      );
+
+
+      /*
+        영상 준비
+      */
+
+      const sourceVideo =
+        source.querySelector(
+          ".card-video"
+        );
+
+      const previewVideo =
+        clone.querySelector(
+          ".card-video"
+        );
+
+
+      if(
+        sourceVideo &&
+        previewVideo
+      ){
+
+        const sourceElement =
+          sourceVideo.querySelector(
+            "source"
+          );
+
+        const videoUrl =
+          sourceElement?.getAttribute("src") ||
+          sourceVideo.getAttribute("src") ||
+          sourceVideo.currentSrc ||
+          "";
+
+
+        if(videoUrl){
+
+          previewVideo.removeAttribute(
+            "src"
+          );
+
+          const previewSource =
+            previewVideo.querySelector(
+              "source"
+            );
+
+
+          if(previewSource){
+
+            previewSource.setAttribute(
+              "src",
+              videoUrl
+            );
+
+            previewSource.setAttribute(
+              "type",
+              sourceElement?.getAttribute("type") ||
+              "video/mp4"
+            );
+
+          }else{
+
+            previewVideo.src =
+              videoUrl;
+
+          }
+
+        }
+
+
+        previewVideo.muted =
+          true;
+
+        previewVideo.loop =
+          true;
+
+        previewVideo.playsInline =
+          true;
+
+        previewVideo.setAttribute(
+          "muted",
+          ""
+        );
+
+        previewVideo.setAttribute(
+          "playsinline",
+          ""
+        );
+
+        previewVideo.setAttribute(
+          "webkit-playsinline",
+          ""
+        );
+
+        previewVideo.setAttribute(
+          "preload",
+          "auto"
+        );
+
+
+        try{
+          previewVideo.load();
+        }catch(e){}
+
+
+        previewVideo.currentTime =
+          0;
+
+        previewVideo.play().catch(
+          () => {}
+        );
+
+      }
+
+
+      /*
+        intro 안에서는 버튼 / 링크 비활성화
+      */
+
+      clone
+        .querySelectorAll(
+          "button,a"
+        )
+        .forEach(
+          element => {
+
+            element.setAttribute(
+              "tabindex",
+              "-1"
+            );
+
+            element.setAttribute(
+              "aria-hidden",
+              "true"
+            );
+
+          }
+        );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   PREPARE VIDEOS
+   ========================================================= */
+
+function prepareVideos(){
+
+  const videos =
+    document.querySelectorAll(
+      "video"
+    );
+
+
+  videos.forEach(
+    video => {
+
+      video.muted =
+        true;
+
+      video.defaultMuted =
+        true;
+
+      video.autoplay =
+        true;
+
+      video.playsInline =
+        true;
+
+      video.setAttribute(
+        "muted",
+        ""
+      );
+
+      video.setAttribute(
+        "autoplay",
+        ""
+      );
+
+      video.setAttribute(
+        "playsinline",
+        ""
+      );
+
+      video.setAttribute(
+        "webkit-playsinline",
+        ""
+      );
+
+      video.preload =
+        "auto";
+
+
+      try{
+
+        if(
+          video.readyState === 0
+        ){
+          video.load();
+        }
+
+      }catch(e){}
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   VIDEO START GATE
+   ========================================================= */
+
+function setupVideoStartGate(){
+
+  if(
+    !DOM.videoStartGate
+  ){
+    return;
+  }
+
+
+  const approveAndStart =
+    () => {
+
+      if(
+        state.videoApproved
+      ){
+        return;
+      }
+
+
+      state.videoApproved =
+        true;
+
+
+      /*
+        시작 버튼은 즉시 숨긴다.
+      */
+
+      DOM.videoStartGate.classList.add(
+        "is-hidden"
+      );
+
+      DOM.videoStartGate.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+
+      /*
+        모든 영상 재생 준비
+      */
+
+      const videos =
+        Array.from(
+          document.querySelectorAll(
+            "video"
+          )
+        );
+
+
+      videos.forEach(
+        video => {
+
+          video.muted =
+            true;
+
+          video.defaultMuted =
+            true;
+
+          video.autoplay =
+            true;
+
+          video.playsInline =
+            true;
+
+          video.setAttribute(
+            "muted",
+            ""
+          );
+
+          video.setAttribute(
+            "autoplay",
+            ""
+          );
+
+          video.setAttribute(
+            "playsinline",
+            ""
+          );
+
+          video.setAttribute(
+            "webkit-playsinline",
+            ""
+          );
+
+          video.preload =
+            "auto";
+
+        }
+      );
+
+
+      /*
+        사용자 제스처 안에서 play 요청
+      */
+
+      videos.forEach(
+        video => {
+
+          try{
+
+            if(
+              !video.currentSrc &&
+              video.querySelector(
+                "source[src]"
+              )
+            ){
+              video.load();
+            }
+
+
+            const playPromise =
+              video.play();
+
+
+            if(
+              playPromise &&
+              typeof playPromise.catch ===
+              "function"
+            ){
+              playPromise.catch(
+                () => {}
+              );
+            }
+
+          }catch(e){}
+
+        }
+      );
+
+
+      forceAutoplayAllVideos();
+
+
+      /*
+        버튼이 사라진 프레임을 확보한 후
+        로딩바 시작
+      */
+
+      requestAnimationFrame(
+        () => {
+
+          DOM.loadingArea.classList.add(
+            "started"
+          );
+
+          startIntro();
+
+        }
+      );
+
+    };
+
+
+  DOM.videoStartGate.addEventListener(
+    "click",
+    approveAndStart
+  );
+
+
+  DOM.videoStartGate.addEventListener(
+    "touchend",
+    approveAndStart,
+    {
+      passive:true
+    }
+  );
+
+}
+
+
+/* =========================================================
+   FORCE AUTOPLAY
+   ========================================================= */
+
+function forceAutoplayAllVideos(){
+
+  document
+    .querySelectorAll(
+      "video"
+    )
+    .forEach(
+      video => {
+
+        video.muted =
+          true;
+
+        video.defaultMuted =
+          true;
+
+        video.autoplay =
+          true;
+
+        video.playsInline =
+          true;
+
+        video.setAttribute(
+          "muted",
+          ""
+        );
+
+        video.setAttribute(
+          "autoplay",
+          ""
+        );
+
+        video.setAttribute(
+          "playsinline",
+          ""
+        );
+
+        video.setAttribute(
+          "webkit-playsinline",
+          ""
+        );
+
+        video.setAttribute(
+          "preload",
+          "auto"
+        );
+
+
+        if(
+          !video.currentSrc &&
+          video.querySelector(
+            "source[src]"
+          )
+        ){
+
+          try{
+            video.load();
+          }catch(e){}
+
+        }
+
+
+        try{
+
+          const promise =
+            video.play();
+
+          if(
+            promise &&
+            typeof promise.catch ===
+            "function"
+          ){
+            promise.catch(
+              () => {}
+            );
+          }
+
+        }catch(e){}
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   BIND EVENTS
+   ========================================================= */
+
+function bindEvents(){
+
+
+  /* -------------------------------------------------------
+     LOGO
+  ------------------------------------------------------- */
+
+  if(DOM.logoButton){
+
+    DOM.logoButton.addEventListener(
+      "click",
+      () => {
+        window.location.reload();
+      }
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     INTRO
+     로딩 완료 후 화면 아무 곳이나 터치하면 펼침
+  ------------------------------------------------------- */
+
+  document.addEventListener(
+    "pointerdown",
+    event => {
+
+      if(
+        state.introComplete ||
+        state.morphing ||
+        state.spread
+      ){
+        return;
+      }
+
+
+      if(
+        !DOM.introStack.classList.contains(
+          "ready"
+        )
+      ){
+        return;
+      }
+
+
+      /*
+        시작 버튼 / 링크 / 버튼류를
+        실수로 펼침 동작으로 처리하지 않는다.
+      */
+
+      if(
+        event.target.closest(
+          "button, a"
+        )
+      ){
+        return;
+      }
+
+
+      handleIntroInteraction();
+
+    },
+    {
+      passive:true
+    }
+  );
+
+
+  /* -------------------------------------------------------
+     NAV
+  ------------------------------------------------------- */
+
+  DOM.navDots.forEach(
+    dot => {
+
+      dot.addEventListener(
+        "click",
+        () => {
+
+          goToCard(
+            Number(
+              dot.dataset.target
+            )
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  /* -------------------------------------------------------
+     HEART
+     한 번 클릭 = 하트 하나
+  ------------------------------------------------------- */
+
+  if(
+    DOM.heartButton
+  ){
+
+    let lastTouchTime =
+      0;
+
+
+    const handleTouch =
+      event => {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        lastTouchTime =
+          Date.now();
+
+        createHeartBurst(
+          event
+        );
+
+      };
+
+
+    const handleClick =
+      event => {
+
+        event.stopPropagation();
+
+
+        /*
+          iOS에서 touchend 후 click이
+          중복으로 발생하는 것을 방지
+        */
+
+        if(
+          Date.now() -
+          lastTouchTime <
+          500
+        ){
+          return;
+        }
+
+
+        createHeartBurst(
+          event
+        );
+
+      };
+
+
+    DOM.heartButton.addEventListener(
+      "touchend",
+      handleTouch,
+      {
+        passive:false
+      }
+    );
+
+
+    DOM.heartButton.addEventListener(
+      "click",
+      handleClick
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     LANGUAGE
+  ------------------------------------------------------- */
+
+  if(
+    DOM.languageButton
+  ){
+
+    DOM.languageButton.addEventListener(
+      "click",
+      toggleLanguage
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     HOME
+  ------------------------------------------------------- */
+
+  if(
+    DOM.homeButton
+  ){
+
+    DOM.homeButton.addEventListener(
+      "click",
+      () => {
+
+        window.open(
+          CONFIG.companyUrl,
+          "_blank",
+          "noopener,noreferrer"
+        );
+
+      }
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     COPY
+  ------------------------------------------------------- */
+
+  document
+    .querySelectorAll(
+      "[data-copy]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          async () => {
+
+            await copyToClipboard(
+              button.dataset.copy
+            );
+
+
+            showToast(
+              button.dataset.copy
+                .includes("@")
+                ? "주소가 복사되었습니다"
+                : "번호가 복사되었습니다"
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  /* -------------------------------------------------------
+     SHARE
+  ------------------------------------------------------- */
+
+  if(
+    DOM.shareButton
+  ){
+
+    DOM.shareButton.addEventListener(
+      "click",
+      shareProfile
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     MAP
+  ------------------------------------------------------- */
+
+  if(
+    DOM.directionButton
+  ){
+
+    DOM.directionButton.addEventListener(
+      "click",
+      openMapModal
+    );
+
+  }
+
+
+  if(
+    DOM.modalClose
+  ){
+
+    DOM.modalClose.addEventListener(
+      "click",
+      closeMapModal
+    );
+
+  }
+
+
+  const modalBackdrop =
+    DOM.mapModal?.querySelector(
+      ".modal-backdrop"
+    );
+
+
+  if(
+    modalBackdrop
+  ){
+
+    modalBackdrop.addEventListener(
+      "click",
+      closeMapModal
+    );
+
+  }
+
+
+  if(
+    DOM.kakaoMap
+  ){
+
+    DOM.kakaoMap.addEventListener(
+      "click",
+      openKakaoMap
+    );
+
+  }
+
+
+  if(
+    DOM.naverMap
+  ){
+
+    DOM.naverMap.addEventListener(
+      "click",
+      openNaverMap
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     ESC
+  ------------------------------------------------------- */
+
+  window.addEventListener(
+    "keydown",
+    event => {
+
+      if(
+        event.key ===
+        "Escape"
+      ){
+
+        closeMapModal();
+
+      }
+
+    }
+  );
+
+
+  /* -------------------------------------------------------
+     TOUCH SWIPE
+  ------------------------------------------------------- */
+
+  if(
+    DOM.main
+  ){
+
+    DOM.main.addEventListener(
+      "touchstart",
+      event => {
+
+        state.touchStartY =
+          event.changedTouches[0]
+            .clientY;
+
+      },
+      {
+        passive:true
+      }
+    );
+
+
+    DOM.main.addEventListener(
+      "touchend",
+      event => {
+
+        const endY =
+          event.changedTouches[0]
+            .clientY;
+
+
+        const diff =
+          state.touchStartY -
+          endY;
+
+
+        if(
+          Math.abs(diff) <
+          50
+        ){
+          return;
+        }
+
+
+        goToCard(
+          state.currentCard +
+          (
+            diff > 0
+              ? 1
+              : -1
+          )
+        );
+
+      },
+      {
+        passive:true
+      }
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   INTRO LOADING
+   ========================================================= */
+
+function startIntro(){
+
+  const start =
+    performance.now();
+
+
+  function tick(now){
+
+    const progress =
+      Math.min(
+        (now - start) /
+        CONFIG.loadingDuration,
+        1
+      );
+
+
+    const percent =
+      Math.round(
+        progress * 100
+      );
+
+
+    DOM.loadingProgress.style.width =
+      `${percent}%`;
+
+
+    DOM.rocket.style.left =
+      `${percent}%`;
+
+
+    DOM.loadingText.textContent =
+      `${percent}%`;
+
+
+    if(
+      progress < 1
+    ){
+
+      requestAnimationFrame(
+        tick
+      );
+
+    }else{
+
+      finishLoading();
+
+    }
+
+  }
+
+
+  requestAnimationFrame(
+    tick
+  );
+
+}
+
+
+/* =========================================================
+   FINISH LOADING
+   ========================================================= */
+
+function finishLoading(){
+
+  DOM.loadingArea.classList.add(
+    "complete"
+  );
+
+
+  setTimeout(
+    () => {
+
+      DOM.introStack.classList.add(
+        "ready"
+      );
+
+
+      playIntroVideos();
+
+    },
+    CONFIG.stackRevealDelay
+  );
+
+
+  setTimeout(
+    () => {
+
+      DOM.introPerson.classList.add(
+        "visible"
+      );
+
+    },
+    CONFIG.personDelay
+  );
+
+
+  setTimeout(
+    () => {
+
+      DOM.introHint.classList.add(
+        "visible"
+      );
+
+    },
+    CONFIG.hintDelay
+  );
+
+}
+
+
+/* =========================================================
+   PLAY INTRO VIDEOS
+   ========================================================= */
+
+function playIntroVideos(){
+
+  DOM.stackCards.forEach(
+    stack => {
+
+      const video =
+        stack.querySelector(
+          ".card-video"
+        );
+
+
+      if(video){
+
+        video.play().catch(
+          () => {}
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   INTRO INTERACTION
+   화면 아무 곳이나 터치하면 카드 펼침
+   ========================================================= */
+
+function handleIntroInteraction(){
+
+  if(
+    state.introComplete ||
+    state.morphing
+  ){
+    return;
+  }
+
+
+  if(
+    !DOM.introStack.classList.contains(
+      "ready"
+    )
+  ){
+    return;
+  }
+
+
+  if(
+    state.spread
+  ){
+    return;
+  }
+
+
+  state.spread =
+    true;
+
+
+  /*
+    floating animation 종료
+  */
+
+  DOM.introStack.classList.remove(
+    "ready"
+  );
+
+
+  /*
+    카드 펼침
+  */
+
+  DOM.introStack.classList.add(
+    "spread"
+  );
+
+
+  /*
+    이름 / 힌트 제거
+  */
+
+  DOM.introHint.classList.remove(
+    "visible"
+  );
+
+  DOM.introPerson.classList.remove(
+    "visible"
+  );
+
+
+  /*
+    카드 펼침 완료 후
+    첫 번째 카드로 모핑
+  */
+
+  setTimeout(
+    startMorphToMain,
+    CONFIG.spreadDuration
+  );
+
+}
+
+
+/* =========================================================
+   MORPH TO MAIN
+   ========================================================= */
+
+function startMorphToMain(){
+
+  if(
+    state.morphing ||
+    state.introComplete
+  ){
+    return;
+  }
+
+
+  state.morphing =
+    true;
+
+
+  const stack =
+    document.querySelector(
+      ".stack-card-1"
+    );
+
+
+  const preview =
+    stack?.querySelector(
+      ".screen-card"
+    );
+
+
+  const previewVideo =
+    preview?.querySelector(
+      ".card-video"
+    );
+
+
+  const targetCard =
+    DOM.cards[0];
+
+
+  const targetMedia =
+    targetCard?.querySelector(
+      ".card-media"
+    );
+
+
+  const targetVideo =
+    targetCard?.querySelector(
+      ".card-video"
+    );
+
+
+  if(
+    !stack ||
+    !preview ||
+    !previewVideo ||
+    !targetCard ||
+    !targetMedia ||
+    !targetVideo
+  ){
+
+    enterMainFallback();
+
+    return;
+
+  }
+
+
+  /*
+    실제 target card 위치
+  */
+
+  const startRect =
+    stack.getBoundingClientRect();
+
+
+  const endRect =
+    targetMedia.getBoundingClientRect();
+
+
+  /*
+    morph video source
+  */
+
+  DOM.morphVideo.src =
+    previewVideo.currentSrc ||
+    previewVideo.querySelector(
+      "source"
+    )?.src ||
+    "";
+
+
+  /*
+    intro 영상의 현재 시간 유지
+  */
+
+  try{
+
+    if(
+      Number.isFinite(
+        previewVideo.currentTime
+      )
+    ){
+
+      DOM.morphVideo.currentTime =
+        previewVideo.currentTime;
+
+    }
+
+  }catch{}
+
+
+  DOM.morphVideo.play().catch(
+    () => {}
+  );
+
+
+  /*
+    main 준비
+  */
+
+  DOM.main.classList.add(
+    "active"
+  );
+
+
+  /*
+    target card 활성화
+  */
+
+  targetCard.classList.add(
+    "is-active"
+  );
+
+
+  /*
+    morph layer 시작 위치
+  */
+
+  Object.assign(
+    DOM.morphLayer.style,
+    {
+
+      left:
+        `${startRect.left}px`,
+
+      top:
+        `${startRect.top}px`,
+
+      width:
+        `${startRect.width}px`,
+
+      height:
+        `${startRect.height}px`,
+
+      borderRadius:
+        getComputedStyle(
+          targetCard
+        ).borderRadius,
+
+      opacity:
+        "1"
+
+    }
+  );
+
+
+  DOM.morphLayer.classList.add(
+    "active"
+  );
+
+
+  /*
+    video 동기화
+  */
+
+  syncVideoTime(
+    DOM.morphVideo,
+    targetVideo
+  );
+
+
+  DOM.morphLayer.getBoundingClientRect();
+
+
+  /*
+    FLIP animation
+  */
+
+  requestAnimationFrame(
+    () => {
+
+      DOM.morphLayer.style.left =
+        `${endRect.left}px`;
+
+      DOM.morphLayer.style.top =
+        `${endRect.top}px`;
+
+      DOM.morphLayer.style.width =
+        `${endRect.width}px`;
+
+      DOM.morphLayer.style.height =
+        `${endRect.height}px`;
+
+
+      DOM.main.style.opacity =
+        "1";
+
+    }
+  );
+
+
+  /*
+    animation 종료
+  */
+
+  setTimeout(
+    () => {
+
+      finishMorph(
+        targetVideo
+      );
+
+    },
+    CONFIG.morphDuration
+  );
+
+}
+
+
+/* =========================================================
+   SYNC VIDEO
+   ========================================================= */
+
+function syncVideoTime(
+  fromVideo,
+  toVideo
+){
+
+  if(
+    !fromVideo ||
+    !toVideo
+  ){
+    return;
+  }
+
+
+  const sync =
+    () => {
+
+      try{
+
+        if(
+          Number.isFinite(
+            fromVideo.currentTime
+          )
+        ){
+
+          toVideo.currentTime =
+            fromVideo.currentTime;
+
+        }
+
+      }catch{}
+
+    };
+
+
+  sync();
+
+
+  const interval =
+    setInterval(
+      sync,
+      80
+    );
+
+
+  setTimeout(
+    () => {
+
+      clearInterval(
+        interval
+      );
+
+    },
+    CONFIG.morphDuration + 300
+  );
+
+}
+
+
+/* =========================================================
+   FINISH MORPH
+   ========================================================= */
+
+function finishMorph(
+  targetVideo
+){
+
+  try{
+
+    targetVideo.currentTime =
+      DOM.morphVideo.currentTime;
+
+  }catch{}
+
+
+  targetVideo.play().catch(
+    () => {}
+  );
+
+
+  DOM.morphLayer.style.opacity =
+    "0";
+
+
+  setTimeout(
+    () => {
+
+      DOM.morphLayer.classList.remove(
+        "active"
+      );
+
+
+      DOM.morphLayer.style.cssText =
+        "";
+
+
+      DOM.intro.classList.add(
+        "is-hidden"
+      );
+
+
+      state.introComplete =
+        true;
+
+
+      state.morphing =
+        false;
+
+
+      state.currentCard =
+        0;
+
+
+      updateNavigation(
+        0
+      );
+
+
+      targetVideo.play().catch(
+        () => {}
+      );
+
+    },
+    350
+  );
+
+}
+
+
+/* =========================================================
+   FALLBACK
+   ========================================================= */
+
+function enterMainFallback(){
+
+  state.introComplete =
+    true;
+
+  state.morphing =
+    false;
+
+
+  DOM.main.classList.add(
+    "active"
+  );
+
+
+  DOM.cards[0].classList.add(
+    "is-active"
+  );
+
+
+  DOM.intro.classList.add(
+    "is-hidden"
+  );
+
+}
+
+
+/* =========================================================
+   INTERSECTION OBSERVER
+   ========================================================= */
+
+function setupIntersectionObserver(){
+
+  const observer =
+    new IntersectionObserver(
+      entries => {
+
+        entries.forEach(
+          entry => {
+
+            if(
+              !entry.isIntersecting
+            ){
+              return;
+            }
+
+
+            const card =
+              entry.target;
+
+
+            const index =
+              Number(
+                card.dataset.index
+              );
+
+
+            state.currentCard =
+              index;
+
+
+            activateCard(
+              card
+            );
+
+
+            updateNavigation(
+              index
+            );
+
+
+            const video =
+              card.querySelector(
+                ".card-video"
+              );
+
+
+            if(video){
+
+              video.play().catch(
+                () => {}
+              );
+
+            }
+
+          }
+        );
+
+      },
+      {
+
+        root:
+          DOM.main,
+
+        threshold:
+          .65
+
+      }
+    );
+
+
+  DOM.cards.forEach(
+    card => {
+
+      observer.observe(
+        card
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   ACTIVATE CARD
+   ========================================================= */
+
+function activateCard(
+  card
+){
+
+  DOM.cards.forEach(
+    item => {
+
+      if(
+        item !== card
+      ){
+
+        item.classList.remove(
+          "is-active"
+        );
+
+      }
+
+    }
+  );
+
+
+  card.classList.add(
+    "is-active"
+  );
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function updateNavigation(
+  index
+){
+
+  DOM.navDots.forEach(
+    (dot,dotIndex) => {
+
+      dot.classList.toggle(
+        "active",
+        dotIndex === index
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   GO CARD
+   ========================================================= */
+
+function goToCard(
+  index
+){
+
+  if(
+    !state.introComplete
+  ){
+    return;
+  }
+
+
+  const target =
+    Math.max(
+      0,
+      Math.min(
+        DOM.cards.length - 1,
+        index
+      )
+    );
+
+
+  DOM.cards[target]
+    .scrollIntoView(
+      {
+        behavior:
+          "smooth",
+
+        block:
+          "start"
+      }
+    );
+
+}
+
+
+/* =========================================================
+   HEART
+   한 번 클릭할 때마다
+   화면의 랜덤한 위치에 하트 하나
+   ========================================================= */
+
+function createHeartBurst(
+  event
+){
+
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+
+
+  const button =
+    DOM.heartButton;
+
+
+  if(!button){
+    return;
+  }
+
+
+  /*
+    화면 전체에서 랜덤 위치 생성
+  */
+
+  const padding =
+    40;
+
+
+  const originX =
+    padding +
+    Math.random() *
+    Math.max(
+      1,
+      window.innerWidth -
+      padding * 2
+    );
+
+
+  const originY =
+    padding +
+    Math.random() *
+    Math.max(
+      1,
+      window.innerHeight -
+      padding * 2
+    );
+
+
+  /*
+    하트 하나만 생성
+  */
+
+  createHeart(
+    originX,
+    originY
+  );
+
+}
+
+
+/* =========================================================
+   CREATE HEART
+   ========================================================= */
+
+function createHeart(
+  originX,
+  originY
+){
+
+  const heart =
+    document.createElement(
+      "span"
+    );
+
+
+  heart.className =
+    "floating-heart";
+
+
+  heart.textContent =
+    "♥";
+
+
+  /*
+    하트가 랜덤한 위치에서
+    위쪽으로 살짝 떠오르도록 한다.
+  */
+
+  const x =
+    Math.random() *
+    160 -
+    80;
+
+
+  const y =
+    Math.random() *
+    -180 -
+    40;
+
+
+  heart.style.left =
+    `${originX}px`;
+
+
+  heart.style.top =
+    `${originY}px`;
+
+
+  heart.style.setProperty(
+    "--x",
+    `${x}px`
+  );
+
+
+  heart.style.setProperty(
+    "--y",
+    `${y}px`
+  );
+
+
+  document.body.appendChild(
+    heart
+  );
+
+
+  /*
+    iOS Safari에서 animation 누락 방지
+  */
+
+  requestAnimationFrame(
+    () => {
+
+      requestAnimationFrame(
+        () => {
+
+          heart.classList.add(
+            "is-active"
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  const removeHeart =
+    () => {
+
+      if(
+        heart.parentNode
+      ){
+
+        heart.parentNode.removeChild(
+          heart
+        );
+
+      }
+
+    };
+
+
+  heart.addEventListener(
+    "animationend",
+    removeHeart,
+    {
+      once:true
+    }
+  );
+
+
+  heart.addEventListener(
+    "webkitAnimationEnd",
+    removeHeart,
+    {
+      once:true
+    }
+  );
+
+}
+
+
+/* =========================================================
+   LANGUAGE
+   ========================================================= */
+
+function toggleLanguage(
+  event
+){
+
+  event.stopPropagation();
+
+
+  state.language =
+    state.language === "ko"
+      ? "en"
+      : "ko";
+
+
+  document
+    .querySelectorAll(
+      "[data-ko][data-en]"
+    )
+    .forEach(
+      element => {
+
+        element.textContent =
+          element.dataset[
+            state.language
+          ];
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   COPY
+   ========================================================= */
+
+async function copyToClipboard(
+  value
+){
+
+  try{
+
+    await navigator.clipboard
+      .writeText(
+        value
+      );
+
+    return true;
+
+  }catch{
+
+    const textarea =
+      document.createElement(
+        "textarea"
+      );
+
+
+    textarea.value =
+      value;
+
+
+    textarea.style.position =
+      "fixed";
+
+
+    textarea.style.opacity =
+      "0";
+
+
+    document.body.appendChild(
+      textarea
+    );
+
+
+    textarea.select();
+
+
+    try{
+
+      document.execCommand(
+        "copy"
+      );
+
+    }catch{}
+
+
+    textarea.remove();
+
+
+    return true;
+
+  }
+
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function showToast(
+  message
+){
+
+  clearTimeout(
+    state.toastTimer
+  );
+
+
+  DOM.toast
+    .querySelector(
+      "span"
+    )
+    .textContent =
+      message;
+
+
+  DOM.toast.classList.add(
+    "show"
+  );
+
+
+  state.toastTimer =
+    setTimeout(
+      () => {
+
+        DOM.toast.classList.remove(
+          "show"
+        );
+
+      },
+      CONFIG.toastDuration
+    );
+
+}
+
+
+/* =========================================================
+   SHARE
+   ========================================================= */
+
+async function shareProfile(){
+
+  const shareData = {
+
+    title:
+      "ZNUS Profile",
+
+    text:
+      "ZNUS Digital Profile",
+
+    url:
+      window.location.href
+
+  };
+
+
+  if(
+    navigator.share
+  ){
+
+    try{
+
+      await navigator.share(
+        shareData
+      );
+
+    }catch(error){
+
+      if(
+        error.name !==
+        "AbortError"
+      ){
+
+        showToast(
+          "공유할 수 없습니다"
+        );
+
+      }
+
+    }
+
+    return;
+
+  }
+
+
+  await copyToClipboard(
+    window.location.href
+  );
+
+
+  showToast(
+    "페이지 주소가 복사되었습니다"
+  );
+
+}
+
+
+/* =========================================================
+   QR
+   ========================================================= */
+
+function createQRCode(){
+
+  if(
+    !DOM.qrCode ||
+    typeof QRCode ===
+      "undefined"
+  ){
+    return;
+  }
+
+
+  DOM.qrCode.innerHTML =
+    "";
+
+
+  new QRCode(
+    DOM.qrCode,
+    {
+
+      text:
+        window.location.href,
+
+      width:
+        160,
+
+      height:
+        160,
+
+      colorDark:
+        "#050505",
+
+      colorLight:
+        "#ffffff",
+
+      correctLevel:
+        QRCode.CorrectLevel.H
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   MAP MODAL
+   ========================================================= */
+
+function openMapModal(){
+
+  DOM.mapModal.classList.add(
+    "open"
+  );
+
+
+  DOM.mapModal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+
+  document.body.style.overflow =
+    "hidden";
+
+}
+
+
+function closeMapModal(){
+
+  DOM.mapModal.classList.remove(
+    "open"
+  );
+
+
+  DOM.mapModal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  document.body.style.overflow =
+    "";
+
+}
+
+
+/* =========================================================
+   KAKAO MAP
+   ========================================================= */
+
+function openKakaoMap(){
+
+  const encoded =
+    encodeURIComponent(
+      CONFIG.address
+    );
+
+
+  window.open(
+    `https://map.kakao.com/?q=${encoded}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
+
+}
+
+
+/* =========================================================
+   NAVER MAP
+   ========================================================= */
+
+function openNaverMap(){
+
+  const encoded =
+    encodeURIComponent(
+      CONFIG.address
+    );
+
+
+  window.open(
+    `https://map.naver.com/p/search/${encoded}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
+
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  init
+);
+
+
+/* =========================================================
+   PAGE LOAD
+   ========================================================= */
+
+window.addEventListener(
+  "load",
+  () => {
+
+    /*
+      영상 재생은 시작 버튼 승인 후에만 수행
+    */
+
+  },
+  {
+    passive:true
+  }
+);
+
+
+/* =========================================================
+   VISIBILITY CHANGE
+   모바일 Safari 탭 복귀 시 영상 재생 복구
+   ========================================================= */
+
+document.addEventListener(
+  "visibilitychange",
+  () => {
+
+    if(
+      !document.hidden &&
+      state.videoApproved
+    ){
+
+      forceAutoplayAllVideos();
+
+    }
+
+  },
+  {
+    passive:true
+  }
+);
+
+
+/* =========================================================
+   PAGE SHOW
+   ========================================================= */
+
+window.addEventListener(
+  "pageshow",
+  () => {
+
+    if(
+      state.videoApproved
+    ){
+
+      forceAutoplayAllVideos();
+
+    }
+
+  },
+  {
+    passive:true
+  }
+);
+
+
+})();
+
+</script>
+</body>
+</html>

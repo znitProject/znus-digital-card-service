@@ -1,0 +1,20 @@
+# Google Apps Script / clasp local configuration
+.clasp.json
+.clasprc.json
+
+# Service-specific IDs and credentials
+.env
+.env.*
+!.env.example
+secrets/
+
+# Local editor and operating system files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Build and dependency artifacts
+node_modules/
+dist/
+coverage/
+*.code-workspace

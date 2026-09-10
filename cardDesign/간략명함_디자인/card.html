@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ZNUS">
+<meta property="og:title" content="ZNUS">
+<meta property="og:description" content="ZNUS">
+<meta property="og:url" content="https://www.znus.co.kr/">
+<meta property="og:image" content="https://www.znus.co.kr/znus-symbol-metal.png">
+<meta property="og:locale" content="ko_KR">
+<meta name="format-detection" content="telephone=no" />
+<link rel="apple-touch-icon" sizes="180x180" href="images/logo_s_v.svg" />
+<link rel="icon" type="image/png" sizes="512x512" href="images/logo_s_v.svg" />
+<link rel="icon" type="image/png" sizes="192x192" href="images/logo_s_v.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="images/logo_s_v.svg" />
+<title>ZNUS</title>
+<link rel="stylesheet" href="font.css">
+
+<style>
+/* =========================================================
+   RESET
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 24px;
+
+  background: #fff;
+
+  font-family:
+    "Pretendard",
+    "Noto Sans KR",
+    Arial,
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+
+/* =========================================================
+   CARD
+   Original image size
+   626 × 1110
+   ========================================================= */
+
+.business-card {
+  position: relative;
+
+  width: min(626px, 100%);
+  aspect-ratio: 626 / 1110;
+
+  overflow: hidden;
+
+background: #060D15;
+background: linear-gradient(145deg, rgba(6, 13, 21, 1) 0%, rgba(0, 32, 65, 1) 100%);
+  color: #fff;
+
+  isolation: isolate;
+
+  /*
+   * 카드 크기를 기준으로 내부 글자 크기를 계산
+   */
+  container-type: inline-size;
+}
+
+
+/* =========================================================
+   IDENTITY
+   ========================================================= */
+
+.identity {
+  position: absolute;
+
+  top: 3.9%;
+  left: 6.1%;
+}
+
+.name-ko {
+  margin: 0;
+
+  font-size: 13.74cqw;
+  line-height: 0.95;
+
+  font-weight: 500;
+
+  letter-spacing: -0.075em;
+
+  white-space: nowrap;
+}
+
+.name-en {
+  margin-top: 3.9%;
+
+  color: #91a0b3;
+
+  font-size: 6.71cqw;
+  line-height: 1;
+
+  font-weight: 400;
+
+  letter-spacing: -0.035em;
+
+  white-space: nowrap;
+	font-family: paperozi;
+}
+
+.position {
+  margin-top: 4.5%;
+
+  color: #c1c2c4;
+
+  font-size: 7.99cqw;
+  line-height: 1;
+
+  font-weight: 400;
+
+  letter-spacing: -0.08em;
+}
+
+
+/* =========================================================
+   ZNUS LOGO
+   ========================================================= */
+
+.logo {
+  position: absolute;
+
+  top: 3.87%;
+  right: 7.35%;
+
+  width: 40px;
+  height: 40px;
+
+  background-image: url("images/logo_s_aw.svg");
+
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+
+/* =========================================================
+   MOBILE : 010
+   ========================================================= */
+
+.mobile {
+  position: absolute;
+
+  top: 26%;
+  right: 6.9%;
+
+  color: #91a0b3;
+
+  font-size: 14.7cqw;
+  line-height: 0.9;
+
+  font-weight: 300;
+
+  letter-spacing: -0.065em;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   MOBILE NUMBER
+   ========================================================= */
+
+.mobile-number {
+  position: absolute;
+
+  right: 7%;
+
+  color: #fff;
+
+  font-size: 30cqw;
+  line-height: 0.88;
+
+  font-weight: 300;
+
+  letter-spacing: -0.09em;
+
+  white-space: nowrap;
+}
+
+.mobile-number.first {
+  top: 33%;
+}
+
+.mobile-number.second {
+  top: 48%;
+}
+
+
+/* =========================================================
+   EMAIL
+   ========================================================= */
+
+.email {
+  position: absolute;
+
+  top: 67%;
+  right: 7.1%;
+
+  text-align: right;
+
+  white-space: nowrap;
+}
+
+.email-id {
+  display: block;
+font-family: paperozi;
+  color: #fff;
+
+  font-size: 12cqw;
+  line-height: 0.83;
+
+  font-weight: 600;
+
+  letter-spacing: -0.075em;
+}
+
+.email-domain {
+  display: block;
+font-family: paperozi;
+  margin-top: 5%;
+
+  color: #91a0b3;
+
+  font-size: 6cqw;
+  line-height: 0.95;
+
+  font-weight: 400;
+
+  letter-spacing: -0.045em;
+}
+
+
+/* =========================================================
+   CONTACT / ADDRESS
+   ========================================================= */
+
+.contact {
+  position: absolute;
+    font-family: 'Paperozi';
+  left: 6.8%;
+  right: 5.7%;
+  bottom: 3%;
+
+  color: #aeb6c1;
+
+  font-size: 4.15cqw;
+  line-height: 1.8;
+
+  font-weight: 400;
+
+  letter-spacing: -0.035em;
+}
+
+.contact-row {
+  display: flex;
+
+  align-items: baseline;
+
+  min-height: 1.8em;
+
+  white-space: nowrap;
+}
+
+.contact-label {
+  flex: 0 0 auto;
+
+  width: 1.7em;
+
+  color: #fff;
+
+  font-size: 1.08em;
+
+  font-weight: 700;
+
+  letter-spacing: 0;
+}
+
+.contact-value {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   MOBILE SCREEN
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  body {
+    padding: 12px;
+  }
+
+}
+
+
+/* =========================================================
+   SHORT DESKTOP SCREEN
+   ========================================================= */
+
+@media (max-height: 700px) and (min-width: 700px) {
+
+  body {
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
+  .business-card {
+    width: min(55vw, 400px);
+  }
+
+}
+
+
+/* =========================================================
+   PRINT
+   ========================================================= */
+
+@media print {
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  body {
+    padding: 0;
+  }
+
+  .business-card {
+    width: 626px;
+    height: 1110px;
+
+    aspect-ratio: auto;
+
+    box-shadow: none;
+  }
+
+}
+</style>
+</head>
+
+
+<body>
+
+
+<!-- =======================================================
+     BUSINESS CARD
+     ======================================================= -->
+
+<main
+  class="business-card"
+  aria-label="홍길동 명함"
+>
+
+
+  <!-- =====================================================
+       이름 / 직급
+       ===================================================== -->
+
+  <section class="identity">
+
+    <h1 class="name-ko">
+      홍길동
+    </h1>
+
+    <div class="name-en">
+      Hong Gildong
+    </div>
+
+    <div class="position">
+      부장
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       ZNUS LOGO
+       ===================================================== -->
+
+  <div
+    class="logo"
+    aria-label="ZNUS"
+  ></div>
+
+
+  <!-- =====================================================
+       휴대전화 앞자리
+       ===================================================== -->
+
+  <div
+    class="mobile"
+    aria-label="휴대전화"
+  >
+    010
+  </div>
+
+
+  <!-- =====================================================
+       휴대전화 뒷자리
+       ===================================================== -->
+
+  <div
+    class="mobile-number first"
+    aria-hidden="true"
+  >
+    1234
+  </div>
+
+
+  <div
+    class="mobile-number second"
+    aria-hidden="true"
+  >
+    5678
+  </div>
+
+
+  <!-- =====================================================
+       EMAIL
+       ===================================================== -->
+
+  <section
+    class="email"
+    aria-label="이메일"
+  >
+
+    <span class="email-id">
+      gildong
+    </span>
+
+    <span class="email-domain">
+      @znus.co.kr
+    </span>
+
+  </section>
+
+
+  <!-- =====================================================
+       연락처 / 주소
+       ===================================================== -->
+
+  <section
+    class="contact"
+    aria-label="연락처 및 주소"
+  >
+
+    <div class="contact-row">
+
+      <span class="contact-label">
+        T
+      </span>
+
+      <span class="contact-value">
+        031.996.4823
+      </span>
+
+    </div>
+
+
+    <div class="contact-row">
+
+      <span class="contact-label">
+        F
+      </span>
+
+      <span class="contact-value">
+        031.996.4824
+      </span>
+
+    </div>
+
+
+    <div class="contact-row">
+
+      <span class="contact-label">
+        A
+      </span>
+
+      <span class="contact-value">
+        경기도 김포시 장차로5번길 20, 4층
+      </span>
+
+    </div>
+
+  </section>
+
+
+</main>
+
+
+</body>
+</html>

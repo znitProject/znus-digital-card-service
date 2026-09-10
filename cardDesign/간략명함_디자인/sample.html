@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+<meta name="keywords" content="ZNUS" />
+<meta name="description" content="ZNUS" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ZNUS">
+<meta property="og:title" content="ZNUS">
+<meta property="og:description" content="ZNUS">
+<meta property="og:url" content="https://www.znus.co.kr/">
+<meta property="og:image" content="https://www.znus.co.kr/znus-symbol-metal.png">
+<meta property="og:locale" content="ko_KR">
+<meta name="format-detection" content="telephone=no" />
+<link rel="apple-touch-icon" sizes="180x180" href="../img/logo_s_v.svg" />
+<link rel="icon" type="image/png" sizes="512x512" href="../img/logo_s_v.svg" />
+<link rel="icon" type="image/png" sizes="192x192" href="../img/logo_s_v.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="../img/logo_s_v.svg" />
+<title>ZNUS</title>
+<style>
+:root {
+    color-scheme: dark;
+    --bg: #09090b;
+    --panel: #141416;
+    --line: rgba(255, 255, 255, 0.1);
+    --text: #f4f4f5;
+    --muted: #8b8b93;
+    --radius: 22px;
+    --stack-gap: 24px;
+    --app-height: 100vh;
+}
+* {
+    box-sizing: border-box;
+}
+	@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Thin.woff2') format('woff2');
+    font-weight: 100;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraLight.woff2') format('woff2');
+    font-weight: 200;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraBold.woff2') format('woff2');
+    font-weight: 800;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Black.woff2') format('woff2');
+    font-weight: 900;
+    font-display: swap;
+}
+	
+body {
+    height: 100vh;
+    height: var(--app-height);
+    margin: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    font-family: 'Pretendard' ui-sans-serif, system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    background: radial-gradient(circle at 50% -15%, rgba(109, 79, 255, 0.16), transparent 30rem), var(--bg);
+}
+.page {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    text-align: center;
+    box-sizing: border-box;
+    padding: 0;
+    display: grid;
+    place-items: center;
+}
+.examples {
+    position: relative;
+    width: 100%;
+    height: var(--app-height);
+    overflow: hidden;
+    padding: 20px;
+}
+body.is-expanded .examples {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-snap-type: none;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+    align-items: center;
+    width: 100%;
+    height: var(--app-height);
+    padding: 20px;
+    margin: 0;
+}
+body.is-expanded.has-scrolled .examples {
+    scroll-snap-type: y mandatory;
+}
+
+.guide-text {
+    position: fixed;
+    top: 17px;
+    left: calc(50% - 0px);
+    transform: translateX(-50%);
+    z-index: 9999;
+    color: #fff;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+    opacity: 0.8;
+    animation: guide-pulse 2s ease-in-out infinite;
+    width: calc(100vw - 40px);
+    text-align: center;
+    border: 1px solid #fff;
+    padding: 5px;
+    margin: 0;
+    border-radius: 20px;
+}
+body.is-expanded .guide-text, .guide-text.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+@keyframes guide-pulse {
+0%, 100% {
+opacity: 0.4;
+transform: translateX(-50%) translateY(0);
+}
+50% {
+opacity: 0.9;
+transform: translateX(-50%) translateY(4px);
+}
+}
+
+.collapse-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    padding: 5px 20px;
+    border: 1px solid #fff;
+    border-radius: 999px;
+    color:#fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    background: #ffffff10;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease, background 0.2s ease;
+}
+	
+.collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+body.is-expanded .collapse-btn {
+    opacity: 1;
+    visibility: visible;
+    animation: collapse-pulse 2s ease-in-out infinite;
+}
+
+@keyframes collapse-pulse {
+0%, 100% {
+opacity: 0.8;
+transform: translateY(0);
+}
+50% {
+opacity: 1;
+transform: translateY(3px);
+}
+}
+
+.beam {
+--beam: conic-gradient(from 0deg, transparent 0 36%, #5eead4 43%, #60a5fa 48%, #a855f7 53%, #fb7185 58%, transparent 65% 100%);
+--mx: 50%;
+--my: 50%;
+--rotate-x: 0deg;
+--rotate-y: 0deg;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    position: absolute;
+    inset: 20px; /* 양옆 위아래 20px 간격 유지 */
+    z-index: calc(7 - var(--stack-index));
+    height: calc(var(--app-height) - (var(--stack-gap) * 5) - 40px);
+    width: calc(100% - 40px);
+    padding: 1px;
+    border-radius: var(--radius);
+    cursor: grab;
+    touch-action: none;
+    transform: translateY(calc((6 - var(--stack-index)) * var(--stack-gap) + var(--drag-y, 0px))) translate3d(var(--shuffle-x, 0px), var(--shuffle-y, 0px), 0) perspective(900px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+    transform-style: preserve-3d;
+    transition: transform 520ms cubic-bezier(.2, .8, .2, 1), box-shadow 280ms ease;
+    will-change: transform;
+}
+.beam:hover {
+    box-shadow: var(--shadow-x, 0px) calc(var(--shadow-y, 0px) + 30px) 45px rgba(0, 0, 0, 0.46);
+}
+.beam:active {
+    cursor: grabbing;
+}
+.beam.is-dragging {
+    transition: none;
+}
+.beam.is-shuffling {
+    animation: shuffle-highlight 520ms ease;
+}
+body.is-expanded .beam {
+    position: relative;
+    inset: auto;
+    display: block;
+    flex: 0 0 calc(var(--app-height) - 40px);
+    width: calc(100vw - 40px);
+    height: calc(var(--app-height) - 40px) !important;
+    min-height: calc(var(--app-height) - 40px) !important;
+    border-radius: var(--radius);
+    margin: 0 0 20px 0;
+    transform: translateY(var(--drag-y, 0px)) translate3d(var(--shuffle-x, 0px), var(--shuffle-y, 0px), 0) perspective(900px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+    touch-action: auto;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+}
+body.is-expanded .beam:first-child {
+    margin-top: 0;
+}
+body.is-expanded .beam .beam__content {
+    border-radius: calc(var(--radius) - 1px);
+    border: 1px solid var(--line);
+}
+
+@media (min-aspect-ratio: 1 / 1) {
+.beam {
+    width: calc(100% - (var(--stack-gap) * 5) - 40px);
+    height: calc(var(--app-height) - 40px);
+    transform: translateX(calc((6 - var(--stack-index)) * var(--stack-gap) + var(--drag-x, 0px))) translate3d(var(--shuffle-x, 0px), var(--shuffle-y, 0px), 0) perspective(900px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+}
+	.guide-text{    top: 20px;
+        left: 40px;
+        width: 40px;
+        height: calc(100vh - 40px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        writing-mode: vertical-rl;}
+body.is-expanded .examples {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: none;
+    width: 100%;
+    height: var(--app-height);
+    align-items: center;
+    padding: 20px;
+}
+body.is-expanded.has-scrolled .examples {
+    scroll-snap-type: x mandatory;
+}
+body.is-expanded .beam {
+    flex: 0 0 calc(100vw - 40px);
+    width: calc(100vw - 40px);
+    height: calc(var(--app-height) - 40px) !important;
+    min-height: calc(var(--app-height) - 40px) !important;
+    border-radius: var(--radius);
+    margin: 0 20px 0 0;
+    transform: translateX(var(--drag-x, 0px)) translate3d(var(--shuffle-x, 0px), var(--shuffle-y, 0px), 0) perspective(900px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+    touch-action: auto;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+}
+body.is-expanded .beam:first-child {
+    margin-left: 0;
+}
+body.is-expanded .beam .beam__content {
+    border-radius: calc(var(--radius) - 1px);
+    border: 1px solid var(--line);
+}
+}
+.beam::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: -130%;
+    background: var(--beam);
+    animation: spin 4s linear infinite;
+}
+.beam__content {
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+    overflow: hidden;
+    height: 100%;
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    border: 1px solid var(--line);
+    border-radius: calc(var(--radius) - 1px);
+    background: radial-gradient(circle at var(--mx) var(--my), rgba(147, 197, 253, 0.11), transparent 35%), linear-gradient(145deg, #1b1b1e, #101012 65%);
+    transition: background 120ms linear;
+}
+
+/* 개별 카드 상단 왼쪽 로고 스타일 */
+.card-logo {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    width: 20px;
+    height: 20px;
+    background: url('../img/logo_s_aw.svg') no-repeat center / contain;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.beam__content::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 165%;
+    aspect-ratio: 1;
+    left: -33%;
+    top: -65%;
+    border-radius: 50%;
+    opacity: 0.42;
+    filter: blur(22px);
+    background: conic-gradient(from 30deg, transparent 0 29%, rgba(45, 212, 191, 0.28) 38%, rgba(96, 165, 250, 0.32) 47%, rgba(192, 132, 252, 0.30) 56%, transparent 67% 100%);
+    animation: surface-drift 7s ease-in-out infinite alternate;
+}
+.pulse .beam__content::before {
+    opacity: 0.3;
+    animation-duration: 4.6s;
+}
+.pulse {
+--beam: conic-gradient(from 150deg, transparent 0 60%, #38bdf8 68%, #2dd4bf 73%, #a78bfa 79%, transparent 88% 100%);
+}
+.pulse::before {
+    animation: spin 5s linear infinite, pulse 2.1s ease-in-out infinite;
+}
+.pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    box-shadow: 0 0 46px 4px rgba(56, 189, 248, 0.16);
+    animation: glow 2.1s ease-in-out infinite;
+}
+.profile {
+    width: min(100%, 450px);
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    justify-items: center;
+    text-align: center;
+}
+.profile__brand {
+    display: grid;
+    justify-items: center;
+    gap: 0px;    margin-top: 60px;
+}
+
+.profile__logo {
+    width: 180px;
+    height: 60px;
+    position: relative;
+    flex: 0 0 auto;
+    background: url('../img/logo_w_2.svg') no-repeat center / contain;
+    border: none;
+    transform: none;
+}
+.profile__logo::after {
+    display: none;
+}
+
+.profile__company {
+    color: #f4f4f5;
+    font-size: .76rem;
+    font-weight: 400;
+    letter-spacing: .19em;
+}
+.profile__footer {
+    display: grid;
+    justify-items: center;
+}
+.profile__name {
+    margin: 80px 0 0;
+    color: #fafafa;
+    font-size: clamp(2.8rem, 5.8vw, 5.2rem);
+    font-weight: 500;
+    letter-spacing: -.02em;
+}
+.profile__role {
+    margin-top: 0;
+    color: #a1a1aa;
+    font-size: .92rem;
+}
+.profile__details {
+        display: flex;
+    justify-items: center;
+    gap: 5px;
+    margin: clamp(32px, 6vh, 66px) 0 0;
+    color: #c4c4cc;
+    font-size: .83rem;
+    line-height: 1.45;
+    text-align: left;
+    flex-direction: column;
+}
+.profile__details p {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
+.profile__details a {
+    color: inherit;
+    text-decoration: none;
+    width: fit-content;
+}
+.profile__details a:hover {
+    color: white;
+    border-color: white;
+}
+.portrait-card .beam__content {
+    align-items: end;
+    padding: clamp(26px, 5vw, 58px);
+    background: linear-gradient(0deg, rgba(5,5,8,.95) 2%, rgba(5,5,8,.25) 54%, rgba(5,5,8,.08)), url('https://external-cdn.morphic.com/website-production/assets/seo/images/tools/ai-profile-picture-generator/ai-profile-picture-generator-prompt-02.webp') center/cover;
+}
+.portrait-card__name {
+    margin: 0;
+    color: white;
+    font-size: clamp(3.2rem, 8vw, 7rem);
+    font-weight: 500;
+	line-height: 0.9;
+    letter-spacing: -.01em;
+    text-shadow: 0 5px 30px rgba(0,0,0,.5);
+}
+.portrait-card__role {
+    margin: 0.2rem 0 0;
+    color: rgba(255,255,255,.76);
+    font-size: .78rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+	
+}
+.contact-card {
+    text-align: center;
+}
+.contact-card .beam__content {
+    display: block;
+    padding: clamp(26px, 5vw, 58px);
+}
+.contact-card__inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+.contact-card__phone {    display: flex;
+    gap: .05em;
+    color: #fff;
+    font-size: clamp(6.6rem, 10vw, 10rem);
+    font-weight: 600;
+    letter-spacing: -.03em;
+    line-height: .82;
+    /* text-align: left; */
+    text-decoration: none;
+    text-shadow: 0 0 38px rgba(165, 243, 252, .28);
+    flex-direction: column;    margin-top: 40px;
+}
+.contact-card__work {
+    color: #a1a1aa;
+    font-size: clamp(0.75rem, 1.5vw, 0.95rem);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 10px 0;
+}
+.contact-card__email {
+    display: block;
+    color: #e4e4e7;
+    text-decoration: none;
+    line-height: 1;
+}
+.contact-card__email-id {
+    font-size: clamp(1.6rem, 3.5vw, 3.8rem);
+    letter-spacing: -.02em;
+}
+.contact-card__email-domain {
+    color: #a1a1aa;
+    font-size: clamp(.82rem, 1.45vw, 1.25rem);
+    letter-spacing: 0em;
+}
+.map-card .beam__content {
+    padding: clamp(26px, 5vw, 58px);
+}
+.address-card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+}
+.address-card__top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+}
+.address-card__qrcode {
+    margin: 80px 0 0;
+}
+	
+	.address-card__qrcode img{width:160px;}
+.address-card__text {
+    margin: 0;
+    color: #fafafa;
+    font-size: clamp(1.5rem, 3vw, 2.6rem);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -.04em;
+}
+.address-card__buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+.address-card__buttons a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px 20px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 16px;
+    color: #e4e4e7;
+    font-size: .9rem;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-decoration: none;
+    background: rgba(255,255,255,.05);
+    backdrop-filter: blur(5px);
+    transition: all 0.2s ease;
+}
+.address-card__buttons a svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+.address-card__buttons a:hover {
+    color: white;
+    background: rgba(255,255,255,.12);
+    border-color: rgba(255,255,255,.3);
+    transform: translateY(-2px);
+}
+.symbol-card {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.symbol-card__content-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    width: 100%;margin-top: 60px;
+}
+
+.symbol-card__brand {
+    color: #a1a1aa;
+    font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+    font-weight: 700;
+    letter-spacing: .15em;
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.symbol-card__logo {
+    width: 220px;
+    height: 78px;
+    position: relative;
+    background: url('../img/logo_w_w0.svg') no-repeat center / contain;
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
+}
+.symbol-card__logo::after {
+    display: none;
+}
+
+.symbol-card__desc {
+    color: #a1a1aa;
+    font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+    letter-spacing: 0.05em;
+    margin-top: 24px;
+    margin-bottom: 0;
+}
+
+.symbol-card__button {
+    width: 100%;
+    padding: 16px 20px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 16px;
+    color: white;
+    font-size: .9rem;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-decoration: none;
+    background: rgba(255,255,255,.09);
+    transition: transform .2s ease, background .2s ease;
+    margin-top: auto;
+}
+.symbol-card__button:hover {
+    background: rgba(255,255,255,.18);
+    transform: translateY(-2px);
+}
+.role-card {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: 10px 0;    margin-top: 60px;
+}
+.role-card__content-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.role-card__eyebrow {
+    margin: 0 0 16px;
+    color: #a1a1aa;
+    font-size: .78rem;
+    letter-spacing: .19em;
+    text-transform: uppercase;
+}
+.role-card__title {
+    margin: 0;
+    max-width: 11ch;
+    color: white;
+    font-size: clamp(2.7rem, 6.5vw, 6.4rem);
+    font-weight: 500;
+    line-height: .88;
+    letter-spacing: -.03em;
+}
+.role-card__rule {
+    width: 54px;
+    height: 1px;
+    margin: 24px auto 0;
+    background: linear-gradient(90deg, transparent, #a5f3fc, transparent);
+}
+.role-card__list {
+    display: grid;
+    gap: 8px;
+    margin: 20px 0 0;
+    padding: 0;
+    color: #b9b9c2;
+    font-size: .82rem;
+    line-height: 1.2;
+    list-style: none;
+}
+.role-card__footer {
+    margin-top: auto;
+    padding-top: 15px;
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    width: 100%;
+}
+.beam:nth-child(2)::before {
+    animation-duration: 5.8s;
+    animation-direction: reverse;
+}
+.beam:nth-child(3)::before {
+    animation-duration: 3.3s;
+}
+.beam:nth-child(5)::before {
+    animation-duration: 6.4s;
+    animation-direction: reverse;
+}
+.beam:nth-child(6)::before {
+    animation-duration: 3.8s;
+}
+@keyframes spin {
+to {
+transform: rotate(1turn);
+}
+}
+@keyframes pulse {
+50% {
+opacity: .55;
+filter: saturate(1.4) brightness(1.35);
+}
+}
+@keyframes glow {
+50% {
+opacity: .35;
+transform: scale(.96);
+}
+}
+@keyframes shuffle-highlight {
+50% {
+filter: brightness(1.24) saturate(1.2);
+}
+}
+@keyframes surface-drift {
+0% {
+transform: translate3d(-8%, -4%, 0) rotate(-12deg) scale(0.95);
+}
+100% {
+transform: translate3d(15%, 28%, 0) rotate(35deg) scale(1.08);
+}
+}
+
+@media (max-width: 760px) {
+body {
+    padding: 0;
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+.beam::before, .pulse::after, .beam__content::before {
+    animation: none;
+}
+}
+</style>
+</head>
+<body>
+<!-- 첫 접속 시 안내 텍스트 -->
+<div class="guide-text" id="guideText">카드를 아래로 잡아 펼치세요</div>
+
+<!-- 펼쳐졌을 때 나타나는 접기 버튼 -->
+<button class="collapse-btn" onclick="setExpanded(false)">접기</button>
+<main class="page">
+  <section class="examples" aria-label="Border beam examples">
+    <article class="beam portrait-card" style="--stack-index: 1">
+      <div class="beam__content">
+        <div class="card-logo" aria-hidden="true"></div>
+        <div>
+          <p class="portrait-card__name">Hong Gildong</p>
+          <p class="portrait-card__role">Assistant Manager</p>
+        </div>
+      </div>
+    </article>
+    <article class="beam pulse" style="--stack-index: 5">
+      <div class="beam__content">
+        <div class="card-logo" aria-hidden="true"></div>
+        <div class="role-card">
+          <div class="role-card__content-wrap">
+            <p class="role-card__eyebrow">Technical Team</p>
+            <h2 class="role-card__title">Assistant Manager</h2>
+            <div class="role-card__rule"></div>
+            <ul class="role-card__list">
+              <li>Manage the development team</li>
+              <li>Plan project schedules</li>
+              <li>Assign tasks and resources</li>
+              <li>Monitor project progress</li>
+              <li>Support team performance</li>
+            </ul>
+          </div>
+          <div class="role-card__footer">정보공개 프로젝트 개발 매니저</div>
+        </div>
+      </div>
+    </article>
+    <article class="beam contact-card" style="--stack-index: 2">
+      <div class="beam__content">
+        <div class="card-logo" aria-hidden="true"></div>
+        <div class="contact-card__inner">
+          <a class="contact-card__phone" href="tel:+82101234567"><span>010</span><span>1234</span><span>567</span></a>
+          <div class="contact-card__work">9 to 6 / Working Day</div>
+          <a class="contact-card__email" href="mailto:gildong@znus.co.kr"><span class="contact-card__email-id">gildong</span><span class="contact-card__email-domain">@znus.co.kr</span></a>
+        </div>
+      </div>
+    </article>
+    <article class="beam pulse" style="--stack-index: 4">
+      <div class="beam__content">
+        <div class="card-logo" aria-hidden="true"></div>
+        <div class="symbol-card">
+          <div class="symbol-card__content-group">
+            <span class="symbol-card__logo" aria-label="ZNUS Inc. logo"></span>
+            <p class="symbol-card__brand">ZNUS Inc.</p>
+            
+          </div>
+			<p class="symbol-card__desc">Connecting<br>People, Technology, and the Future</p>
+			
+          <a class="symbol-card__button" href="https://www.znus.co.kr" target="_blank" rel="noreferrer">Visit our Website ↗</a>
+        </div>
+      </div>
+    </article>
+    <article class="beam pulse map-card" style="--stack-index: 3">
+      <div class="beam__content">
+        <div class="card-logo" aria-hidden="true"></div>
+        <div class="address-card">
+          <div class="address-card__top">
+            <p class="address-card__qrcode">
+			  <img src="../img/qr/sample.png" alt="홍길동 프로필 주소">
+			  </p>
+            <p class="address-card__text"></p>
+          </div>
+          <div class="address-card__buttons">
+			  <a href="" target="_blank" rel="noreferrer">
+                <svg viewBox="0 0 24 24"><path d="M4 4h6v6H4V4m10 0h6v6h-6V4M4 14h6v6H4v-6m10 3h3v3h-3v-3m3-3h3v3h-3v-3m-3 6h3v3h-3v-3m3-6h3v3h-3v-3z"/></svg>
+                QR코드로 프로필 공유
+              </a>
+			  <a href="" target="_blank" rel="noreferrer">
+                <svg viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2m-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+                이미지로 명함 저장
+              </a>
+			  <a href="" target="_blank" rel="noreferrer">
+                <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                사무실 경로 조회
+              </a>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="beam" style="--stack-index: 6">
+      <div class="beam__content">
+        <div class="card-logo" aria-hidden="true"></div>
+        <div class="profile">
+           <p class="profile__name">Hong Gildong</p>
+            <p class="profile__role">Assistant Manager<br> Technical Team</p>
+          <div class="profile__footer">
+           
+           <div class="profile__details">
+    <p class="item-phone">
+        <svg class="profile-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        <a href="tel:+82319964823">031 996 4823</a>
+    </p>
+    <p class="item-fax">
+        <svg class="profile-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 8h-1V3H6v5H5c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h1v2h12v-2h1c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm8 14H8v-4h8v4zm2-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+        031 996 4824
+    </p>
+    <p class="item-mobile">
+        <svg class="profile-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+        <a href="tel:+821012345678">010 1234 5678</a>
+    </p>
+    <p class="item-email">
+        <svg class="profile-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        <a href="mailto:gildong@znus.co.kr">gildong@znus.co.kr</a>
+    </p>
+    <p class="item-address">
+        <svg class="profile-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        경기도 김포시 고촌읍 장차로5번길 20, 4층
+    </p>
+</div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+</main>
+<script>
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const cards = document.querySelectorAll('.beam');
+      const guideText = document.getElementById('guideText');
+      const examplesContainer = document.querySelector('.examples');
+      let deviceMotionOn = !reduceMotion;
+      let neutralAngle = null;
+      let expanded = false;
+      let dragState = null;
+      let shuffleOrderTimer;
+      let shuffleSettleTimer;
+
+      const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
+      const isLandscape = () => window.innerWidth > window.innerHeight;
+
+      const setAppHeight = () => {
+        const doc = document.documentElement;
+        doc.style.setProperty('--app-height', `${window.innerHeight}px`);
+      };
+
+      const updateGuideText = () => {
+        if (!expanded) {
+          guideText.textContent = isLandscape() ? "카드를 우측으로 잡아 펼치세요" : "카드를 아래로 잡아 펼치세요";
+        }
+      };
+
+      const resetCard = (card) => {
+        card.style.setProperty('--rotate-x', '0deg');
+        card.style.setProperty('--rotate-y', '0deg');
+        card.style.setProperty('--mx', '50%');
+        card.style.setProperty('--my', '50%');
+        card.style.setProperty('--shadow-x', '0px');
+        card.style.setProperty('--shadow-y', '0px');
+      };
+      const tiltCard = (card, x, y) => {
+        const tilt = 7;
+        card.style.setProperty('--mx', `${x * 100}%`);
+        card.style.setProperty('--my', `${y * 100}%`);
+        card.style.setProperty('--rotate-x', `${(0.5 - y) * tilt}deg`);
+        card.style.setProperty('--rotate-y', `${(x - 0.5) * tilt}deg`);
+        card.style.setProperty('--shadow-x', `${(0.5 - x) * 18}px`);
+        card.style.setProperty('--shadow-y', `${(y - 0.5) * 18}px`);
+      };
+
+      const handleDeviceOrientation = (event) => {
+        if (!deviceMotionOn || event.beta === null || event.gamma === null) return;
+        if (!neutralAngle) neutralAngle = { beta: event.beta, gamma: event.gamma };
+
+        const x = 0.5 + clamp((event.gamma - neutralAngle.gamma) / 36, -1, 1) * 0.5;
+        const y = 0.5 + clamp((event.beta - neutralAngle.beta) / 36, -1, 1) * 0.5;
+        cards.forEach((card) => tiltCard(card, x, y));
+      };
+
+      const setExpanded = (nextState) => {
+        expanded = nextState;
+        document.body.classList.toggle('is-expanded', expanded);
+        document.body.classList.remove('has-scrolled');
+        
+        if (expanded) {
+          guideText.classList.add('is-hidden');
+
+          setTimeout(() => {
+            requestAnimationFrame(() => {
+              const orderedCards = [...cards].sort((a, b) =>
+                Number(a.style.getPropertyValue('--stack-index')) - Number(b.style.getPropertyValue('--stack-index'))
+              );
+              if (orderedCards[0]) {
+                if (isLandscape()) {
+                  examplesContainer.scrollTo({ left: 0, top: 0, behavior: 'auto' });
+                } else {
+                  examplesContainer.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                }
+              }
+            });
+          }, 50);
+        } else {
+          updateGuideText();
+        }
+
+        cards.forEach((card) => {
+          card.style.setProperty('--drag-x', '0px');
+          card.style.setProperty('--drag-y', '0px');
+          card.style.setProperty('--shuffle-x', '0px');
+          card.style.setProperty('--shuffle-y', '0px');
+        });
+        
+        if (!expanded) {
+          examplesContainer.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        }
+      };
+
+      const shuffleToFront = (selectedCard) => {
+        const orderedCards = [...cards].sort((a, b) =>
+          Number(a.style.getPropertyValue('--stack-index')) - Number(b.style.getPropertyValue('--stack-index'))
+        );
+        if (orderedCards[0] === selectedCard) return;
+
+        const nextOrder = [selectedCard, ...orderedCards.filter((card) => card !== selectedCard)];
+        clearTimeout(shuffleOrderTimer);
+        clearTimeout(shuffleSettleTimer);
+
+        orderedCards.forEach((card, index) => {
+          const direction = index % 2 === 0 ? 1 : -1;
+          card.style.setProperty('--shuffle-x', `${direction * (18 + index * 4)}px`);
+          card.style.setProperty('--shuffle-y', `${-24 - index * 5}px`);
+          card.classList.add('is-shuffling');
+        });
+
+        shuffleOrderTimer = window.setTimeout(() => {
+          nextOrder.forEach((card, index) => card.style.setProperty('--stack-index', String(index + 1)));
+        }, 130);
+
+        shuffleSettleTimer = window.setTimeout(() => {
+          cards.forEach((card) => {
+            card.style.setProperty('--shuffle-x', '0px');
+            card.style.setProperty('--shuffle-y', '0px');
+            card.classList.remove('is-shuffling');
+          });
+        }, 360);
+      };
+
+      cards.forEach((card) => {
+          card.addEventListener('pointermove', (event) => {
+            if (!reduceMotion) {
+              const rect = card.getBoundingClientRect();
+              const x = (event.clientX - rect.left) / rect.width;
+              const y = (event.clientY - rect.top) / rect.height;
+              tiltCard(card, x, y);
+            }
+
+            if (!dragState || dragState.card !== card) return;
+            if (expanded) return;
+
+            const deltaX = event.clientX - dragState.startX;
+            const deltaY = event.clientY - dragState.startY;
+            if (isLandscape()) card.style.setProperty('--drag-x', `${Math.max(0, deltaX)}px`);
+            else card.style.setProperty('--drag-y', `${Math.max(0, deltaY)}px`);
+          });
+
+          card.addEventListener('pointerdown', (event) => {
+            if (expanded) return;
+
+            shuffleToFront(card);
+            dragState = { card, startX: event.clientX, startY: event.clientY };
+            card.classList.add('is-dragging');
+            card.setPointerCapture(event.pointerId);
+          });
+
+          const finishDrag = (event) => {
+            if (!dragState || dragState.card !== card) return;
+            const deltaX = event.clientX - dragState.startX;
+            const deltaY = event.clientY - dragState.startY;
+            card.classList.remove('is-dragging');
+            card.style.setProperty('--drag-x', '0px');
+            card.style.setProperty('--drag-y', '0px');
+            dragState = null;
+
+            if (!expanded && (isLandscape() ? deltaX > 55 : deltaY > 55)) setExpanded(true);
+          };
+
+          card.addEventListener('pointerup', finishDrag);
+          card.addEventListener('pointercancel', finishDrag);
+
+          card.addEventListener('pointerleave', () => {
+            if (!deviceMotionOn && !dragState) resetCard(card);
+          });
+      });
+
+      if (deviceMotionOn && window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientation', handleDeviceOrientation);
+      }
+
+      window.addEventListener('resize', () => {
+        setAppHeight();
+        updateGuideText();
+      });
+
+      window.addEventListener('orientationchange', () => {
+        setTimeout(setAppHeight, 150);
+      });
+
+      setAppHeight();
+      updateGuideText();
+
+      examplesContainer.addEventListener('scroll', () => {
+        if (expanded) {
+          const currentPos = isLandscape() ? examplesContainer.scrollLeft : examplesContainer.scrollTop;
+          if (currentPos > 5) {
+            document.body.classList.add('has-scrolled');
+          }
+        }
+      }, { passive: true });
+
+      examplesContainer.addEventListener('wheel', (event) => {
+        if (!expanded) return;
+        if (isLandscape()) {
+          const distance = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+          if (!distance) return;
+          event.preventDefault();
+          examplesContainer.scrollBy({ left: distance, behavior: 'auto' });
+        }
+      }, { passive: false });
+    </script>
+</body>
+</html>
