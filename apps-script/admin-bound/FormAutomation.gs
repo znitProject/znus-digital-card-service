@@ -88,7 +88,10 @@ function onFormSubmitCard(e) {
         const data = formValidate_(answers, existing.value);
         const next = Object.assign({}, existing.value, data, { googleAccountEmail: account, formResponseId: responseId, updatedAt: now, processingStatus: 'COMPLETED', errorMessage: '' });
         next.profileImageFileId = formStoreAsset_(data.profileImageFileId, existing.value.profileImageFileId, existing.value.cardId, 'profile', 'IMAGE');
-        FORM_BG_KEYS.forEach(function (key) { next[key + 'BackgroundFileId'] = formApplyBackground_(data, existing.value, key); });
+        FORM_BG_KEYS.forEach(function (key) {
+          next[key + 'BackgroundFileId'] = formApplyBackground_(data, existing.value, key);
+          if (data[key + 'BackgroundMode'] === 'KEEP_CURRENT') next[key + 'BackgroundMode'] = existing.value[key + 'BackgroundMode'];
+        });
         formWrite_(sheet, next, existing.row);
         return { status: 'UPDATED', cardId: existing.value.cardId, publicToken: existing.value.publicToken };
       } catch (error) {
@@ -141,4 +144,4 @@ function formEmail_(v, key) { const s = formRequired_(v, key, 254); if (!/^[^\s@
 function formFile_(v, key) { const s = formRequired_(v, key, 200); if (!/^[A-Za-z0-9_-]+$/.test(s)) throw new Error(key + ': Drive 파일 ID 형식을 확인하세요.'); return s; }
 function ensureFormSheet_(ss, name, headers) { let sh = ss.getSheetByName(name); if (!sh) sh = ss.insertSheet(name); if (!sh.getLastRow()) sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); sh.getRange(1,1,1,headers.length).setFontWeight('bold'); return sh; }
 function formRecords_(sheet) { if (!sheet || sheet.getLastRow() < 2) return []; const h = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0].map(String); return sheet.getRange(2,1,sheet.getLastRow()-1,h.length).getValues().map(function (v,i) { return { row:i+2, value:Object.fromEntries(h.map(function (k,j) { return [k,v[j]]; })) }; }).filter(function (r) { return Object.values(r.value).some(function (v) { return v !== ''; }); }); }
-function formWrite_(sheet, record, row) { const h = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0].map(String), target = row || sheet.getLastRow() + 1; sheet.getRange(target,1,1,h.length).setNumberFormat('@').setValues([h.map(function (k) { return record[k] == null ? '' : record[k]; })]); }
+function formWrite_(sheet, record, row) { const h = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0].map(String), target = row || sheet.getLastRow() + 1; sheet.getRange(target,1,1,h.length).setNumberFormat('@').setValues([h.map(function (k) { return sheetValue_(record[k]); })]); }

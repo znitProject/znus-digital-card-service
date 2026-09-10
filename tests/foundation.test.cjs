@@ -64,7 +64,7 @@ function fixture(project='admin-bound') {
     DriveApp:{Access:{PRIVATE:'PRIVATE'},getRootFolder:()=>root,getFolderById:id=>{
       if(!folders.has(id))throw Error('folder inaccessible');return folders.get(id);
     }},
-    HtmlService:{createTemplateFromFile:()=>({evaluate(){return{setTitle:()=>({slug:this.slug})};}})}
+    HtmlService:{createTemplateFromFile:()=>({evaluate(){return{setTitle:()=>({slug:this.slug,addMetaTag(){return this;}})};}})}
   });
   const directory=path.join(__dirname,'../apps-script',project);
   for (const file of fs.readdirSync(directory).filter(f=>f.endsWith('.gs'))) {
@@ -247,4 +247,48 @@ test('public HTML route never embeds an unvalidated query string',()=>{
   const f=fixture('public-web');
   assert.equal(f.context.doGet({parameter:{card:"';alert(1)//"}}).slug,'');
   assert.equal(f.context.doGet({parameter:{card:'abcdefghijkl'}}).slug,'abcdefghijkl');
+});
+
+test('initial public URL connection fills blank URLs without changing token',()=>{
+  const f=ready(),card=f.context.createCardRecord_(validInput());
+  const sheet=f.sheets.get('Cards');sheet.data[1][sheet.data[0].indexOf('publicUrl')]='';
+  delete f.properties.ZNUS_PUBLIC_BASE_URL;
+  f.context.configurePublicBaseUrl_('https://script.google.com/macros/s/deployment/exec');
+  const saved=f.context.readRecords_(sheet,'Cards')[0].value;
+  assert.equal(saved.publicToken,card.publicToken);
+  assert.equal(saved.publicUrl,'https://script.google.com/macros/s/deployment/exec?card='+card.publicToken);
+});
+test('admin disable blocks edits and reactivation stays private; stale writes fail',()=>{
+  const f=ready(),card=f.context.createCardRecord_(validInput());
+  const sheet=f.sheets.get('Cards');sheet.data[1][sheet.data[0].indexOf('processingStatus')]='COMPLETED';
+  f.context.setAdminCardState(card.cardId,card.updatedAt,'disable');
+  let saved=f.context.readRecords_(f.sheets.get('Cards'),'Cards')[0].value;
+  assert.equal(saved.isActive,false);assert.equal(saved.published,false);
+  assert.throws(()=>f.context.setAdminCardState(card.cardId,'stale','enable'),/変更|변경/);
+  assert.throws(()=>f.context.setAdminCardState(card.cardId,saved.updatedAt,'publish'),/활성화/);
+  f.context.setAdminCardState(card.cardId,saved.updatedAt,'enable');
+  saved=f.context.readRecords_(f.sheets.get('Cards'),'Cards')[0].value;
+  assert.equal(saved.isActive,true);assert.equal(saved.published,false);
+});
+test('admin edits preserve immutable identifiers and reject duplicate account',()=>{
+  const f=ready(),card=f.context.createCardRecord_(validInput());
+  const sheet=f.sheets.get('Cards');sheet.data[1][sheet.data[0].indexOf('processingStatus')]='COMPLETED';
+  f.context.saveAdminCard(card.cardId,card.updatedAt,{...validInput(),nameKo:'수정한 이름',publicToken:'xxxxxxxxxxxx',published:true});
+  const saved=f.context.readRecords_(sheet,'Cards')[0].value;
+  assert.equal(saved.nameKo,'수정한 이름');assert.equal(saved.publicToken,card.publicToken);assert.equal(saved.publicUrl,card.publicUrl);assert.equal(saved.published,false);
+  f.context.createCardRecord_({...validInput(),googleAccountEmail:'other@example.org'});
+  assert.throws(()=>f.context.saveAdminCard(card.cardId,saved.updatedAt,{...validInput(),googleAccountEmail:'other@example.org'}),/다른 명함/);
+});
+test('anonymous media requests cannot read private cards or arbitrary file IDs',()=>{
+  const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';
+  f.sheets.set('Cards',new Sheet('Cards',[['publicToken','published','isActive'],['abcdefghijkl',false,true]]));
+  f.context.DriveApp.getFileById=()=>{throw Error('must not access files');};
+  assert.equal(f.context.getPublicMedia('abcdefghijkl','role'),null);
+  f.sheets.get('Cards').data[1][1]=true;
+  assert.equal(f.context.getPublicMedia('abcdefghijkl','arbitrary-file-id'),null);
+});
+test('Form writes escape spreadsheet formulas',()=>{
+  const f=ready(),sheet=f.sheets.get('Cards');
+  f.context.formWrite_(sheet,{nameKo:'=IMPORTXML("x")'});
+  assert.equal(sheet.writes.at(-1)[0][sheet.data[0].indexOf('nameKo')],"'=IMPORTXML(\"x\")");
 });

@@ -1,6 +1,7 @@
 /** Sheet-bound administration only. Never deploy as a public web app. */
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('ZNUS 명함 서비스')
+    .addItem('명함 관리', 'showAdminDashboard')
     .addItem('운영 기반 확인', 'showAdminSidebar')
     .addItem('초기 설정 / 점검', 'setupWorkspace').addToUi();
 }

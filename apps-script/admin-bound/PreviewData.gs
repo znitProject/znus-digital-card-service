@@ -1,19 +1,12 @@
-/** Read-only public project. Do not copy admin-bound files into this project. */
-function doGet(event) {
-  const token = String(event && event.parameter && event.parameter.card || '').trim();
-  const template = HtmlService.createTemplateFromFile('Card');
-  // Card.html embeds this in JavaScript; only the token alphabet may cross that boundary.
-  template.slug = /^[a-z0-9]{12}$/.test(token) ? token : '';
-  return template.evaluate().setTitle('ZNUS Digital Card').addMetaTag('viewport', 'width=device-width, initial-scale=1');
-}
-function getPublicCard(token) {
+/** Generated read adapter. Sheet-bound editor preview only. */
+function getAdminPreviewCard(token) {
   if (typeof token !== 'string' || !/^[a-z0-9]{12}$/.test(token)) return null;
   const id = PropertiesService.getScriptProperties().getProperty('ZNUS_SPREADSHEET_ID');
   if (!id) throw new Error('공개 명함의 데이터 연결이 설정되지 않았습니다.');
   const ss = SpreadsheetApp.openById(id);
   const cards = publicRows_(ss.getSheetByName('Cards'));
   const card = cards.find(row => row.publicToken === token);
-  if (!card || !publicTrue_(card.published) || !publicTrue_(card.isActive)) return null;
+  if (!card) return null;
   // Explicit allowlist. Never return account email, cardId, processing errors, or raw rows.
   const company = publicRows_(ss.getSheetByName('CompanySettings'))[0] || {};
   return {
@@ -34,12 +27,12 @@ function getPublicCard(token) {
   };
 }
 /** File IDs are resolved on the server; callers cannot request arbitrary Drive files. */
-function getPublicMedia(token, section) {
-  if (!getPublicCard(token)) return null;
+function getAdminPreviewMedia(token, section) {
+  if (!getAdminPreviewCard(token)) return null;
   if (!['logo', 'role', 'contact', 'company', 'links'].includes(section)) return null;
   const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('ZNUS_SPREADSHEET_ID'));
   const card = publicRows_(ss.getSheetByName('Cards')).find(row => row.publicToken === token);
-  if (!card || !publicTrue_(card.published) || !publicTrue_(card.isActive)) return null;
+  if (!card) return null;
   const company = publicRows_(ss.getSheetByName('CompanySettings'))[0] || {};
   if (section !== 'logo' && card[section + 'BackgroundMode'] !== 'VIDEO') return null;
   const file = DriveApp.getFileById(section === 'logo' ? company.companyLogoFileId : card[section + 'BackgroundFileId']);
