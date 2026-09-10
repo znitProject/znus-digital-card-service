@@ -1,6 +1,6 @@
 # 2단계: Form → 명함 자동 생성·수정
 
-`apps-script/admin-bound/FormAutomation.gs`는 운영 Sheet와 Google Form을 ID로 연결하는 독립 Apps Script에 복사해 사용하는 파일입니다.
+`apps-script/admin-bound/FormAutomation.gs`는 관리자 바인드 Apps Script 프로젝트에 다른 `admin-bound` 파일들과 함께 복사해 사용하는 Form 연결 파일입니다. 실제 Drive 미디어 검증과 자산 이동은 3단계의 `MediaProcessing.gs`가 담당합니다.
 
 1. 코드 전체를 Apps Script 프로젝트에 붙여 넣고 저장합니다. 이 단계까지는 Google 권한 승인이 필요 없습니다.
 2. 마지막에 `setupFormAutomationAll`을 한 번 실행해, 필요한 Google 권한을 한 번에 승인하고 `Cards`, `CompanySettings`, `DeletedTokens`, 텍스트 Form 항목, 제출 트리거를 구성합니다.

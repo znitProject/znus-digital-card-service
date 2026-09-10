@@ -3,7 +3,7 @@
 Google Workspace 기반 디지털 명함 서비스입니다.
 소스 저장소: https://github.com/znitProject/znus-digital-card-service
 
-## 현재 상태: 1단계 운영 기반
+## 현재 상태: 3단계 미디어 처리
 
 - Cards, CompanySettings, DeletedTokens 시트 스키마
 - 데이터 삭제 없는 반복 초기 설정, 레거시 형식 감지
@@ -12,9 +12,13 @@ Google Workspace 기반 디지털 명함 서비스입니다.
 - UUID v4 카드 ID 및 12자리 공개 토큰 생성
 - 현재 토큰·삭제 토큰 중복 검사, 잠금 적용
 - 공개 앱의 새 스키마 조회 및 내부 데이터 제외
+- Google Form 제출에 따른 명함 생성·수정과 비활성 제출 차단
+- Drive 파일의 실제 형식·크기·MP4 길이·해상도 검증
+- 카드별 현재 자산 폴더 이동, 링크 보기 권한, 이전 자산 교체 삭제
+- 오류 상태(`PROCESSING`, `COMPLETED`, `ERROR`) 기록
 
-Form 제출 자동화, 미디어 처리, 고정 디자인 적용, 전체 대시보드, QR·PNG 생성은 아직 구현하지 않았습니다.
-공개 화면은 기존 데모 렌더러에 새 데이터를 연결한 임시 상태입니다.
+고정 공개 디자인 적용, 운영자 대시보드, QR·PNG 생성은 아직 구현하지 않았습니다.
+공개 화면은 현재 새 데이터 스키마를 읽는 임시 렌더러이며 고정 디자인 연결은 다음 단계에서 진행합니다.
 
 ## 구조
 
@@ -23,6 +27,8 @@ Form 제출 자동화, 미디어 처리, 고정 디자인 적용, 전체 대시�
 - cardDesign: 공개 명함 및 간략 명함 디자인 원본
 - docs/requirements.md: 서비스 요구사항
 - docs/stage-1.md: 1단계 설정·검증·후속 개발 안내
+- docs/stage-2.md: 2단계 Form 연결·자동화 안내
+- docs/stage-3.md: 3단계 Drive 미디어 처리 안내
 - tests: Google 서비스 대역을 사용하는 Node.js 회귀 테스트
 
 ## 검증

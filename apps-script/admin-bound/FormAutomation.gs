@@ -33,7 +33,8 @@ function setupFormAutomationWorkspace() {
     ensureFormSheet_(ss, 'Cards', FORM_CARD_HEADERS);
     ensureFormSheet_(ss, 'CompanySettings', ['companyName','companyWebsite','companyPhone','companyFax','officeAddress','companyLogoFileId','sloganLine1','sloganLine2','sloganLine3']);
     ensureFormSheet_(ss, 'DeletedTokens', ['publicToken']);
-    PropertiesService.getScriptProperties().setProperty('ZNUS_SPREADSHEET_ID', FORM_AUTOMATION_SHEET_ID);
+    PropertiesService.getScriptProperties().setProperties({ ZNUS_SPREADSHEET_ID: FORM_AUTOMATION_SHEET_ID, ZNUS_SCHEMA_VERSION: '1' });
+    ensureWorkspaceFolders_();
     return ss.getUrl();
   });
 }
@@ -79,16 +80,47 @@ function onFormSubmitCard(e) {
     answers.googleAccountEmail = account;
     const rows = formRecords_(sheet), existing = rows.find(function (r) { return String(r.value.googleAccountEmail).toLowerCase() === account; });
     if (existing && String(existing.value.isActive).toLowerCase() !== 'true') { formTrashFiles_(answers); return { status: 'SKIPPED_INACTIVE', row: existing.row }; }
-    const data = formValidate_(answers, existing && existing.value), now = new Date().toISOString(), responseId = e && e.response ? e.response.getId() : '';
+    const responseId = e && e.response ? e.response.getId() : '', now = new Date().toISOString();
     if (existing) {
-      const next = Object.assign({}, existing.value, data, { googleAccountEmail: account, formResponseId: responseId, updatedAt: now, processingStatus: 'COMPLETED', errorMessage: '' });
-      next.profileImageFileId = formStoreAsset_(data.profileImageFileId, existing.value.profileImageFileId, existing.value.cardId, 'profile');
-      FORM_BG_KEYS.forEach(function (key) { next[key + 'BackgroundFileId'] = formApplyBackground_(data, existing.value, key); });
-      formWrite_(sheet, next, existing.row); return { status: 'UPDATED', cardId: existing.value.cardId, publicToken: existing.value.publicToken };
+      const processing = Object.assign({}, existing.value, { formResponseId: responseId, updatedAt: now, processingStatus: 'PROCESSING', errorMessage: '' });
+      formWrite_(sheet, processing, existing.row);
+      try {
+        const data = formValidate_(answers, existing.value);
+        const next = Object.assign({}, existing.value, data, { googleAccountEmail: account, formResponseId: responseId, updatedAt: now, processingStatus: 'COMPLETED', errorMessage: '' });
+        next.profileImageFileId = formStoreAsset_(data.profileImageFileId, existing.value.profileImageFileId, existing.value.cardId, 'profile', 'IMAGE');
+        FORM_BG_KEYS.forEach(function (key) { next[key + 'BackgroundFileId'] = formApplyBackground_(data, existing.value, key); });
+        formWrite_(sheet, next, existing.row);
+        return { status: 'UPDATED', cardId: existing.value.cardId, publicToken: existing.value.publicToken };
+      } catch (error) {
+        formWrite_(sheet, Object.assign({}, processing, { processingStatus: 'ERROR', errorMessage: formErrorMessage_(error), updatedAt: new Date().toISOString() }), existing.row);
+        throw error;
+      }
     }
-    const token = formUniqueToken_(ss), cardId = Utilities.getUuid().toLowerCase(), record = Object.assign({}, data, { cardId: cardId, googleAccountEmail: account, publicToken: token, published: true, isActive: true, publicUrl: formPublicUrl_(token), qrUrl: '', nfcStatus: '', formResponseId: responseId, createdAt: now, updatedAt: now, processingStatus: 'COMPLETED', errorMessage: '' });
-    record.profileImageFileId = formStoreAsset_(data.profileImageFileId, '', cardId, 'profile'); FORM_BG_KEYS.forEach(function (key) { record[key + 'BackgroundFileId'] = formApplyBackground_(data, {}, key, cardId); }); formWrite_(sheet, record); return { status: 'CREATED', cardId: cardId, publicToken: token, publicUrl: record.publicUrl };
+    const data = formValidate_(answers, null);
+    const token = formUniqueToken_(ss), cardId = Utilities.getUuid().toLowerCase();
+    const record = Object.assign({}, data, { cardId: cardId, googleAccountEmail: account, publicToken: token, published: false, isActive: true, publicUrl: formPublicUrl_(token), qrUrl: '', nfcStatus: '', formResponseId: responseId, createdAt: now, updatedAt: now, processingStatus: 'PROCESSING', errorMessage: '' });
+    formWrite_(sheet, record);
+    try {
+      record.profileImageFileId = formStoreAsset_(data.profileImageFileId, '', cardId, 'profile', 'IMAGE');
+      FORM_BG_KEYS.forEach(function (key) { record[key + 'BackgroundFileId'] = formApplyBackground_(data, {}, key, cardId); });
+      record.published = true;
+      record.processingStatus = 'COMPLETED';
+      record.updatedAt = new Date().toISOString();
+      formWrite_(sheet, record, sheet.getLastRow());
+      return { status: 'CREATED', cardId: cardId, publicToken: token, publicUrl: record.publicUrl };
+    } catch (error) {
+      record.processingStatus = 'ERROR';
+      record.errorMessage = formErrorMessage_(error);
+      record.updatedAt = new Date().toISOString();
+      formWrite_(sheet, record, sheet.getLastRow());
+      throw error;
+    }
   });
+}
+
+function formErrorMessage_(error) {
+  const message = String(error && error.message || error || '알 수 없는 오류').trim();
+  return message.slice(0, 1000);
 }
 
 function formQuestionTitle_(key) { return FORM_QUESTION_TITLES[key] || key; }
@@ -97,9 +129,9 @@ function formQuestionHelp_(key) { if (key.indexOf('roleItem') === 0) return '명
 function formAnswers_(response) { const out = {}; if (!response) return out; response.getItemResponses().forEach(function (ir) { const key = formQuestionKey_(ir.getItem().getTitle()); let v = ir.getResponse(); if (Array.isArray(v)) v = v[0] || ''; v = String(v == null ? '' : v).trim(); out[key] = key.endsWith('BackgroundMode') ? (FORM_MODE_LABELS[v] || v) : v; }); return out; }
 function formValidate_(input, existing) { const out = {}; FORM_REQUIRED.forEach(function (key) { out[key] = formRequired_(input[key], key, key.indexOf('roleItem') === 0 ? 200 : 100); }); out.mobilePhone = formRequired_(input.mobilePhone, 'mobilePhone', 40); if (!/^\+?[0-9 ()-]+$/.test(out.mobilePhone) || out.mobilePhone.replace(/\D/g, '').length < 7) throw new Error('mobilePhone 형식이 올바르지 않습니다.'); out.publicEmail = formEmail_(input.publicEmail, 'publicEmail'); out.profileImageFileId = formFile_(input.profileImageFileId, 'profileImageFileId'); formInspectAsset_(out.profileImageFileId, 'IMAGE', 'profileImageFileId'); FORM_BG_KEYS.forEach(function (key) { const modeKey = key + 'BackgroundMode', fileKey = key + 'BackgroundFileId', id = String(input[fileKey] || '').trim(); if (!id) { out[modeKey] = existing ? 'KEEP_CURRENT' : 'DEFAULT'; out[fileKey] = ''; return; } out[fileKey] = formFile_(id, fileKey); out[modeKey] = formBackgroundModeForFile_(out[fileKey], fileKey); }); return out; }
 function formBackgroundModeForFile_(id, label) { const mime = String(DriveApp.getFileById(id).getMimeType() || '').toLowerCase(); const mode = ['image/jpeg', 'image/png', 'image/webp'].indexOf(mime) >= 0 ? 'IMAGE' : mime === 'video/mp4' ? 'VIDEO' : ''; if (!mode) throw new Error(label + ': JPG, PNG, WEBP 이미지 또는 MP4 영상만 허용합니다.'); formInspectAsset_(id, mode, label); return mode; }
-function formInspectAsset_(id, mode, label) { const file = DriveApp.getFileById(id), mime = String(file.getMimeType() || '').toLowerCase(), size = Number(file.getSize() || 0); if (mode === 'IMAGE' && ['image/jpeg', 'image/png', 'image/webp'].indexOf(mime) < 0) throw new Error(label + ': JPG, PNG, WEBP 이미지만 허용합니다.'); if (mode === 'VIDEO' && mime !== 'video/mp4') throw new Error(label + ': MP4 영상만 허용합니다.'); if (mode === 'VIDEO' && size > 18 * 1024 * 1024) throw new Error(label + ': 영상은 18MiB 이하여야 합니다.'); if (size <= 0) throw new Error(label + ': 빈 파일은 사용할 수 없습니다.'); return { id: id, mimeType: mime, sizeBytes: size }; }
-function formApplyBackground_(data, old, key, cardId) { const modeKey = key + 'BackgroundMode', fileKey = key + 'BackgroundFileId'; if (data[modeKey] === 'DEFAULT') { if (old[fileKey]) formTrashById_(old[fileKey]); return ''; } if (data[modeKey] === 'KEEP_CURRENT') return old[fileKey] || ''; return formStoreAsset_(data[fileKey], old[fileKey] || '', cardId || old.cardId, key + '_background'); }
-function formStoreAsset_(id, oldId, cardId, label) { if (!id) return ''; if (oldId && oldId !== id) formTrashById_(oldId); const file = DriveApp.getFileById(id); file.setName(label + '_' + file.getName()); file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); return file.getId(); }
+function formInspectAsset_(id, mode, label) { return inspectCardMedia_(id, mode, label); }
+function formApplyBackground_(data, old, key, cardId) { const modeKey = key + 'BackgroundMode', fileKey = key + 'BackgroundFileId'; if (data[modeKey] === 'DEFAULT') { if (old[fileKey]) formTrashById_(old[fileKey]); return ''; } if (data[modeKey] === 'KEEP_CURRENT') return old[fileKey] || ''; return formStoreAsset_(data[fileKey], old[fileKey] || '', cardId || old.cardId, key + '_background', data[modeKey]); }
+function formStoreAsset_(id, oldId, cardId, label, mode) { if (!id) return ''; return storeCardAsset_(id, oldId, cardId, label, mode); }
 function formTrashFiles_(a) { [a.profileImageFileId].concat(FORM_BG_KEYS.map(function (k) { return a[k + 'BackgroundFileId']; })).filter(Boolean).forEach(formTrashById_); }
 function formTrashById_(id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (err) {} }
 function formUniqueToken_(ss) { const used = new Set(formRecords_(ss.getSheetByName('Cards')).map(function (r) { return r.value.publicToken; })), d = ss.getSheetByName('DeletedTokens'); if (d.getLastRow() > 1) d.getRange(2,1,d.getLastRow()-1,1).getValues().forEach(function (r) { used.add(String(r[0])); }); for (let i = 0; i < 100; i++) { const t = Utilities.getUuid().replace(/-/g, '').slice(0, 12).toLowerCase(); if (!used.has(t)) return t; } throw new Error('고유 publicToken 생성에 실패했습니다.'); }
