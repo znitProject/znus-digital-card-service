@@ -51,7 +51,7 @@ function setupFormAutomationForm() {
   FORM_REQUIRED.forEach(function (key) { form.addTextItem().setTitle(formQuestionTitle_(key)).setHelpText(formQuestionHelp_(key)).setRequired(true); });
   form.addTextItem().setTitle(formQuestionTitle_('mobilePhone')).setHelpText('명함에 공개할 번호를 입력하세요. 예: 010-1234-5678').setRequired(true);
   form.addTextItem().setTitle(formQuestionTitle_('publicEmail')).setHelpText('명함에 공개할 이메일 주소를 입력하세요.').setRequired(true);
-  form.addSectionHeaderItem().setTitle('사진과 배경 파일 업로드').setHelpText('프로필 사진은 필수입니다. 카드 배경은 바꾸려는 카드에만 파일을 올려 주세요. 업로드한 파일 형식에 따라 이미지 또는 영상 배경으로 자동 적용됩니다. 파일을 올리지 않으면 기존 배경을 유지합니다. 필요한 질문: ' + FORM_UPLOAD_KEYS.map(formQuestionTitle_).join(', '));
+  form.addSectionHeaderItem().setTitle('사진과 배경 파일 업로드').setHelpText('프로필 사진은 필수입니다. 카드 배경은 바꾸려는 카드에만 파일을 올려 주세요. 배경 영상은 MP4, 최대 5초까지 사용할 수 있습니다. 업로드한 파일 형식에 따라 이미지 또는 영상 배경으로 자동 적용됩니다. 파일을 올리지 않으면 기존 배경을 유지합니다. 필요한 질문: ' + FORM_UPLOAD_KEYS.map(formQuestionTitle_).join(', '));
   form.setDestination(FormApp.DestinationType.SPREADSHEET, FORM_AUTOMATION_SHEET_ID);
   if (!ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'onFormSubmitCard'; })) ScriptApp.newTrigger('onFormSubmitCard').forForm(form).onFormSubmit().create();
   return { editUrl: form.getEditUrl(), publishedUrl: form.getPublishedUrl(), itemCount: form.getItems().length, manualUploadQuestionTitles: FORM_UPLOAD_KEYS.map(formQuestionTitle_) };
