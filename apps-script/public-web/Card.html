@@ -4481,11 +4481,17 @@ const state = {
 
 function init(){
 
-  createIntroCards();
+  try{
+    createIntroCards();
+  }catch(e){}
 
-  bindEvents();
+  try{
+    bindEvents();
+  }catch(e){}
 
-  prepareVideos();
+  try{
+    prepareVideos();
+  }catch(e){}
 
   setupVideoStartGate();
 
@@ -4906,6 +4912,17 @@ function setupVideoStartGate(){
     "click",
     approveAndStart
   );
+
+  DOM.videoStartGate.addEventListener(
+    "pointerup",
+    approveAndStart,
+    {
+      passive:true
+    }
+  );
+
+  DOM.videoStartGate.onclick =
+    approveAndStart;
 
 
   DOM.videoStartGate.addEventListener(
@@ -6706,7 +6723,7 @@ function openKakaoMap(){
 
 
   window.open(
-    `https://map.kakao.com/?q=${encoded}`,
+    "https://map.kakao.com/?q=" + encoded,
     "_blank",
     "noopener,noreferrer"
   );
@@ -6727,7 +6744,7 @@ function openNaverMap(){
 
 
   window.open(
-    `https://map.naver.com/p/search/${encoded}`,
+    "https://map.naver.com/p/search/" + encoded,
     "_blank",
     "noopener,noreferrer"
   );
