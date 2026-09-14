@@ -1,29 +1,10 @@
-# ZNUS Profile - Code Only
+# 직원 명함 디자인
 
-이미지/영상 파일은 포함하지 않은 코드 버전입니다.
+- `index.html`: 빌드 기준. 주요 CSS·HTML·JavaScript 포함.
+- `font.css`: 글꼴.
+- `assets/`: 로고 SVG·배경 이미지·영상.
+- `style.css`, `app.js`: 현재 빌드에서 직접 읽지 않는 별도 파일.
 
-## 포함 파일
+데이터 연결은 `web/card-service.js`에서 처리합니다. 변경 후 프로젝트 루트에서 `npm run build`를 실행합니다.
 
-- index.html
-- style.css
-- app.js
-- assets/README.txt
-
-## 필요한 실제 파일
-
-아래 파일을 assets 폴더에 추가하면 원본 기획의 미디어가 연결됩니다.
-
-- logo_s_aw.svg
-- profile.jpg
-- profile.mp4
-- role.mp4
-- contact.mp4
-- web.mp4
-
-현재 코드는 이미지/영상 없이도 레이아웃과 인터랙션을 확인할 수 있도록 CSS 배경으로 대체되어 있습니다.
-
-## 실행
-
-로컬 정적 서버 또는 실제 웹서버에서 index.html을 실행하세요.
-
-QR 코드 생성에는 qrcodejs CDN을 사용합니다.
+[전체 디자인 코드 안내](../../docs/stage-4.md)

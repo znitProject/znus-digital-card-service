@@ -1,6 +1,37 @@
 /** These RPCs run only in the Sheet-bound dialog as the signed-in editor. */
+/** Web entry point for the administrator dashboard during the Drive integration test. */
+function doGet() {
+  return adminGalleryOutput_()
+    .setTitle('ZNUS 직원 명함 갤러리')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
 function showAdminDashboard() {
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutputFromFile('Dashboard').setWidth(1100).setHeight(760), 'ZNUS 명함 관리');
+  connectAdminWorkspace();
+  SpreadsheetApp.getUi().showModalDialog(
+    adminGalleryOutput_().setWidth(1440).setHeight(900),
+    'ZNUS 직원 명함 갤러리'
+  );
+}
+function adminGalleryOutput_() {
+  const html = HtmlService.createHtmlOutputFromFile('AdminGallery').getContent();
+  const qr = HtmlService.createHtmlOutputFromFile('QrLibrary').getContent();
+  return HtmlService.createHtmlOutput(html.replace('<script>', () => qr + '<script>'));
+}
+function safeAdminJson_(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026').replace(/'/g, '\\u0027')
+    .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+/** Connect an existing database without creating folders or changing Form triggers. */
+function connectAdminWorkspace() {
+  const ss = SpreadsheetApp.getActive();
+  if (!ss) throw new Error('명함 데이터베이스 Google Sheet에 연결된 프로젝트에서 실행하세요.');
+  const props = PropertiesService.getScriptProperties();
+  const configured = props.getProperty('ZNUS_SPREADSHEET_ID');
+  if (configured && configured !== ss.getId()) throw new Error('현재 시트와 설정된 데이터베이스가 다릅니다. 연결 설정을 확인하세요.');
+  Object.keys(ZNUS_SCHEMA).forEach(name => readRecords_(ss.getSheetByName(name), name));
+  props.setProperty('ZNUS_SPREADSHEET_ID', ss.getId());
+  return {spreadsheetId: ss.getId()};
 }
 function getAdminDashboard() {
   const cards = readRecords_(workspace_().getSheetByName('Cards'), 'Cards').map(entry => entry.value);
@@ -12,6 +43,39 @@ function getAdminDashboard() {
     error: cards.filter(card => card.processingStatus === 'ERROR').length
   }}));
 }
+/** Adapter for the existing Admin.html gallery design. The source of truth is Cards. */
+function getEmployees() {
+  const cards = readRecords_(workspace_().getSheetByName('Cards'), 'Cards').map(entry => entry.value);
+  const company = getCompanySettings() || {};
+  const text = value => String(value == null ? '' : value).trim();
+  const status = value => {
+    const state = text(value).toUpperCase();
+    if (state === 'COMPLETED') return '생성완료';
+    if (state === 'ERROR') return '검토필요';
+    return '입력완료';
+  };
+  return cards.map(card => ({
+    employeeId: text(card.cardId),
+    name: text(card.nameKo),
+    nameEn: text(card.nameEn),
+    department: text(card.department),
+    position: text(card.jobTitleKo),
+    positionEn: text(card.jobTitleEn),
+    accountEmail: text(card.googleAccountEmail),
+    roles: [1, 2, 3, 4, 5].map(i => ({ko: text(card['roleItem' + i + 'Ko']), en: text(card['roleItem' + i + 'En'])})),
+    backgrounds: ['profile', 'role', 'contact', 'company', 'links'].map(key => ({type: key, mode: publicCardMedia_(card, key).kind})),
+    errorMessage: text(card.errorMessage),
+    missingFields: ZNUS_REQUIRED_TEXT.concat(['mobilePhone', 'publicEmail', 'profileImageFileId']).filter(key => !text(card[key])),
+    profileImage: imageUrl_(text(card.profileImageFileId)),
+    phone: text(card.mobilePhone),
+    email: text(card.publicEmail),
+    companyPhone: text(company.companyPhone),
+    companyAddress: text(company.officeAddress),
+    mobileUrl: safeUrl_(card.publicUrl),
+    status: status(card.processingStatus),
+    updatedAt: text(card.updatedAt)
+  }));
+}
 function adminCard_(id, revision) {
   const sheet = workspace_().getSheetByName('Cards');
   const entry = readRecords_(sheet, 'Cards').find(entry => entry.value.cardId === id);
@@ -21,50 +85,10 @@ function adminCard_(id, revision) {
   return {sheet: sheet, entry: entry};
 }
 function setAdminCardState(id, revision, action) {
-  return withWorkspaceLock_(function () {
-    const found = adminCard_(id, revision), card = found.entry.value;
-    if (action === 'disable') { card.isActive = false; card.published = false; }
-    else if (action === 'enable') { card.isActive = true; card.published = false; }
-    else if (action === 'private') card.published = false;
-    else if (action === 'publish') {
-      if (!publicTrue_(card.isActive)) throw new Error('먼저 명함을 활성화해 주세요.');
-      if (card.processingStatus !== 'COMPLETED') throw new Error('미디어 처리가 완료된 명함만 공개할 수 있습니다.');
-      card.published = true;
-    } else throw new Error('지원하지 않는 상태 변경입니다.');
-    card.updatedAt = new Date().toISOString();
-    writeRecord_(found.sheet, 'Cards', card, found.entry.row);
-    return {updatedAt: card.updatedAt};
-  });
+  throw new Error('대시보드는 조회 전용입니다. 직원 삭제는 Sheets에서 처리하세요.');
 }
 function saveAdminCard(id, revision, input) {
-  return withWorkspaceLock_(function () {
-    const found = adminCard_(id, revision), previous = found.entry.value;
-    const data = validateCardInput_(input, previous);
-    if (readRecords_(found.sheet, 'Cards').some(entry => entry.value.cardId !== id && String(entry.value.googleAccountEmail).toLowerCase() === data.googleAccountEmail))
-      throw new Error('이미 다른 명함에 등록된 Google 계정입니다.');
-    const requestedKeys = ['profileImageFileId'].concat(ZNUS_BACKGROUND_KEYS.map(key => key + 'BackgroundFileId'));
-    const requestedIds = requestedKeys.map(key => data[key]).filter(Boolean);
-    if (new Set(requestedIds).size !== requestedIds.length) throw new Error('각 영역에는 서로 다른 파일을 사용해 주세요.');
-    if (readRecords_(found.sheet, 'Cards').some(entry => entry.value.cardId !== id && requestedKeys.some(key => requestedIds.includes(entry.value[key]))))
-      throw new Error('다른 명함에서 사용 중인 파일입니다. 파일을 복사한 후 등록해 주세요.');
-    // Preflight all requested media before changing any assets or rows.
-    if (data.profileImageFileId !== previous.profileImageFileId) inspectCardMedia_(data.profileImageFileId, 'IMAGE', '프로필 이미지');
-    ZNUS_BACKGROUND_KEYS.forEach(key => {
-      if (data[key + 'BackgroundMode'] !== 'DEFAULT' && (data[key + 'BackgroundFileId'] !== previous[key + 'BackgroundFileId'] || data[key + 'BackgroundMode'] !== previous[key + 'BackgroundMode']))
-        inspectCardMedia_(data[key + 'BackgroundFileId'], data[key + 'BackgroundMode'], key);
-    });
-    // Move new assets first, defer removal of old assets until the row is committed.
-    if (data.profileImageFileId !== previous.profileImageFileId) storeCardAsset_(data.profileImageFileId, '', id, 'profile', 'IMAGE');
-    ZNUS_BACKGROUND_KEYS.forEach(key => {
-      if (data[key + 'BackgroundFileId'] && data[key + 'BackgroundFileId'] !== previous[key + 'BackgroundFileId'])
-        storeCardAsset_(data[key + 'BackgroundFileId'], '', id, key + '_background', data[key + 'BackgroundMode']);
-    });
-    const next = Object.assign({}, previous, data, {updatedAt: new Date().toISOString()});
-    writeRecord_(found.sheet, 'Cards', next, found.entry.row);
-    const fileKeys = ['profileImageFileId'].concat(ZNUS_BACKGROUND_KEYS.map(key => key + 'BackgroundFileId'));
-    fileKeys.forEach(key => { if (previous[key] && previous[key] !== next[key] && !fileKeys.some(other => next[other] === previous[key])) trashCardAsset_(previous[key]); });
-    return {updatedAt: next.updatedAt};
-  });
+  throw new Error('대시보드는 조회 전용입니다. 정보 수정은 Google Form에서 제출하세요.');
 }
 function openAdminPreview(token) {
   if (!/^[a-z0-9]{12}$/.test(String(token))) throw new Error('명함 주소를 확인하세요.');

@@ -7,9 +7,20 @@ const read = file => fs.readFileSync(path.join(root, 'apps-script/public-web', f
 // makes browser editor syntax highlighting unnecessarily expensive.
 const pages = {'/code': read('Code.gs'), '/card': read('Card.html'), '/manifest': read('appsscript.json')};
 function reviewHandler(req, res) {
+  if (req.url === '/code.raw') {
+    res.writeHead(200, {'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store'});
+    return res.end(pages['/code']);
+  }
+  if (req.url === '/card.raw') {
+    res.writeHead(200, {'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store'});
+    return res.end(pages['/card']);
+  }
   if (!Object.hasOwn(pages, req.url)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, {'Content-Type':'text/html; charset=utf-8', 'Cache-Control':'no-store', 'Content-Security-Policy':"default-src 'none'"});
   res.end('<!doctype html><meta charset="utf-8"><title>Public deployment source</title><pre>' + pages[req.url].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>');
 }
-if (require.main === module) http.createServer(reviewHandler).listen(4174, '127.0.0.1', () => console.log('Public source review: http://127.0.0.1:4174/code · /card · /manifest'));
+if (require.main === module) {
+  const port = Number(process.env.PUBLIC_REVIEW_PORT || 4174);
+  http.createServer(reviewHandler).listen(port, '127.0.0.1', () => console.log('Public source review: http://127.0.0.1:' + port + '/code · /card · /manifest'));
+}
 module.exports = {reviewHandler};

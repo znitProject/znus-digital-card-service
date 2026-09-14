@@ -35,7 +35,8 @@ function validateCardInput_(input, existing) {
   if (!/^\+?[0-9 ()-]+$/.test(out.mobilePhone) || out.mobilePhone.replace(/\D/g, '').length < 7)
     throw new Error('공개 휴대전화 형식을 확인하세요.');
   out.publicEmail = email_(input.publicEmail, '공개 이메일');
-  out.profileImageFileId = fileId_(input.profileImageFileId, '프로필 이미지');
+  // Keep the existing column name so saved cards and their URLs remain compatible.
+  out.profileImageFileId = fileId_(input.profileImageFileId || (existing && existing.profileImageFileId), '프로필 사진 또는 영상');
   ZNUS_BACKGROUND_KEYS.forEach(key => {
     const modeKey = key + 'BackgroundMode', fileKey = key + 'BackgroundFileId';
     const mode = input[modeKey] == null ? '' : String(input[modeKey]).trim();

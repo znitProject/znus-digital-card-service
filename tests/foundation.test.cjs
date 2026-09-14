@@ -86,6 +86,170 @@ function ready() {
   f.context.configurePublicBaseUrl_('https://script.google.com/macros/s/deployment/exec');
   return f;
 }
+
+function submission(input=validInput(), id='response-1') {
+  return {response:{getId:()=>id,getRespondentEmail:()=>input.googleAccountEmail,
+    getItemResponses:()=>Object.entries(input).filter(([key])=>key!=='googleAccountEmail').map(([key,value])=>({
+      getItem:()=>({getTitle:()=>key}),getResponse:()=>value
+    }))}};
+}
+function formReady() {
+  const f=ready();
+  f.context.inspectCardMedia_=()=>({});
+  f.context.DriveApp.getFileById=()=>({getMimeType:()=> 'image/png'});
+  f.context.storeCardAsset_=(id,old)=>{assert.equal(old,'');return id;};
+  return f;
+}
+
+test('one profile upload supports video, legacy photos and no-file resubmissions',()=>{
+  const f=formReady();
+  const stored=[];
+  f.context.DriveApp.getFileById=id=>({getMimeType:()=>id==='profile-video'?'video/mp4':'image/png'});
+  f.context.storeCardAsset_=(id,old,cardId,label,mode)=>{stored.push({id,label,mode});return id;};
+  const first=f.context.onFormSubmitCard(submission({...validInput(),profileImageFileId:'profile-video',profileBackgroundFileId:'obsolete-background'},'video'));
+  const row=()=>f.context.formRecords_(f.sheets.get('Cards'))[0].value;
+  assert.equal(row().profileBackgroundMode,'VIDEO');
+  assert.equal(row().profileBackgroundFileId,'');
+  assert.deepEqual(stored,[{id:'profile-video',label:'profile',mode:'VIDEO'}]);
+  assert.equal(f.context.getAdminPreviewCard(first.publicToken).sections[0].kind,'VIDEO');
+  f.context.onFormSubmitCard(submission({...validInput(),profileImageFileId:''},'keep'));
+  assert.equal(row().profileImageFileId,'profile-video');
+  assert.equal(row().publicToken,first.publicToken);
+  f.context.onFormSubmitCard(submission(validInput(),'photo'));
+  assert.equal(f.context.getAdminPreviewCard(first.publicToken).sections[0].kind,'IMAGE');
+  assert.match(f.context.getAdminPreviewCard(first.publicToken).sections[0].imageUrl,/profile-file/);
+  assert.equal(f.context.formQuestionKey_('프로필 사진'),'profileImageFileId');
+  assert.equal(f.context.formQuestionKey_('프로필 사진 또는 영상'),'profileImageFileId');
+  assert.equal(f.run('FORM_UPLOAD_KEYS.length'),5);
+});
+test('Form creates one public card, ignores duplicate delivery and preserves URL on update',()=>{
+  const f=formReady();
+  const first=f.context.onFormSubmitCard(submission());
+  assert.equal(first.status,'CREATED');
+  assert.equal(f.context.onFormSubmitCard(submission()).status,'UNCHANGED');
+  const update=f.context.onFormSubmitCard(submission({...validInput(),nameKo:'새 이름',publicEmail:'different@example.org'},'response-2'));
+  assert.equal(update.publicToken,first.publicToken);assert.equal(update.publicUrl,first.publicUrl);
+  const rows=f.context.formRecords_(f.sheets.get('Cards'));
+  assert.equal(rows.length,1);assert.equal(rows[0].value.nameKo,'새 이름');
+  assert.equal(rows[0].value.googleAccountEmail,'person@example.org');
+  assert.equal(rows[0].value.published,true);
+});
+test('existing card with missing cardId is repaired without changing its token or URL',()=>{
+  const f=formReady();
+  const first=f.context.onFormSubmitCard(submission());
+  const sheet=f.sheets.get('Cards'), headers=sheet.data[0], row=sheet.data[1];
+  row[headers.indexOf('cardId')]='';
+  row[headers.indexOf('processingStatus')]='ERROR';
+  const repaired=f.context.onFormSubmitCard(submission({...validInput(),nameKo:'보정된 직원'},'response-repair'));
+  const saved=f.context.formRecords_(sheet)[0].value;
+  assert.match(saved.cardId,/^[0-9a-f]{8}-[0-9a-f]{4}-4/);
+  assert.equal(saved.publicToken,first.publicToken);assert.equal(saved.publicUrl,first.publicUrl);
+  assert.equal(saved.nameKo,'보정된 직원');assert.equal(repaired.publicToken,first.publicToken);
+});
+test('failed later asset preparation preserves all previously published data and media',()=>{
+  const f=formReady();f.context.onFormSubmitCard(submission({...validInput(),roleBackgroundFileId:'old-role'}));
+  const before={...f.context.formRecords_(f.sheets.get('Cards'))[0].value};
+  f.context.storeCardAsset_=(id,old)=>{assert.equal(old,'');if(id==='new-role')throw Error('Drive unavailable');return id;};
+  assert.throws(()=>f.context.onFormSubmitCard(submission({...validInput(),nameKo:'실패한 수정',profileImageFileId:'new-profile',roleBackgroundFileId:'new-role'},'response-2')),/Drive unavailable/);
+  const saved=f.context.formRecords_(f.sheets.get('Cards'))[0].value;
+  for(const key of ['nameKo','profileImageFileId','roleBackgroundFileId','publicToken','publicUrl','published','updatedAt','formResponseId']) assert.equal(saved[key],before[key],key);
+  assert.equal(saved.processingStatus,'ERROR');assert.match(f.context.getEmployees()[0].errorMessage,/Drive unavailable/);
+});
+test('Form missing backgrounds keep current and reset explicitly restores defaults',()=>{
+  const f=formReady();f.context.onFormSubmitCard(submission({...validInput(),roleBackgroundFileId:'role-image'}));
+  f.context.onFormSubmitCard(submission(validInput(),'response-2'));
+  assert.equal(f.context.formRecords_(f.sheets.get('Cards'))[0].value.roleBackgroundFileId,'role-image');
+  f.context.onFormSubmitCard(submission({...validInput(),roleBackgroundMode:'DEFAULT'},'response-3'));
+  const saved=f.context.formRecords_(f.sheets.get('Cards'))[0].value;
+  assert.equal(saved.roleBackgroundMode,'DEFAULT');assert.equal(saved.roleBackgroundFileId,'');
+});
+test('failed Sheets commit rolls back the published payload and records an error',()=>{
+  const f=formReady();f.context.onFormSubmitCard(submission());
+  const sheet=f.sheets.get('Cards'),before={...f.context.formRecords_(sheet)[0].value};
+  const write=f.context.formWrite_;
+  f.context.formWrite_=(sheet,record,row)=>{
+    if(record.nameKo==='저장 실패' && record.processingStatus==='COMPLETED') throw Error('Sheets save failed');
+    return write(sheet,record,row);
+  };
+  assert.throws(()=>f.context.onFormSubmitCard(submission({...validInput(),nameKo:'저장 실패'},'response-2')),/Sheets save failed/);
+  const saved=f.context.formRecords_(sheet)[0].value;
+  assert.equal(saved.nameKo,before.nameKo);assert.equal(saved.profileImageFileId,before.profileImageFileId);
+  assert.equal(saved.published,true);assert.equal(saved.processingStatus,'ERROR');
+});
+test('invalid new submission is visible as an error and corrected resubmission publishes same ID',()=>{
+  const f=formReady();assert.throws(()=>f.context.onFormSubmitCard(submission({...validInput(),nameKo:''})),/필수/);
+  const failed=f.context.formRecords_(f.sheets.get('Cards'))[0].value;
+  assert.equal(failed.published,false);assert.equal(failed.processingStatus,'ERROR');
+  assert.ok(f.context.getEmployees()[0].missingFields.includes('nameKo'));
+  const retry=f.context.onFormSubmitCard(submission(validInput(),'response-2'));
+  assert.equal(retry.cardId,failed.cardId);
+  assert.equal(f.context.formRecords_(f.sheets.get('Cards'))[0].value.published,true);
+});
+test('manual deletion during processing cannot restore the row or overwrite the next employee',()=>{
+  const f=formReady();f.context.onFormSubmitCard(submission());
+  f.context.onFormSubmitCard(submission({...validInput(),googleAccountEmail:'second@example.org',profileImageFileId:'second-profile'},'second'));
+  const sheet=f.sheets.get('Cards'),second=JSON.stringify(sheet.data[2]);
+  f.context.storeCardAsset_=id=>{sheet.data.splice(1,1);return id;};
+  assert.throws(()=>f.context.onFormSubmitCard(submission(validInput(),'response-2')),/삭제/);
+  assert.equal(sheet.data.length,2);assert.equal(JSON.stringify(sheet.data[1]),second);
+});
+test('deleted Sheets row immediately blocks card and media without consulting Drive',()=>{
+  const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';
+  const sheet=new Sheet('Cards',[['publicToken','published','isActive'],['abcdefghijkl',true,true]]);
+  f.sheets.set('Cards',sheet);
+  f.context.DriveApp.getFileById=()=>{throw Error('Drive must not decide employee existence');};
+  assert.ok(f.context.getPublicCard('abcdefghijkl'));
+  sheet.data.pop();
+  assert.equal(f.context.getPublicCard('abcdefghijkl'),null);
+  assert.equal(f.context.getPublicMedia('abcdefghijkl','logo'),null);
+});
+test('default backgrounds resolve shared Drive videos independently of employee uploads',()=>{
+  const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';
+  f.sheets.set('Cards',new Sheet('Cards',[['publicToken','published','isActive','roleBackgroundMode','roleBackgroundFileId'],['abcdefghijkl',true,true,'DEFAULT','']]));
+  f.sheets.set('CompanySettings',new Sheet('CompanySettings',[['roleDefaultVideoFileId'],['shared-role']]));
+  const requested=[];
+  f.context.DriveApp.getFileById=id=>{requested.push(id);return {isTrashed:()=>false,getMimeType:()=> 'video/mp4',getSize:()=>123,getBlob:()=>({getBytes:()=>[1,2,3]})};};
+  f.context.Utilities.base64Encode=()=> 'AQID';
+  assert.equal(f.context.getPublicMedia('abcdefghijkl','role').base64,'AQID');
+  f.sheets.get('Cards').data[1][3]='IMAGE';
+  assert.equal(f.context.getPublicMedia('abcdefghijkl','role',true).base64,'AQID');
+  assert.deepEqual(requested,['shared-role','shared-role']);
+  f.sheets.get('Cards').data.pop();
+  assert.equal(f.context.getPublicMedia('abcdefghijkl','role',true),null);
+});
+test('all four original default videos remain readable MP4 assets',()=>{
+  const f=ready();
+  for(const name of ['role.mp4','contact.mp4','web.mp4','links.mp4']) {
+    const bytes=fs.readFileSync(path.join(__dirname,'../cardDesign/명함_디자인/assets',name));
+    const metadata=f.context.parseMp4Metadata_(bytes);
+    assert.ok(metadata.width>0 && metadata.height>0 && metadata.durationSeconds>0,name);
+  }
+});
+test('admin connection preserves existing data and folders and rejects a different database',()=>{
+  const f=ready();
+  f.context.createCardRecord_(validInput());
+  delete f.properties.ZNUS_SPREADSHEET_ID;
+  const before=JSON.stringify([...f.sheets.values()].map(s=>s.data));
+  const folderCount=f.folders.size;
+  f.context.connectAdminWorkspace();
+  assert.equal(f.properties.ZNUS_SPREADSHEET_ID,'sheet-id');
+  assert.equal(JSON.stringify([...f.sheets.values()].map(s=>s.data)),before);
+  assert.equal(f.folders.size,folderCount);
+  f.properties.ZNUS_SPREADSHEET_ID='other-sheet';
+  assert.throws(()=>f.context.connectAdminWorkspace(),/다릅니다/);
+  assert.equal(f.properties.ZNUS_SPREADSHEET_ID,'other-sheet');
+});
+test('dashboard embeds QR code without interpreting dollar replacement sequences',()=>{
+  const f=ready(),html='<main>Dashboard</main><script>runDashboard();</script>',qr="<script>const token = '$';</script>";
+  f.context.HtmlService.createHtmlOutputFromFile=name=>({getContent:()=>name==='AdminGallery'?html:qr});
+  f.context.HtmlService.createHtmlOutput=value=>value;
+  assert.equal(f.context.adminGalleryOutput_(),'<main>Dashboard</main>'+qr+'<script>runDashboard();</script>');
+});
+test('admin initial dashboard payload escapes HTML-breaking card text',()=>{
+  const f=ready();
+  const escaped=f.context.safeAdminJson_({name:'</script>&\u2028'});
+  assert.equal(escaped,'{"name":"\\u003c/script\\u003e\\u0026\\u2028"}');
+});
 test('initial setup is repeatable and preserves records, columns, folder IDs and settings',()=>{
   const f=ready();
   const card=f.context.createCardRecord_(validInput());
@@ -258,26 +422,20 @@ test('initial public URL connection fills blank URLs without changing token',()=
   assert.equal(saved.publicToken,card.publicToken);
   assert.equal(saved.publicUrl,'https://script.google.com/macros/s/deployment/exec?card='+card.publicToken);
 });
-test('admin disable blocks edits and reactivation stays private; stale writes fail',()=>{
+test('read-only dashboard rejects every legacy state mutation',()=>{
   const f=ready(),card=f.context.createCardRecord_(validInput());
   const sheet=f.sheets.get('Cards');sheet.data[1][sheet.data[0].indexOf('processingStatus')]='COMPLETED';
-  f.context.setAdminCardState(card.cardId,card.updatedAt,'disable');
-  let saved=f.context.readRecords_(f.sheets.get('Cards'),'Cards')[0].value;
-  assert.equal(saved.isActive,false);assert.equal(saved.published,false);
-  assert.throws(()=>f.context.setAdminCardState(card.cardId,'stale','enable'),/変更|변경/);
-  assert.throws(()=>f.context.setAdminCardState(card.cardId,saved.updatedAt,'publish'),/활성화/);
-  f.context.setAdminCardState(card.cardId,saved.updatedAt,'enable');
-  saved=f.context.readRecords_(f.sheets.get('Cards'),'Cards')[0].value;
-  assert.equal(saved.isActive,true);assert.equal(saved.published,false);
+  const before=JSON.stringify(sheet.data);
+  for(const action of ['disable','enable','publish','private'])
+    assert.throws(()=>f.context.setAdminCardState(card.cardId,card.updatedAt,action),/조회 전용/);
+  assert.equal(JSON.stringify(sheet.data),before);
 });
-test('admin edits preserve immutable identifiers and reject duplicate account',()=>{
+test('read-only dashboard rejects legacy employee editing',()=>{
   const f=ready(),card=f.context.createCardRecord_(validInput());
   const sheet=f.sheets.get('Cards');sheet.data[1][sheet.data[0].indexOf('processingStatus')]='COMPLETED';
-  f.context.saveAdminCard(card.cardId,card.updatedAt,{...validInput(),nameKo:'수정한 이름',publicToken:'xxxxxxxxxxxx',published:true});
-  const saved=f.context.readRecords_(sheet,'Cards')[0].value;
-  assert.equal(saved.nameKo,'수정한 이름');assert.equal(saved.publicToken,card.publicToken);assert.equal(saved.publicUrl,card.publicUrl);assert.equal(saved.published,false);
-  f.context.createCardRecord_({...validInput(),googleAccountEmail:'other@example.org'});
-  assert.throws(()=>f.context.saveAdminCard(card.cardId,saved.updatedAt,{...validInput(),googleAccountEmail:'other@example.org'}),/다른 명함/);
+  const before=JSON.stringify(sheet.data);
+  assert.throws(()=>f.context.saveAdminCard(card.cardId,card.updatedAt,validInput()),/조회 전용/);
+  assert.equal(JSON.stringify(sheet.data),before);
 });
 test('anonymous media requests cannot read private cards or arbitrary file IDs',()=>{
   const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';

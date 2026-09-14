@@ -12,22 +12,31 @@ window.ZNUS = (() => {
     document.body.replaceChildren();
     const message = document.createElement('p');
     message.style.cssText = 'margin:20vh 24px;text-align:center;color:white;line-height:1.8';
-    message.textContent = error || '현재 이 명함을 볼 수 없습니다. 주소를 확인하거나 담당자에게 문의해 주세요.';
+    message.textContent = error || '이용할 수 없는 명함입니다';
     document.body.append(message);
   }
   function image(media, url) {
+    if (!media || !url) return false;
     media.replaceChildren();
     const img = document.createElement('img');
     img.src = url; img.alt = ''; img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+    img.addEventListener('error', () => img.remove(), {once: true});
     media.append(img);
+    return true;
   }
   async function start(init, config) {
     try {
+      if (!window.ZNUS_TOKEN) return failure('직원별 명함 주소로 접속해 주세요. 주소 끝에 직원 토큰이 필요합니다.');
       card = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewCard' : 'getPublicCard', window.ZNUS_TOKEN);
       if (!card) return failure();
+      // Static hosting is optional during the personal Drive integration test.
+      config.skipIntro = !card.assetBase;
       config.companyUrl = card.website; config.address = card.address;
       document.title = card.name + ' · ' + card.companyName;
       text('.profile-name h1, #intro-person strong', card.name);
+      document.querySelectorAll('.profile-name h1, #intro-person strong').forEach(el => {
+        el.dataset.ko = card.name; el.dataset.en = card.nameEn;
+      });
       text('.profile-name .en, #intro-person span', card.nameEn);
       text('.role-text .eyebrow', card.department);
       const title = document.querySelector('.role-text h2');
@@ -43,9 +52,8 @@ window.ZNUS = (() => {
       contact[2].textContent = 'TEL  ' + card.companyPhone; contact[2].href = 'tel:' + card.companyPhone.replace(/[^+\d]/g, '');
       text('.address', card.address);
       document.querySelectorAll('.slogan span').forEach((el, i) => { el.textContent = card.slogans[i]; });
-      document.querySelectorAll('.company-logo').forEach(el => { el.src = card.logoUrl; el.alt = card.companyName; });
+      document.querySelectorAll('.company-logo').forEach(el => { if (card.logoUrl) el.src = card.logoUrl; el.alt = card.companyName || 'ZNUS'; });
       document.querySelector('#home-button').setAttribute('aria-label', card.companyName + ' 홈페이지');
-      image(document.querySelector('.profile-card .card-media'), card.profileImageUrl);
       document.querySelectorAll('[data-asset]').forEach(el => {
         if (card.assetBase && !el.matches('.company-logo, [download]')) el.setAttribute(el.dataset.assetAttribute, card.assetBase + '/' + el.dataset.asset);
       });
@@ -54,22 +62,54 @@ window.ZNUS = (() => {
       });
       for (const section of card.sections) {
         const media = document.querySelector('.' + section.type + '-card .card-media');
-        if (section.kind === 'IMAGE') image(media, section.imageUrl);
-        if (section.kind === 'VIDEO') {
-          const video = media.querySelector('video');
-          video.querySelectorAll('source').forEach(el => el.remove());
-          const observer = new IntersectionObserver(entries => {
-            if (!entries.some(entry => entry.isIntersecting)) return;
-            observer.disconnect();
-            rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, section.type).then(result => {
-              if (!result) return;
-              const bytes = Uint8Array.from(atob(result.base64), c => c.charCodeAt(0));
-              const url = URL.createObjectURL(new Blob([bytes], {type: result.mime})); objects.push(url);
-              video.src = url; video.muted = true; video.play().catch(() => {});
-            }).catch(() => { video.setAttribute('aria-label', '배경 영상을 불러오지 못했습니다.'); });
-          });
-          observer.observe(media);
-        }
+        const video = media && media.querySelector('video');
+        if (!video) continue;
+        const defaults = {profile: 'profile.mp4', role: 'role.mp4', contact: 'contact.mp4', company: 'web.mp4', links: 'links.mp4'};
+        const defaultUrl = card.assetBase ? card.assetBase + '/' + defaults[section.type] : '';
+        video.querySelectorAll('source').forEach(el => el.remove());
+        video.removeAttribute('src');
+        video.loop = true; video.muted = true; video.playsInline = true;
+        let usingDefault = false;
+        const play = async url => {
+          video.src = url; video.style.display = '';
+          try { await video.play(); } catch { /* Keep the source for a later user gesture. */ }
+        };
+        const loadMedia = async useDefault => {
+          const result = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, section.type, useDefault);
+          if (!result) throw new Error('영상이 연결되지 않았습니다.');
+          const bytes = Uint8Array.from(atob(result.base64), c => c.charCodeAt(0));
+          const url = URL.createObjectURL(new Blob([bytes], {type: result.mime}));
+          objects.push(url);
+          await play(url);
+        };
+        const fallback = async () => {
+          if (usingDefault) return;
+          usingDefault = true;
+          try {
+            if (defaultUrl) await play(defaultUrl);
+            else await loadMedia(true);
+          } catch { video.style.display = 'none'; }
+        };
+        video.addEventListener('error', () => {
+          if (usingDefault) video.style.display = 'none';
+          else fallback();
+        });
+        const load = async () => {
+          if (section.kind === 'IMAGE' && section.imageUrl) {
+            video.style.display = 'none';
+            const img = document.createElement('img');
+            img.alt = ''; img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+            img.addEventListener('error', () => { img.remove(); fallback(); }, {once: true});
+            media.append(img); img.src = section.imageUrl;
+          } else if (section.kind === 'VIDEO') {
+            try { await loadMedia(false); } catch { await fallback(); }
+          } else await fallback();
+        };
+        const observer = new IntersectionObserver(entries => {
+          if (!entries.some(entry => entry.isIntersecting)) return;
+          observer.disconnect(); load();
+        });
+        observer.observe(media);
       }
       document.querySelector('[download]').addEventListener('click', async event => {
         event.preventDefault();
@@ -115,7 +155,7 @@ window.ZNUS = (() => {
       const img = new Image(); img.src = '/assets/logo_s_aw.svg'; await img.decode(); ctx.drawImage(img, 540, 43, 40, 40);
     }
     if (card.logoUrl && !window.ZNUS_DEMO) {
-      const logo = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, 'logo');
+      const logo = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, 'logo').catch(() => null);
       if (logo) {
         const img = new Image(); img.src = 'data:' + logo.mime + ';base64,' + logo.base64; await img.decode();
         const scale = Math.min(40 / img.width, 40 / img.height); ctx.drawImage(img, 540, 43, img.width * scale, img.height * scale);

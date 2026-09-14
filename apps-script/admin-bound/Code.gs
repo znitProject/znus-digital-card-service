@@ -30,6 +30,6 @@ function workspaceInfo_(ss, folders) {
     cardCount: readRecords_(ss.getSheetByName('Cards'), 'Cards').length,
     deletedTokenCount: readRecords_(ss.getSheetByName('DeletedTokens'), 'DeletedTokens').length,
     publicBaseUrl: PropertiesService.getScriptProperties().getProperty('ZNUS_PUBLIC_BASE_URL') || '',
-    message: '1단계 운영 기반입니다. Form 자동화와 명함 편집 대시보드는 후속 단계에서 연결합니다.'
+    message: '직원 수정은 Google Form, 조회는 대시보드, 직원 삭제는 Cards 시트의 행 삭제로 처리합니다.'
   };
 }

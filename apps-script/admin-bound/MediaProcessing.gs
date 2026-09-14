@@ -44,7 +44,7 @@ function inspectCardMedia_(fileId, mode, label) {
 
 /**
  * Move an accepted upload into 02_card_assets/<cardId>, publish only that
- * asset, and remove the previous active asset after the new file is safe.
+ * asset. Previous files stay available if another asset or the Sheets save fails.
  */
 function storeCardAsset_(fileId, oldFileId, cardId, label, mode) {
   const metadata = inspectCardMedia_(fileId, mode, label);
@@ -58,7 +58,6 @@ function storeCardAsset_(fileId, oldFileId, cardId, label, mode) {
   file.setName(assetFileName_(label, metadata.mimeType));
   file.moveTo(folder);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  if (oldFileId && String(oldFileId) !== id) trashCardAsset_(oldFileId);
   return id;
 }
 

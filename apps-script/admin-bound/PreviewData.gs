@@ -20,26 +20,41 @@ function getAdminPreviewCard(token) {
     slogans: [1,2,3].map(i => String(company['sloganLine' + i] || '')),
     roles: [1,2,3,4,5].map(i => ({ko: String(card['roleItem' + i + 'Ko'] || ''), en: String(card['roleItem' + i + 'En'] || '')})),
     assetBase: safeUrl_(PropertiesService.getScriptProperties().getProperty('ZNUS_ASSET_BASE_URL')).replace(/\/+$/, ''),
-    sections: ['role', 'contact', 'company', 'links'].map(type => ({
-      type: type, kind: String(card[type + 'BackgroundMode'] || 'DEFAULT'),
-      imageUrl: card[type + 'BackgroundMode'] === 'IMAGE' ? imageUrl_(card[type + 'BackgroundFileId']) : ''
-    }))
+    sections: ['profile', 'role', 'contact', 'company', 'links'].map(type => {
+      const media = publicCardMedia_(card, type);
+      return {type: type, kind: media.kind, imageUrl: media.kind === 'IMAGE' ? imageUrl_(media.fileId) : ''};
+    })
   };
 }
 /** File IDs are resolved on the server; callers cannot request arbitrary Drive files. */
-function getAdminPreviewMedia(token, section) {
+function getAdminPreviewMedia(token, section, useDefault) {
   if (!getAdminPreviewCard(token)) return null;
-  if (!['logo', 'role', 'contact', 'company', 'links'].includes(section)) return null;
+  if (!['logo', 'profile', 'role', 'contact', 'company', 'links'].includes(section)) return null;
   const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('ZNUS_SPREADSHEET_ID'));
   const card = publicRows_(ss.getSheetByName('Cards')).find(row => row.publicToken === token);
   if (!card) return null;
   const company = publicRows_(ss.getSheetByName('CompanySettings'))[0] || {};
-  if (section !== 'logo' && card[section + 'BackgroundMode'] !== 'VIDEO') return null;
-  const file = DriveApp.getFileById(section === 'logo' ? company.companyLogoFileId : card[section + 'BackgroundFileId']);
+  const media = publicCardMedia_(card, section);
+  const defaultVideo = section !== 'logo' && (useDefault === true || media.kind === 'DEFAULT');
+  if (section !== 'logo' && !defaultVideo && media.kind !== 'VIDEO') return null;
+  const fileId = section === 'logo' ? company.companyLogoFileId : defaultVideo ? company[section + 'DefaultVideoFileId'] : media.fileId;
+  if (!fileId) return null;
+  const file = DriveApp.getFileById(fileId);
   const mime = file.getMimeType();
   if (file.isTrashed() || file.getSize() > (section === 'logo' ? 2 : 18) * 1024 * 1024) throw new Error('미디어 크기를 확인해 주세요.');
   if (section === 'logo' ? !['image/jpeg','image/png','image/webp'].includes(mime) : mime !== 'video/mp4') throw new Error('지원하지 않는 미디어입니다.');
   return {mime: mime, base64: Utilities.base64Encode(file.getBlob().getBytes())};
+}
+function publicCardMedia_(card, type) {
+  if (type === 'profile') {
+    // Old rows used this field for a photo and may have an unrelated background mode.
+    // Infer from the canonical file itself so both old photos and new videos work.
+    if (!card.profileImageFileId) return {kind: 'DEFAULT', fileId: ''};
+    let kind = 'IMAGE';
+    try { kind = DriveApp.getFileById(card.profileImageFileId).getMimeType() === 'video/mp4' ? 'VIDEO' : 'IMAGE'; } catch (error) {}
+    return {kind: kind, fileId: card.profileImageFileId};
+  }
+  return {kind: String(card[type + 'BackgroundMode'] || 'DEFAULT'), fileId: card[type + 'BackgroundFileId'] || ''};
 }
 function publicTrue_(value) { return value === true || String(value).toUpperCase() === 'TRUE'; }
 function publicRows_(sheet) {

@@ -4,7 +4,7 @@ const ZNUS_SCHEMA = {
     'nameKo', 'nameEn', 'department', 'jobTitleKo', 'jobTitleEn',
     'roleItem1Ko', 'roleItem2Ko', 'roleItem3Ko', 'roleItem4Ko', 'roleItem5Ko',
     'roleItem1En', 'roleItem2En', 'roleItem3En', 'roleItem4En', 'roleItem5En',
-    'mobilePhone', 'publicEmail', 'profileImageFileId',
+    'mobilePhone', 'publicEmail', 'profileImageFileId', 'profileBackgroundMode', 'profileBackgroundFileId',
     'roleBackgroundMode', 'roleBackgroundFileId', 'contactBackgroundMode', 'contactBackgroundFileId',
     'companyBackgroundMode', 'companyBackgroundFileId', 'linksBackgroundMode', 'linksBackgroundFileId',
     'publicUrl', 'qrUrl', 'nfcStatus', 'formResponseId',

@@ -439,7 +439,7 @@ transform:scale(1.11);
     inset: 0;
     overflow: hidden;
     border-radius: clamp( 18px, 2vw, 30px );
-    background: #090909;
+    background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
     border: 1px solid rgba(255,255,255,.14);
     box-shadow: 0 40px 120px rgba(0,0,0,.58), 0 10px 40px rgba(0,0,0,.45);
     transform-origin: center center;
@@ -722,7 +722,7 @@ calc( 100dvh - (var(--page-margin) * 2) );
     margin: 0 var(--page-margin) var(--page-margin);
     overflow: hidden;
     border-radius: var(--card-radius);
-    background: #090909;
+    background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
     scroll-snap-align: start;
     scroll-snap-stop: always;
     isolation: isolate;
@@ -736,7 +736,7 @@ calc( 100dvh - (var(--page-margin) * 2) );
     inset: 0;
     z-index: -3;
     overflow: hidden;
-    background: #090909;
+    background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
 }
 .card-video {
     position: absolute;
@@ -746,7 +746,7 @@ calc( 100dvh - (var(--page-margin) * 2) );
     display: block;
     object-fit: cover;
     object-position: center;
-    background: #090909;
+    background: transparent;
 }
 .video-overlay {
     position: absolute;
@@ -1513,7 +1513,8 @@ min( 30vw, 600px );
   <section
     class="profile-card screen-card"
     data-index="0">
-    <div class="card-media">
+    <!-- One profile media slot: either a photo or a video; shared with Form and Apps Script. -->
+    <div class="card-media" data-content-key="profileImageFileId">
       <video
         class="card-video"
         autoplay
@@ -1995,7 +1996,11 @@ function init(){
     prepareVideos();
   }catch(e){}
 
-  setupVideoStartGate();
+  if (CONFIG.skipIntro) {
+    enterMainFallback();
+  } else {
+    setupVideoStartGate();
+  }
 
   createQRCode();
 
