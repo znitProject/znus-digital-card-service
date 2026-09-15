@@ -45,8 +45,8 @@ function uniqueToken_(cards, deleted) {
 function createCardRecord_(input) {
   const data = validateCardInput_(input);
   return withWorkspaceLock_(function () {
-    const ss = workspace_(), sheet = ss.getSheetByName('Cards');
-    const cards = readRecords_(sheet, 'Cards');
+    const ss = workspace_(), sheet = employeeSheet_(ss);
+    const cards = readRecords_(sheet, ZNUS_EMPLOYEE_SHEET);
     if (cards.some(r => String(r.value.googleAccountEmail).toLowerCase() === data.googleAccountEmail))
       throw new Error('이미 등록된 Google 계정입니다. 기존 명함 수정 경로를 사용하세요.');
     const deleted = readRecords_(ss.getSheetByName('DeletedTokens'), 'DeletedTokens');
@@ -65,11 +65,11 @@ function createCardRecord_(input) {
       published: false, isActive: true, qrUrl: '', nfcStatus: '', formResponseId: '',
       processingStatus: 'PROCESSING', errorMessage: '', createdAt: now, updatedAt: now
     });
-    writeRecord_(sheet, 'Cards', record);
+    writeRecord_(sheet, ZNUS_EMPLOYEE_SHEET, record);
     return record;
   });
 }
-/** Stage 5 must call this BEFORE deleting the Cards row. It does not delete files/data. */
+/** Stage 5 must call this BEFORE deleting an employee row. It does not delete files/data. */
 function reserveDeletedToken_(token) {
   if (!/^[a-z0-9]{12}$/.test(token)) throw new Error('잘못된 공개 토큰입니다.');
   return withWorkspaceLock_(function () {

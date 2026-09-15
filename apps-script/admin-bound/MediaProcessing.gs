@@ -7,7 +7,7 @@
  */
 const ZNUS_MEDIA_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const ZNUS_MEDIA_VIDEO_MIME = 'video/mp4';
-const ZNUS_MEDIA_MAX_VIDEO_BYTES = 18 * 1024 * 1024;
+const ZNUS_MEDIA_MAX_VIDEO_BYTES = 30 * 1024 * 1024;
 
 /** Read the actual Drive file and, for MP4, its container metadata. */
 function inspectCardMedia_(fileId, mode, label) {
@@ -31,7 +31,7 @@ function inspectCardMedia_(fileId, mode, label) {
   if (mimeType !== ZNUS_MEDIA_VIDEO_MIME)
     throw new Error(name + ': MP4 영상만 허용합니다.');
   if (sizeBytes > ZNUS_MEDIA_MAX_VIDEO_BYTES)
-    throw new Error(name + ': 영상은 18MiB 이하여야 합니다.');
+    throw new Error(name + ': 영상은 30MiB 이하여야 합니다.');
   if (sizeBytes <= 0) throw new Error(name + ': 빈 파일은 사용할 수 없습니다.');
 
   const parsed = parseMp4Metadata_(file.getBlob().getBytes());
@@ -43,15 +43,14 @@ function inspectCardMedia_(fileId, mode, label) {
 }
 
 /**
- * Move an accepted upload into 02_card_assets/<cardId>, publish only that
+ * Move an accepted upload into 02_card_assets/<publicToken>, publish only that
  * asset. Previous files stay available if another asset or the Sheets save fails.
  */
-function storeCardAsset_(fileId, oldFileId, cardId, label, mode) {
+function storeCardAsset_(fileId, oldFileId, publicToken, label, mode) {
   const metadata = inspectCardMedia_(fileId, mode, label);
   const id = metadata.id;
-  const card = String(cardId || '').trim();
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(card))
-    throw new Error('카드 자산을 저장할 cardId가 올바르지 않습니다.');
+  const card = String(publicToken || '').trim();
+  if (!/^[a-z0-9]{12}$/.test(card)) throw new Error('카드 자산을 저장할 publicToken이 올바르지 않습니다.');
 
   const folder = ensureCardAssetFolder_(card);
   const file = DriveApp.getFileById(id);

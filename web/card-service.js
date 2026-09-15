@@ -2,6 +2,8 @@
 window.ZNUS = (() => {
   let card;
   const objects = [];
+  const mediaLoaders = new Map();
+  let mediaWarmupStarted = false;
   const text = (selector, value) => document.querySelectorAll(selector).forEach(el => { el.textContent = value || ''; });
   const rpc = (method, ...args) => new Promise((resolve, reject) => {
     if (window.ZNUS_DEMO) return resolve(method.endsWith('Media') ? null : window.ZNUS_DEMO);
@@ -70,9 +72,20 @@ window.ZNUS = (() => {
         video.removeAttribute('src');
         video.loop = true; video.muted = true; video.playsInline = true;
         let usingDefault = false;
-        const play = async url => {
-          video.src = url; video.style.display = '';
-          try { await video.play(); } catch { /* Keep the source for a later user gesture. */ }
+        const waitUntilPlayable = () => new Promise(resolve => {
+          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return resolve();
+          const done = () => { clearTimeout(timeout); resolve(); };
+          const timeout = setTimeout(done, 1800);
+          video.addEventListener('loadeddata', done, {once: true});
+          video.addEventListener('error', done, {once: true});
+        });
+        const prepare = async url => {
+          video.src = url; video.style.display = ''; video.preload = 'auto';
+          try { video.load(); } catch { /* Some mobile browsers already started loading. */ }
+          await waitUntilPlayable();
+          if (media.closest('.screen-card')?.classList.contains('is-active')) {
+            try { await video.play(); } catch { /* Keep the source for the next user gesture. */ }
+          }
         };
         const loadMedia = async useDefault => {
           const result = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, section.type, useDefault);
@@ -80,13 +93,13 @@ window.ZNUS = (() => {
           const bytes = Uint8Array.from(atob(result.base64), c => c.charCodeAt(0));
           const url = URL.createObjectURL(new Blob([bytes], {type: result.mime}));
           objects.push(url);
-          await play(url);
+          await prepare(url);
         };
         const fallback = async () => {
           if (usingDefault) return;
           usingDefault = true;
           try {
-            if (defaultUrl) await play(defaultUrl);
+            if (defaultUrl) await prepare(defaultUrl);
             else await loadMedia(true);
           } catch { video.style.display = 'none'; }
         };
@@ -94,23 +107,50 @@ window.ZNUS = (() => {
           if (usingDefault) video.style.display = 'none';
           else fallback();
         });
-        const load = async () => {
-          if (section.kind === 'IMAGE' && section.imageUrl) {
-            video.style.display = 'none';
-            const img = document.createElement('img');
-            img.alt = ''; img.style.cssText = 'width:100%;height:100%;object-fit:cover';
-            img.addEventListener('error', () => { img.remove(); fallback(); }, {once: true});
-            media.append(img); img.src = section.imageUrl;
+        let loadPromise;
+        const load = () => loadPromise ||= (async () => {
+          if (section.kind === 'IMAGE') {
+            try {
+              const result = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, section.type, false);
+              if (!result) throw new Error('이미지가 연결되지 않았습니다.');
+              const bytes = Uint8Array.from(atob(result.base64), c => c.charCodeAt(0));
+              const url = URL.createObjectURL(new Blob([bytes], {type: result.mime}));
+              objects.push(url);
+              video.style.display = 'none';
+              const img = document.createElement('img');
+              img.alt = ''; img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+              media.append(img); img.src = url;
+            } catch {
+              // Profiles have no default media by design; leave the slot empty.
+              if (section.type === 'profile') video.style.display = 'none';
+              else await fallback();
+            }
           } else if (section.kind === 'VIDEO') {
             try { await loadMedia(false); } catch { await fallback(); }
           } else await fallback();
-        };
+        })();
+        mediaLoaders.set(section.type, load);
         const observer = new IntersectionObserver(entries => {
           if (!entries.some(entry => entry.isIntersecting)) return;
           observer.disconnect(); load();
         });
         observer.observe(media);
       }
+      // Fetch Drive media one card at a time while the intro plays. The sources
+      // remain attached after playback is paused, so revisiting a card is instant
+      // without starting five decoders at once.
+      const idle = () => new Promise(resolve => {
+        if ('requestIdleCallback' in window) requestIdleCallback(resolve, {timeout: 900});
+        else setTimeout(resolve, 120);
+      });
+      const warmMedia = async () => {
+        if (mediaWarmupStarted) return;
+        mediaWarmupStarted = true;
+        for (const section of card.sections.slice(1)) {
+          await idle();
+          try { await mediaLoaders.get(section.type)?.(); } catch { /* Visible-card fallback remains available. */ }
+        }
+      };
       document.querySelector('[download]').addEventListener('click', async event => {
         event.preventDefault();
         const button = event.currentTarget;
@@ -121,6 +161,7 @@ window.ZNUS = (() => {
       });
       document.body.style.visibility = 'visible';
       init();
+      setTimeout(warmMedia, 0);
       if (!card.publicUrl) {
         text('#qr-code', '공개 주소 연결 후 QR이 표시됩니다.');
         document.querySelector('#share-button').disabled = true;
@@ -167,5 +208,9 @@ window.ZNUS = (() => {
     a.href = url; a.download = card.name + '-명함.png'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
   window.addEventListener('pagehide', () => objects.forEach(url => URL.revokeObjectURL(url)));
-  return {start, url: () => card?.publicUrl || '', download};
+  function preloadCardMedia(index) {
+    const type = card?.sections?.[index]?.type;
+    return type ? mediaLoaders.get(type)?.() : undefined;
+  }
+  return {start, url: () => card?.publicUrl || '', download, preloadCardMedia};
 })();

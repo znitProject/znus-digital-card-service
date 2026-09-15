@@ -1,19 +1,23 @@
+const ZNUS_EMPLOYEE_SHEET = '설문지 응답 시트1';
+// Form-owned columns stay exactly as Forms creates them. Only these four
+// implementation columns are appended and hidden at the right edge.
+const ZNUS_EMPLOYEE_SCHEMA = ['publicToken', 'formResponseId', 'processingStatus', 'errorMessage'];
 const ZNUS_SCHEMA = {
-  Cards: [
-    'cardId', 'googleAccountEmail', 'publicToken', 'published', 'isActive',
-    'nameKo', 'nameEn', 'department', 'jobTitleKo', 'jobTitleEn',
-    'roleItem1Ko', 'roleItem2Ko', 'roleItem3Ko', 'roleItem4Ko', 'roleItem5Ko',
-    'roleItem1En', 'roleItem2En', 'roleItem3En', 'roleItem4En', 'roleItem5En',
-    'mobilePhone', 'publicEmail', 'profileImageFileId', 'profileBackgroundMode', 'profileBackgroundFileId',
-    'roleBackgroundMode', 'roleBackgroundFileId', 'contactBackgroundMode', 'contactBackgroundFileId',
-    'companyBackgroundMode', 'companyBackgroundFileId', 'linksBackgroundMode', 'linksBackgroundFileId',
-    'publicUrl', 'qrUrl', 'nfcStatus', 'formResponseId',
-    'createdAt', 'updatedAt', 'processingStatus', 'errorMessage'
-  ],
+  // The employee master is the Form response sheet itself. Cards is not part
+  // of the workspace schema and is never created by setup.
+  [ZNUS_EMPLOYEE_SHEET]: ZNUS_EMPLOYEE_SCHEMA,
   CompanySettings: ['companyName', 'companyWebsite', 'companyPhone', 'companyFax',
     'officeAddress', 'companyLogoFileId', 'sloganLine1', 'sloganLine2', 'sloganLine3'],
   DeletedTokens: ['publicToken']
 };
+const ZNUS_LEGACY_CARDS_SCHEMA = ZNUS_EMPLOYEE_SCHEMA;
+function schema_(name) { return name === 'Cards' ? ZNUS_LEGACY_CARDS_SCHEMA : ZNUS_SCHEMA[name]; }
+function employeeSheet_(ss) {
+  const sheet = ss.getSheetByName(ZNUS_EMPLOYEE_SHEET);
+  if (!sheet) throw new Error(ZNUS_EMPLOYEE_SHEET + ' 탭이 필요합니다. Form 응답 저장 위치를 확인하세요.');
+  return sheet;
+}
+function workspaceSchemaNames_() { return [ZNUS_EMPLOYEE_SHEET, 'CompanySettings', 'DeletedTokens']; }
 function sheetHeaders_(sheet) {
   return !sheet || sheet.getLastRow() === 0 ? [] :
     sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String);
@@ -23,10 +27,6 @@ function inspectSchema_(sheet, name) {
   if (!headers.length) return headers;
   if (headers.some(h => !h || h.trim() !== h) || new Set(headers).size !== headers.length)
     throw new Error(name + ': 빈 열 이름 또는 중복 열 이름을 정리하세요. 데이터는 변경하지 않았습니다.');
-  if (name === 'Cards' && (headers.includes('slug') || headers.includes('sectionsJson')))
-    throw new Error('기존 Cards 형식입니다. 원본을 보존한 뒤 별도 이관이 필요합니다. 초기 설정은 데이터를 삭제하지 않습니다.');
-  if (name === 'Cards' && sheet.getLastRow() > 1 && ZNUS_SCHEMA.Cards.some(h => !headers.includes(h)))
-    throw new Error('Cards 데이터에 필수 열이 누락되었습니다. 식별자나 상태를 추정하지 않습니다. 이관이 필요합니다.');
   if (name === 'DeletedTokens' && (headers.length !== 1 || headers[0] !== 'publicToken'))
     throw new Error('DeletedTokens에는 publicToken 한 열만 허용합니다.');
   if (name === 'CompanySettings' && sheet.getLastRow() > 2)
@@ -37,7 +37,7 @@ function ensureSheet_(ss, name) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) sheet = ss.insertSheet(name);
   const headers = inspectSchema_(sheet, name);
-  const missing = ZNUS_SCHEMA[name].filter(h => !headers.includes(h));
+  const missing = schema_(name).filter(h => !headers.includes(h));
   if (missing.length) {
     const count = headers.length + missing.length;
     if (sheet.getMaxColumns() < count) sheet.insertColumnsAfter(sheet.getMaxColumns(), count - sheet.getMaxColumns());
@@ -45,6 +45,13 @@ function ensureSheet_(ss, name) {
   }
   sheet.setFrozenRows(1);
   sheet.getRange(1, 1, 1, sheet.getLastColumn()).setFontWeight('bold').setBackground('#17213b').setFontColor('#ffffff');
+  if (name === ZNUS_EMPLOYEE_SHEET && typeof sheet.hideColumns === 'function') {
+    const currentHeaders = sheetHeaders_(sheet);
+    ZNUS_EMPLOYEE_SCHEMA.forEach(function (header) {
+      const column = currentHeaders.indexOf(header) + 1;
+      if (column) sheet.hideColumns(column);
+    });
+  }
   return sheet;
 }
 function workspace_() {
@@ -61,7 +68,7 @@ function withWorkspaceLock_(action) {
 function readRecords_(sheet, name) {
   if (!sheet) throw new Error(name + ' 시트가 없습니다.');
   const headers = inspectSchema_(sheet, name);
-  if (ZNUS_SCHEMA[name].some(h => !headers.includes(h))) throw new Error(name + ': 초기 설정이 필요합니다.');
+  if (schema_(name).some(h => !headers.includes(h))) throw new Error(name + ': 초기 설정이 필요합니다.');
   if (sheet.getLastRow() < 2) return [];
   return sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues()
     .map((values, i) => ({ row: i + 2, value: Object.fromEntries(headers.map((h, j) => [h, values[j]])) }))
@@ -73,10 +80,25 @@ function sheetValue_(value) {
 }
 function writeRecord_(sheet, name, record, row) {
   const headers = inspectSchema_(sheet, name);
-  if (ZNUS_SCHEMA[name].some(h => !headers.includes(h))) throw new Error(name + ': 초기 설정이 필요합니다.');
+  if (schema_(name).some(h => !headers.includes(h))) throw new Error(name + ': 초기 설정이 필요합니다.');
   const target = row || sheet.getLastRow() + 1;
   if (target > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), target - sheet.getMaxRows());
   const range = sheet.getRange(target, 1, 1, headers.length);
-  range.setNumberFormat('@');
-  range.setValues([headers.map(h => sheetValue_(record[h] == null ? '' : record[h]))]);
+  const previous = target <= sheet.getLastRow() ? range.getValues()[0] : [];
+  const systemHeaders = new Set(schema_(name));
+  headers.forEach((header, index) => {
+    if (systemHeaders.has(header)) sheet.getRange(target, index + 1, 1, 1).setNumberFormat('@');
+  });
+  range.setValues([headers.map((h, i) => Object.prototype.hasOwnProperty.call(record, h)
+    ? sheetValue_(record[h] == null ? '' : record[h]) : (previous[i] == null ? '' : previous[i]))]);
+}
+/** Write only the four implementation cells; Form-owned cells stay untouched. */
+function writeEmployeeSystem_(sheet, row, values) {
+  const headers = sheetHeaders_(sheet);
+  ZNUS_EMPLOYEE_SCHEMA.forEach(function (header) {
+    if (!Object.prototype.hasOwnProperty.call(values, header)) return;
+    const column = headers.indexOf(header) + 1;
+    if (!column) throw new Error('시스템 열이 없습니다: ' + header);
+    sheet.getRange(row, column, 1, 1).setNumberFormat('@').setValues([[sheetValue_(values[header] == null ? '' : values[header])]]);
+  });
 }

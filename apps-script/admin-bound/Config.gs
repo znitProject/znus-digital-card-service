@@ -45,16 +45,11 @@ function configurePublicBaseUrl_(url) {
   if (/[?#]/.test(clean)) throw new Error('공개 기본 URL에는 쿼리나 해시를 넣지 마세요.');
   return withWorkspaceLock_(function () {
     const props = PropertiesService.getScriptProperties();
-    const sheet = workspace_().getSheetByName('Cards');
-    const cards = readRecords_(sheet, 'Cards');
+    const cards = formRecords_(employeeSheet_(workspace_()));
     if (props.getProperty('ZNUS_PUBLIC_BASE_URL') !== clean &&
-        cards.some(entry => entry.value.publicUrl))
+        cards.some(entry => /^[a-z0-9]{12}$/.test(String(entry.value.publicToken || ''))))
       throw new Error('명함 생성 이후 주소 변경은 별도 이전 절차가 필요합니다. 기존 URL을 유지하세요.');
     props.setProperty('ZNUS_PUBLIC_BASE_URL', clean);
-    cards.filter(entry => !entry.value.publicUrl).forEach(entry => {
-      entry.value.publicUrl = publicUrl_(entry.value.publicToken);
-      writeRecord_(sheet, 'Cards', entry.value, entry.row);
-    });
     return clean;
   });
 }

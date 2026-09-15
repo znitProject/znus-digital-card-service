@@ -1,12 +1,93 @@
 /** Generated read adapter. Sheet-bound editor preview only. */
 function getAdminPreviewCard(token) {
+  if (!/^[a-z0-9]{12}$/.test(String(token || ''))) return null;
+  const ss = publicSpreadsheet_();
+  const raw = publicRows_(ss.getSheetByName('설문지 응답 시트1'));
+  const card = raw.map(publicEmployeeCard_).find(function (row) { return row.publicToken === token; });
+  if (!card || card.processingStatus !== 'COMPLETED' || !card.profileImageFileId) return null;
+  const company = publicRows_(ss.getSheetByName('CompanySettings'))[0] || {};
+  return {
+    slug: token, name: card.nameKo, nameEn: card.nameEn, department: card.department,
+    position: card.jobTitleKo, positionEn: card.jobTitleEn, phone: card.mobilePhone, email: card.publicEmail,
+    address: String(company.officeAddress || ''), website: safeUrl_(company.companyWebsite),
+    profileImageUrl: imageUrl_(card.profileImageFileId), logoUrl: imageUrl_(company.companyLogoFileId),
+    publicUrl: publicUrlForToken_(token), companyName: String(company.companyName || ''),
+    companyPhone: String(company.companyPhone || ''), companyFax: String(company.companyFax || ''),
+    slogans: [1, 2, 3].map(function (i) { return String(company['sloganLine' + i] || ''); }),
+    roles: [1, 2, 3, 4, 5].map(function (i) { return {ko: card['roleItem' + i + 'Ko'] || '', en: card['roleItem' + i + 'En'] || ''}; }),
+    assetBase: safeUrl_(PropertiesService.getScriptProperties().getProperty('ZNUS_ASSET_BASE_URL')).replace(/\/+$/, ''),
+    sections: ['profile', 'role', 'contact', 'company', 'links'].map(function (type) {
+      const media = publicCardMedia_(card, type);
+      return {type: type, kind: media.kind, imageUrl: media.kind === 'IMAGE' ? imageUrl_(media.fileId) : ''};
+    })
+  };
+}
+function getAdminPreviewMedia(token, section, useDefault) {
+  const publicCard = getAdminPreviewCard(token);
+  if (!publicCard || !['logo', 'profile', 'role', 'contact', 'company', 'links'].includes(section)) return null;
+  const ss = publicSpreadsheet_();
+  const card = publicRows_(ss.getSheetByName('설문지 응답 시트1')).map(publicEmployeeCard_)
+    .find(function (row) { return row.publicToken === token; });
+  const company = publicRows_(ss.getSheetByName('CompanySettings'))[0] || {};
+  const media = publicCardMedia_(card, section);
+  const defaultVideo = section !== 'logo' && (useDefault === true || media.kind === 'DEFAULT');
+  if (section !== 'logo' && !defaultVideo && media.kind !== 'VIDEO') return null;
+  const fileId = section === 'logo' ? company.companyLogoFileId : defaultVideo ? company[section + 'DefaultVideoFileId'] : media.fileId;
+  if (!fileId) return null;
+  const file = DriveApp.getFileById(fileId), mime = String(file.getMimeType() || '').toLowerCase();
+  if (file.isTrashed() || file.getSize() > (section === 'logo' ? 2 : 30) * 1024 * 1024) throw new Error('미디어 크기를 확인해 주세요.');
+  if (section === 'logo' ? !['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'].includes(mime) : mime !== 'video/mp4') throw new Error('지원하지 않는 미디어입니다.');
+  return {mime: mime, base64: Utilities.base64Encode(file.getBlob().getBytes())};
+}
+function publicSpreadsheet_() {
+  const id = PropertiesService.getScriptProperties().getProperty('ZNUS_SPREADSHEET_ID');
+  if (!id) throw new Error('공개 명함의 데이터 연결이 설정되지 않았습니다.');
+  return SpreadsheetApp.openById(id);
+}
+function publicUrlForToken_(token) {
+  const base = String(PropertiesService.getScriptProperties().getProperty('ZNUS_PUBLIC_BASE_URL') || '').replace(/\/+$/, '');
+  if (!/^https:\/\//.test(base)) return '';
+  return base + (/^https:\/\/script\.google\.com\//.test(base) ? '?card=' : '/') + token;
+}
+function publicEmployeeCard_(row) {
+  const names = {
+    '이름 (국문)': 'nameKo', '이름 (영문)': 'nameEn', '부서': 'department', '직책 (국문)': 'jobTitleKo', '직책 (영문)': 'jobTitleEn',
+    '공개 휴대전화': 'mobilePhone', '공개 이메일': 'publicEmail', '프로필 사진': 'profileImageFileId', '프로필 사진 또는 영상': 'profileImageFileId',
+    '직무 카드 배경 파일': 'roleBackgroundFileId', '연락처 카드 배경 파일': 'contactBackgroundFileId', '회사 카드 배경 파일': 'companyBackgroundFileId', '링크 카드 배경 파일': 'linksBackgroundFileId',
+    '직무 카드 배경': 'roleBackgroundMode', '연락처 카드 배경': 'contactBackgroundMode', '회사 카드 배경': 'companyBackgroundMode', '링크 카드 배경': 'linksBackgroundMode'
+  };
+  [1,2,3,4,5].forEach(function (i) { names['주요 업무 ' + i + ' (국문)'] = 'roleItem' + i + 'Ko'; names['주요 업무 ' + i + ' (영문)'] = 'roleItem' + i + 'En'; });
+  const card = {publicToken: String(row.publicToken || '').trim(), processingStatus: String(row.processingStatus || '').trim()};
+  Object.keys(row).forEach(function (header) {
+    const key = names[header] || header;
+    if (/^(nameKo|nameEn|department|jobTitleKo|jobTitleEn|mobilePhone|publicEmail|profileImageFileId|roleItem[1-5](Ko|En)|(?:role|contact|company|links)Background(FileId|Mode))$/.test(key)) card[key] = String(row[header] || '').trim();
+  });
+  ['profileImageFileId', 'roleBackgroundFileId', 'contactBackgroundFileId', 'companyBackgroundFileId', 'linksBackgroundFileId'].forEach(function (key) { card[key] = publicFileId_(card[key]); });
+  ['role', 'contact', 'company', 'links'].forEach(function (type) {
+    const mode = card[type + 'BackgroundMode'];
+    card[type + 'BackgroundMode'] = mode === '기본 디자인 사용' || !card[type + 'BackgroundFileId'] ? 'DEFAULT' : mode || publicMediaKind_(card[type + 'BackgroundFileId']);
+  });
+  return card;
+}
+function publicFileId_(value) {
+  const text = String(value || '').trim(), match = text.match(/(?:[?&]id=|\/d\/)([A-Za-z0-9_-]+)/);
+  return match ? match[1] : /^[A-Za-z0-9_-]+$/.test(text) ? text : '';
+}
+function publicMediaKind_(fileId) {
+  try { return DriveApp.getFileById(fileId).getMimeType() === 'video/mp4' ? 'VIDEO' : 'IMAGE'; }
+  catch (error) { return 'DEFAULT'; }
+}
+function legacyGetPublicCard_(token) {
   if (typeof token !== 'string' || !/^[a-z0-9]{12}$/.test(token)) return null;
   const id = PropertiesService.getScriptProperties().getProperty('ZNUS_SPREADSHEET_ID');
   if (!id) throw new Error('공개 명함의 데이터 연결이 설정되지 않았습니다.');
   const ss = SpreadsheetApp.openById(id);
-  const cards = publicRows_(ss.getSheetByName('Cards'));
+  const cards = publicRows_(ss.getSheetByName('설문지 응답 시트1'));
   const card = cards.find(row => row.publicToken === token);
   if (!card) return null;
+  // A profile has no shared default. An incomplete card must never fall back to
+  // the design's local placeholder media on its public URL.
+  if (!String(card.profileImageFileId || '').trim()) return null;
   // Explicit allowlist. Never return account email, cardId, processing errors, or raw rows.
   const company = publicRows_(ss.getSheetByName('CompanySettings'))[0] || {};
   return {
@@ -27,11 +108,11 @@ function getAdminPreviewCard(token) {
   };
 }
 /** File IDs are resolved on the server; callers cannot request arbitrary Drive files. */
-function getAdminPreviewMedia(token, section, useDefault) {
+function legacyGetPublicMedia_(token, section, useDefault) {
   if (!getAdminPreviewCard(token)) return null;
   if (!['logo', 'profile', 'role', 'contact', 'company', 'links'].includes(section)) return null;
   const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('ZNUS_SPREADSHEET_ID'));
-  const card = publicRows_(ss.getSheetByName('Cards')).find(row => row.publicToken === token);
+  const card = publicRows_(ss.getSheetByName('설문지 응답 시트1')).find(row => row.publicToken === token);
   if (!card) return null;
   const company = publicRows_(ss.getSheetByName('CompanySettings'))[0] || {};
   const media = publicCardMedia_(card, section);
@@ -41,8 +122,8 @@ function getAdminPreviewMedia(token, section, useDefault) {
   if (!fileId) return null;
   const file = DriveApp.getFileById(fileId);
   const mime = file.getMimeType();
-  if (file.isTrashed() || file.getSize() > (section === 'logo' ? 2 : 18) * 1024 * 1024) throw new Error('미디어 크기를 확인해 주세요.');
-  if (section === 'logo' ? !['image/jpeg','image/png','image/webp'].includes(mime) : mime !== 'video/mp4') throw new Error('지원하지 않는 미디어입니다.');
+  if (file.isTrashed() || file.getSize() > (section === 'logo' ? 2 : 30) * 1024 * 1024) throw new Error('미디어 크기를 확인해 주세요.');
+  if (section === 'logo' ? !['image/jpeg','image/png','image/webp','image/svg+xml'].includes(mime) : mime !== 'video/mp4') throw new Error('지원하지 않는 미디어입니다.');
   return {mime: mime, base64: Utilities.base64Encode(file.getBlob().getBytes())};
 }
 function publicCardMedia_(card, type) {

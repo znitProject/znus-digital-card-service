@@ -693,8 +693,10 @@ opacity:1;
     height: 100dvh;
     padding: var(--page-margin) 0;
     overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: none;
     scroll-snap-type: y mandatory;
+    scroll-padding-block: var(--page-margin);
     overscroll-behavior-y: contain;
     opacity: 0;
     visibility: hidden;
@@ -719,12 +721,13 @@ height:
 calc( 100dvh - (var(--page-margin) * 2) );
 min-height:
 calc( 100dvh - (var(--page-margin) * 2) );
-    margin: 0 var(--page-margin) var(--page-margin);
+    margin: 0 auto var(--page-margin);
     overflow: hidden;
     border-radius: var(--card-radius);
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
     scroll-snap-align: start;
     scroll-snap-stop: always;
+    scroll-margin-block-start: var(--page-margin);
     isolation: isolate;
 }
 /* =========================================================
@@ -1534,7 +1537,7 @@ min( 30vw, 600px );
     class="morph-video"
     muted
     playsinline
-    preload="auto"> </video>
+    preload="metadata"> </video>
 </div>
 
 <!-- =========================================================
@@ -1583,11 +1586,10 @@ min( 30vw, 600px );
     <div class="card-media" data-content-key="profileImageFileId">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         data-asset="universe.jpg" data-asset-attribute="poster">
         <source
           data-asset="profile.mp4" data-asset-attribute="src"
@@ -1625,11 +1627,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         data-asset="universe.jpg" data-asset-attribute="poster">
         <source
           data-asset="role.mp4" data-asset-attribute="src"
@@ -1693,11 +1694,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         data-asset="universe.jpg" data-asset-attribute="poster">
         <source
           data-asset="contact.mp4" data-asset-attribute="src"
@@ -1734,11 +1734,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         data-asset="universe.jpg" data-asset-attribute="poster">
         <source
           data-asset="web.mp4" data-asset-attribute="src"
@@ -1782,11 +1781,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         data-asset="universe.jpg" data-asset-attribute="poster">
         <source
           data-asset="links.mp4" data-asset-attribute="src"
@@ -4183,6 +4181,8 @@ function QRCode(el, options) { const qr=qrcode(0,"M"); qr.addData(options.text);
 window.ZNUS = (() => {
   let card;
   const objects = [];
+  const mediaLoaders = new Map();
+  let mediaWarmupStarted = false;
   const text = (selector, value) => document.querySelectorAll(selector).forEach(el => { el.textContent = value || ''; });
   const rpc = (method, ...args) => new Promise((resolve, reject) => {
     if (window.ZNUS_DEMO) return resolve(method.endsWith('Media') ? null : window.ZNUS_DEMO);
@@ -4251,9 +4251,20 @@ window.ZNUS = (() => {
         video.removeAttribute('src');
         video.loop = true; video.muted = true; video.playsInline = true;
         let usingDefault = false;
-        const play = async url => {
-          video.src = url; video.style.display = '';
-          try { await video.play(); } catch { /* Keep the source for a later user gesture. */ }
+        const waitUntilPlayable = () => new Promise(resolve => {
+          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return resolve();
+          const done = () => { clearTimeout(timeout); resolve(); };
+          const timeout = setTimeout(done, 1800);
+          video.addEventListener('loadeddata', done, {once: true});
+          video.addEventListener('error', done, {once: true});
+        });
+        const prepare = async url => {
+          video.src = url; video.style.display = ''; video.preload = 'auto';
+          try { video.load(); } catch { /* Some mobile browsers already started loading. */ }
+          await waitUntilPlayable();
+          if (media.closest('.screen-card')?.classList.contains('is-active')) {
+            try { await video.play(); } catch { /* Keep the source for the next user gesture. */ }
+          }
         };
         const loadMedia = async useDefault => {
           const result = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, section.type, useDefault);
@@ -4261,13 +4272,13 @@ window.ZNUS = (() => {
           const bytes = Uint8Array.from(atob(result.base64), c => c.charCodeAt(0));
           const url = URL.createObjectURL(new Blob([bytes], {type: result.mime}));
           objects.push(url);
-          await play(url);
+          await prepare(url);
         };
         const fallback = async () => {
           if (usingDefault) return;
           usingDefault = true;
           try {
-            if (defaultUrl) await play(defaultUrl);
+            if (defaultUrl) await prepare(defaultUrl);
             else await loadMedia(true);
           } catch { video.style.display = 'none'; }
         };
@@ -4275,23 +4286,50 @@ window.ZNUS = (() => {
           if (usingDefault) video.style.display = 'none';
           else fallback();
         });
-        const load = async () => {
-          if (section.kind === 'IMAGE' && section.imageUrl) {
-            video.style.display = 'none';
-            const img = document.createElement('img');
-            img.alt = ''; img.style.cssText = 'width:100%;height:100%;object-fit:cover';
-            img.addEventListener('error', () => { img.remove(); fallback(); }, {once: true});
-            media.append(img); img.src = section.imageUrl;
+        let loadPromise;
+        const load = () => loadPromise ||= (async () => {
+          if (section.kind === 'IMAGE') {
+            try {
+              const result = await rpc(window.ZNUS_PREVIEW ? 'getAdminPreviewMedia' : 'getPublicMedia', card.slug, section.type, false);
+              if (!result) throw new Error('이미지가 연결되지 않았습니다.');
+              const bytes = Uint8Array.from(atob(result.base64), c => c.charCodeAt(0));
+              const url = URL.createObjectURL(new Blob([bytes], {type: result.mime}));
+              objects.push(url);
+              video.style.display = 'none';
+              const img = document.createElement('img');
+              img.alt = ''; img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+              media.append(img); img.src = url;
+            } catch {
+              // Profiles have no default media by design; leave the slot empty.
+              if (section.type === 'profile') video.style.display = 'none';
+              else await fallback();
+            }
           } else if (section.kind === 'VIDEO') {
             try { await loadMedia(false); } catch { await fallback(); }
           } else await fallback();
-        };
+        })();
+        mediaLoaders.set(section.type, load);
         const observer = new IntersectionObserver(entries => {
           if (!entries.some(entry => entry.isIntersecting)) return;
           observer.disconnect(); load();
         });
         observer.observe(media);
       }
+      // Fetch Drive media one card at a time while the intro plays. The sources
+      // remain attached after playback is paused, so revisiting a card is instant
+      // without starting five decoders at once.
+      const idle = () => new Promise(resolve => {
+        if ('requestIdleCallback' in window) requestIdleCallback(resolve, {timeout: 900});
+        else setTimeout(resolve, 120);
+      });
+      const warmMedia = async () => {
+        if (mediaWarmupStarted) return;
+        mediaWarmupStarted = true;
+        for (const section of card.sections.slice(1)) {
+          await idle();
+          try { await mediaLoaders.get(section.type)?.(); } catch { /* Visible-card fallback remains available. */ }
+        }
+      };
       document.querySelector('[download]').addEventListener('click', async event => {
         event.preventDefault();
         const button = event.currentTarget;
@@ -4302,6 +4340,7 @@ window.ZNUS = (() => {
       });
       document.body.style.visibility = 'visible';
       init();
+      setTimeout(warmMedia, 0);
       if (!card.publicUrl) {
         text('#qr-code', '공개 주소 연결 후 QR이 표시됩니다.');
         document.querySelector('#share-button').disabled = true;
@@ -4348,7 +4387,11 @@ window.ZNUS = (() => {
     a.href = url; a.download = card.name + '-명함.png'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
   window.addEventListener('pagehide', () => objects.forEach(url => URL.revokeObjectURL(url)));
-  return {start, url: () => card?.publicUrl || '', download};
+  function preloadCardMedia(index) {
+    const type = card?.sections?.[index]?.type;
+    return type ? mediaLoaders.get(type)?.() : undefined;
+  }
+  return {start, url: () => card?.publicUrl || '', download, preloadCardMedia};
 })();
 
 </script>
@@ -4607,97 +4650,17 @@ function createIntroCards(){
         previewVideo
       ){
 
-        const sourceElement =
-          sourceVideo.querySelector(
-            "source"
-          );
-
-        const videoUrl =
-          sourceElement?.getAttribute("src") ||
-          sourceVideo.getAttribute("src") ||
-          sourceVideo.currentSrc ||
-          "";
-
-
-        if(videoUrl){
-
-          previewVideo.removeAttribute(
-            "src"
-          );
-
-          const previewSource =
-            previewVideo.querySelector(
-              "source"
-            );
-
-
-          if(previewSource){
-
-            previewSource.setAttribute(
-              "src",
-              videoUrl
-            );
-
-            previewSource.setAttribute(
-              "type",
-              sourceElement?.getAttribute("type") ||
-              "video/mp4"
-            );
-
-          }else{
-
-            previewVideo.src =
-              videoUrl;
-
-          }
-
+        /* Intro cards are visual copies only. Keeping five cloned video
+           decoders alive makes the main-card transition noticeably janky. */
+        previewVideo.pause();
+        previewVideo.removeAttribute("src");
+        previewVideo.querySelectorAll("source").forEach(source => source.remove());
+        previewVideo.preload = "none";
+        if(sourceVideo.poster){
+          previewVideo.poster = sourceVideo.poster;
         }
 
-
-        previewVideo.muted =
-          true;
-
-        previewVideo.loop =
-          true;
-
-        previewVideo.playsInline =
-          true;
-
-        previewVideo.setAttribute(
-          "muted",
-          ""
-        );
-
-        previewVideo.setAttribute(
-          "playsinline",
-          ""
-        );
-
-        previewVideo.setAttribute(
-          "webkit-playsinline",
-          ""
-        );
-
-        previewVideo.setAttribute(
-          "preload",
-          "auto"
-        );
-
-
-        try{
-          previewVideo.load();
-        }catch(e){}
-
-
-        previewVideo.currentTime =
-          0;
-
-        previewVideo.play().catch(
-          () => {}
-        );
-
       }
-
 
       /*
         intro 안에서는 버튼 / 링크 비활성화
@@ -4735,14 +4698,14 @@ function createIntroCards(){
 
 function prepareVideos(){
 
-  const videos =
-    document.querySelectorAll(
-      "video"
-    );
+  DOM.cards.forEach(
+    (card,index) => {
 
+      const video = card.querySelector(".card-video");
 
-  videos.forEach(
-    video => {
+      if(!video){
+        return;
+      }
 
       video.muted =
         true;
@@ -4751,7 +4714,7 @@ function prepareVideos(){
         true;
 
       video.autoplay =
-        true;
+        false;
 
       video.playsInline =
         true;
@@ -4761,10 +4724,7 @@ function prepareVideos(){
         ""
       );
 
-      video.setAttribute(
-        "autoplay",
-        ""
-      );
+      video.removeAttribute("autoplay");
 
       video.setAttribute(
         "playsinline",
@@ -4776,19 +4736,43 @@ function prepareVideos(){
         ""
       );
 
-      video.preload =
-        "auto";
+      video.preload = index === 0 ? "auto" : "metadata";
 
 
       try{
 
-        if(
-          video.readyState === 0
-        ){
+        if(index === 0 && video.readyState === 0){
           video.load();
         }
 
       }catch(e){}
+
+      if(index !== 0){
+        video.pause();
+      }
+    }
+  );
+
+}
+
+
+function syncCardVideos(activeIndex){
+
+  DOM.cards.forEach(
+    (card,index) => {
+
+      const video = card.querySelector(".card-video");
+
+      if(!video){
+        return;
+      }
+
+      if(index === activeIndex){
+        video.preload = "auto";
+        video.play().catch(() => {});
+      }else{
+        video.pause();
+      }
 
     }
   );
@@ -4834,99 +4818,6 @@ function setupVideoStartGate(){
       DOM.videoStartGate.setAttribute(
         "aria-hidden",
         "true"
-      );
-
-
-      /*
-        모든 영상 재생 준비
-      */
-
-      const videos =
-        Array.from(
-          document.querySelectorAll(
-            "video"
-          )
-        );
-
-
-      videos.forEach(
-        video => {
-
-          video.muted =
-            true;
-
-          video.defaultMuted =
-            true;
-
-          video.autoplay =
-            true;
-
-          video.playsInline =
-            true;
-
-          video.setAttribute(
-            "muted",
-            ""
-          );
-
-          video.setAttribute(
-            "autoplay",
-            ""
-          );
-
-          video.setAttribute(
-            "playsinline",
-            ""
-          );
-
-          video.setAttribute(
-            "webkit-playsinline",
-            ""
-          );
-
-          video.preload =
-            "auto";
-
-        }
-      );
-
-
-      /*
-        사용자 제스처 안에서 play 요청
-      */
-
-      videos.forEach(
-        video => {
-
-          try{
-
-            if(
-              !video.currentSrc &&
-              video.querySelector(
-                "source[src]"
-              )
-            ){
-              video.load();
-            }
-
-
-            const playPromise =
-              video.play();
-
-
-            if(
-              playPromise &&
-              typeof playPromise.catch ===
-              "function"
-            ){
-              playPromise.catch(
-                () => {}
-              );
-            }
-
-          }catch(e){}
-
-        }
       );
 
 
@@ -4987,84 +4878,7 @@ function setupVideoStartGate(){
 
 function forceAutoplayAllVideos(){
 
-  document
-    .querySelectorAll(
-      "video"
-    )
-    .forEach(
-      video => {
-
-        video.muted =
-          true;
-
-        video.defaultMuted =
-          true;
-
-        video.autoplay =
-          true;
-
-        video.playsInline =
-          true;
-
-        video.setAttribute(
-          "muted",
-          ""
-        );
-
-        video.setAttribute(
-          "autoplay",
-          ""
-        );
-
-        video.setAttribute(
-          "playsinline",
-          ""
-        );
-
-        video.setAttribute(
-          "webkit-playsinline",
-          ""
-        );
-
-        video.setAttribute(
-          "preload",
-          "auto"
-        );
-
-
-        if(
-          !video.currentSrc &&
-          video.querySelector(
-            "source[src]"
-          )
-        ){
-
-          try{
-            video.load();
-          }catch(e){}
-
-        }
-
-
-        try{
-
-          const promise =
-            video.play();
-
-          if(
-            promise &&
-            typeof promise.catch ===
-            "function"
-          ){
-            promise.catch(
-              () => {}
-            );
-          }
-
-        }catch(e){}
-
-      }
-    );
+  syncCardVideos(state.currentCard || 0);
 
 }
 
@@ -5605,25 +5419,7 @@ function finishLoading(){
 
 function playIntroVideos(){
 
-  DOM.stackCards.forEach(
-    stack => {
-
-      const video =
-        stack.querySelector(
-          ".card-video"
-        );
-
-
-      if(video){
-
-        video.play().catch(
-          () => {}
-        );
-
-      }
-
-    }
-  );
+  /* Intro cards use posters only. Video playback starts on the active card. */
 
 }
 
@@ -5737,12 +5533,6 @@ function startMorphToMain(){
     );
 
 
-  const previewVideo =
-    preview?.querySelector(
-      ".card-video"
-    );
-
-
   const targetCard =
     DOM.cards[0];
 
@@ -5762,7 +5552,6 @@ function startMorphToMain(){
   if(
     !stack ||
     !preview ||
-    !previewVideo ||
     !targetCard ||
     !targetMedia ||
     !targetVideo
@@ -5792,8 +5581,8 @@ function startMorphToMain(){
   */
 
   DOM.morphVideo.src =
-    previewVideo.currentSrc ||
-    previewVideo.querySelector(
+    targetVideo.currentSrc ||
+    targetVideo.querySelector(
       "source"
     )?.src ||
     "";
@@ -5807,12 +5596,12 @@ function startMorphToMain(){
 
     if(
       Number.isFinite(
-        previewVideo.currentTime
+        targetVideo.currentTime
       )
     ){
 
       DOM.morphVideo.currentTime =
-        previewVideo.currentTime;
+        targetVideo.currentTime;
 
     }
 
@@ -6142,20 +5931,8 @@ function setupIntersectionObserver(){
               index
             );
 
-
-            const video =
-              card.querySelector(
-                ".card-video"
-              );
-
-
-            if(video){
-
-              video.play().catch(
-                () => {}
-              );
-
-            }
+            syncCardVideos(index);
+            window.ZNUS?.preloadCardMedia?.(index);
 
           }
         );
@@ -6264,17 +6041,25 @@ function goToCard(
       )
     );
 
+  window.ZNUS?.preloadCardMedia?.(target);
 
-  DOM.cards[target]
-    .scrollIntoView(
-      {
-        behavior:
-          "smooth",
 
-        block:
-          "start"
-      }
-    );
+  const main = DOM.main;
+  const card = DOM.cards[target];
+
+  if(!main || !card){
+    return;
+  }
+
+  /* Scroll inside the card viewport so its top padding is preserved. */
+  const mainStyle = getComputedStyle(main);
+  const topPadding = parseFloat(mainStyle.paddingTop) || 0;
+  const targetTop = card.offsetTop - topPadding;
+
+  main.scrollTo({
+    top: Math.max(0, targetTop),
+    behavior: "smooth"
+  });
 
 }
 

@@ -12,7 +12,7 @@ function connectExistingForm(formId) {
     const form = FormApp.openById(id);
     if (form.getDestinationId() !== ss.getId()) throw new Error('이 설문의 응답 저장 위치가 현재 시트와 다릅니다. 설문의 응답 연결을 확인해 주세요.');
     if (!form.collectsEmail()) throw new Error('설문에서 Google 계정 이메일 수집을 먼저 켜 주세요.');
-    Object.keys(ZNUS_SCHEMA).forEach(name => inspectSchema_(ss.getSheetByName(name), name));
+    workspaceSchemaNames_().forEach(name => inspectSchema_(ss.getSheetByName(name), name));
     props.setProperties({ZNUS_SPREADSHEET_ID: ss.getId(), ZNUS_FORM_ID: id});
     return {spreadsheetUrl: ss.getUrl(), formEditUrl: form.getEditUrl(),
       message: '연결을 저장했습니다. 기존 프로젝트의 제출 트리거를 확인한 후 이 프로젝트로 이전해 주세요. 질문과 트리거는 변경하지 않았습니다.'};
@@ -31,7 +31,7 @@ function connectDefaultBackgroundFolder(folderId) {
     if (!matches.hasNext()) throw new Error(files[key] + ': 기본 영상이 없습니다.');
     const file = matches.next();
     if (matches.hasNext()) throw new Error(files[key] + ': 같은 이름의 파일이 여러 개입니다.');
-    if (file.isTrashed() || file.getMimeType() !== 'video/mp4' || file.getSize() <= 0 || file.getSize() > 18 * 1024 * 1024)
+    if (file.isTrashed() || file.getMimeType() !== 'video/mp4' || file.getSize() <= 0 || file.getSize() > 30 * 1024 * 1024)
       throw new Error(files[key] + ': MP4 파일과 크기를 확인하세요.');
     configured[key + 'DefaultVideoFileId'] = file.getId();
   });

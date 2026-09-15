@@ -62,7 +62,7 @@ function validateMediaMetadata_(metadata, mode) {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(metadata.mimeType)) throw new Error('JPG, PNG, WEBP 이미지만 허용합니다.');
   } else {
     if (metadata.mimeType !== 'video/mp4') throw new Error('영상은 MP4만 허용합니다.');
-    if (metadata.sizeBytes > 18 * 1024 * 1024) throw new Error('영상은 18MB 이하여야 합니다.');
+    if (metadata.sizeBytes > 30 * 1024 * 1024) throw new Error('영상은 30MB 이하여야 합니다.');
     if (!Number.isFinite(metadata.durationSeconds) || metadata.durationSeconds <= 0 || metadata.durationSeconds > 5)
       throw new Error('영상 길이를 확인할 수 없거나 5초를 초과합니다.');
     if (!Number.isInteger(metadata.width) || !Number.isInteger(metadata.height) || metadata.width <= 0 || metadata.height <= 0 || metadata.width > 2560 || metadata.height > 1440)

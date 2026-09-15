@@ -693,8 +693,10 @@ opacity:1;
     height: 100dvh;
     padding: var(--page-margin) 0;
     overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: none;
     scroll-snap-type: y mandatory;
+    scroll-padding-block: var(--page-margin);
     overscroll-behavior-y: contain;
     opacity: 0;
     visibility: hidden;
@@ -719,12 +721,13 @@ height:
 calc( 100dvh - (var(--page-margin) * 2) );
 min-height:
 calc( 100dvh - (var(--page-margin) * 2) );
-    margin: 0 var(--page-margin) var(--page-margin);
+    margin: 0 auto var(--page-margin);
     overflow: hidden;
     border-radius: var(--card-radius);
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
     scroll-snap-align: start;
     scroll-snap-stop: always;
+    scroll-margin-block-start: var(--page-margin);
     isolation: isolate;
 }
 /* =========================================================
@@ -1468,7 +1471,7 @@ min( 30vw, 600px );
     class="morph-video"
     muted
     playsinline
-    preload="auto"> </video>
+    preload="metadata"> </video>
 </div>
 
 <!-- =========================================================
@@ -1517,11 +1520,10 @@ min( 30vw, 600px );
     <div class="card-media" data-content-key="profileImageFileId">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         poster="assets/universe.jpg">
         <source
           src="assets/profile.mp4"
@@ -1559,11 +1561,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         poster="assets/universe.jpg">
         <source
           src="assets/role.mp4"
@@ -1627,11 +1628,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         poster="assets/universe.jpg">
         <source
           src="assets/contact.mp4"
@@ -1668,11 +1668,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         poster="assets/universe.jpg">
         <source
           src="assets/web.mp4"
@@ -1716,11 +1715,10 @@ min( 30vw, 600px );
     <div class="card-media">
       <video
         class="card-video"
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
+        preload="metadata"
         poster="assets/universe.jpg">
         <source
           src="assets/links.mp4"
@@ -2069,97 +2067,17 @@ function createIntroCards(){
         previewVideo
       ){
 
-        const sourceElement =
-          sourceVideo.querySelector(
-            "source"
-          );
-
-        const videoUrl =
-          sourceElement?.getAttribute("src") ||
-          sourceVideo.getAttribute("src") ||
-          sourceVideo.currentSrc ||
-          "";
-
-
-        if(videoUrl){
-
-          previewVideo.removeAttribute(
-            "src"
-          );
-
-          const previewSource =
-            previewVideo.querySelector(
-              "source"
-            );
-
-
-          if(previewSource){
-
-            previewSource.setAttribute(
-              "src",
-              videoUrl
-            );
-
-            previewSource.setAttribute(
-              "type",
-              sourceElement?.getAttribute("type") ||
-              "video/mp4"
-            );
-
-          }else{
-
-            previewVideo.src =
-              videoUrl;
-
-          }
-
+        /* Intro cards are visual copies only. Keeping five cloned video
+           decoders alive makes the main-card transition noticeably janky. */
+        previewVideo.pause();
+        previewVideo.removeAttribute("src");
+        previewVideo.querySelectorAll("source").forEach(source => source.remove());
+        previewVideo.preload = "none";
+        if(sourceVideo.poster){
+          previewVideo.poster = sourceVideo.poster;
         }
 
-
-        previewVideo.muted =
-          true;
-
-        previewVideo.loop =
-          true;
-
-        previewVideo.playsInline =
-          true;
-
-        previewVideo.setAttribute(
-          "muted",
-          ""
-        );
-
-        previewVideo.setAttribute(
-          "playsinline",
-          ""
-        );
-
-        previewVideo.setAttribute(
-          "webkit-playsinline",
-          ""
-        );
-
-        previewVideo.setAttribute(
-          "preload",
-          "auto"
-        );
-
-
-        try{
-          previewVideo.load();
-        }catch(e){}
-
-
-        previewVideo.currentTime =
-          0;
-
-        previewVideo.play().catch(
-          () => {}
-        );
-
       }
-
 
       /*
         intro 안에서는 버튼 / 링크 비활성화
@@ -2197,14 +2115,14 @@ function createIntroCards(){
 
 function prepareVideos(){
 
-  const videos =
-    document.querySelectorAll(
-      "video"
-    );
+  DOM.cards.forEach(
+    (card,index) => {
 
+      const video = card.querySelector(".card-video");
 
-  videos.forEach(
-    video => {
+      if(!video){
+        return;
+      }
 
       video.muted =
         true;
@@ -2213,7 +2131,7 @@ function prepareVideos(){
         true;
 
       video.autoplay =
-        true;
+        false;
 
       video.playsInline =
         true;
@@ -2223,10 +2141,7 @@ function prepareVideos(){
         ""
       );
 
-      video.setAttribute(
-        "autoplay",
-        ""
-      );
+      video.removeAttribute("autoplay");
 
       video.setAttribute(
         "playsinline",
@@ -2238,19 +2153,43 @@ function prepareVideos(){
         ""
       );
 
-      video.preload =
-        "auto";
+      video.preload = index === 0 ? "auto" : "metadata";
 
 
       try{
 
-        if(
-          video.readyState === 0
-        ){
+        if(index === 0 && video.readyState === 0){
           video.load();
         }
 
       }catch(e){}
+
+      if(index !== 0){
+        video.pause();
+      }
+    }
+  );
+
+}
+
+
+function syncCardVideos(activeIndex){
+
+  DOM.cards.forEach(
+    (card,index) => {
+
+      const video = card.querySelector(".card-video");
+
+      if(!video){
+        return;
+      }
+
+      if(index === activeIndex){
+        video.preload = "auto";
+        video.play().catch(() => {});
+      }else{
+        video.pause();
+      }
 
     }
   );
@@ -2296,99 +2235,6 @@ function setupVideoStartGate(){
       DOM.videoStartGate.setAttribute(
         "aria-hidden",
         "true"
-      );
-
-
-      /*
-        모든 영상 재생 준비
-      */
-
-      const videos =
-        Array.from(
-          document.querySelectorAll(
-            "video"
-          )
-        );
-
-
-      videos.forEach(
-        video => {
-
-          video.muted =
-            true;
-
-          video.defaultMuted =
-            true;
-
-          video.autoplay =
-            true;
-
-          video.playsInline =
-            true;
-
-          video.setAttribute(
-            "muted",
-            ""
-          );
-
-          video.setAttribute(
-            "autoplay",
-            ""
-          );
-
-          video.setAttribute(
-            "playsinline",
-            ""
-          );
-
-          video.setAttribute(
-            "webkit-playsinline",
-            ""
-          );
-
-          video.preload =
-            "auto";
-
-        }
-      );
-
-
-      /*
-        사용자 제스처 안에서 play 요청
-      */
-
-      videos.forEach(
-        video => {
-
-          try{
-
-            if(
-              !video.currentSrc &&
-              video.querySelector(
-                "source[src]"
-              )
-            ){
-              video.load();
-            }
-
-
-            const playPromise =
-              video.play();
-
-
-            if(
-              playPromise &&
-              typeof playPromise.catch ===
-              "function"
-            ){
-              playPromise.catch(
-                () => {}
-              );
-            }
-
-          }catch(e){}
-
-        }
       );
 
 
@@ -2449,84 +2295,7 @@ function setupVideoStartGate(){
 
 function forceAutoplayAllVideos(){
 
-  document
-    .querySelectorAll(
-      "video"
-    )
-    .forEach(
-      video => {
-
-        video.muted =
-          true;
-
-        video.defaultMuted =
-          true;
-
-        video.autoplay =
-          true;
-
-        video.playsInline =
-          true;
-
-        video.setAttribute(
-          "muted",
-          ""
-        );
-
-        video.setAttribute(
-          "autoplay",
-          ""
-        );
-
-        video.setAttribute(
-          "playsinline",
-          ""
-        );
-
-        video.setAttribute(
-          "webkit-playsinline",
-          ""
-        );
-
-        video.setAttribute(
-          "preload",
-          "auto"
-        );
-
-
-        if(
-          !video.currentSrc &&
-          video.querySelector(
-            "source[src]"
-          )
-        ){
-
-          try{
-            video.load();
-          }catch(e){}
-
-        }
-
-
-        try{
-
-          const promise =
-            video.play();
-
-          if(
-            promise &&
-            typeof promise.catch ===
-            "function"
-          ){
-            promise.catch(
-              () => {}
-            );
-          }
-
-        }catch(e){}
-
-      }
-    );
+  syncCardVideos(state.currentCard || 0);
 
 }
 
@@ -3067,25 +2836,7 @@ function finishLoading(){
 
 function playIntroVideos(){
 
-  DOM.stackCards.forEach(
-    stack => {
-
-      const video =
-        stack.querySelector(
-          ".card-video"
-        );
-
-
-      if(video){
-
-        video.play().catch(
-          () => {}
-        );
-
-      }
-
-    }
-  );
+  /* Intro cards use posters only. Video playback starts on the active card. */
 
 }
 
@@ -3199,12 +2950,6 @@ function startMorphToMain(){
     );
 
 
-  const previewVideo =
-    preview?.querySelector(
-      ".card-video"
-    );
-
-
   const targetCard =
     DOM.cards[0];
 
@@ -3224,7 +2969,6 @@ function startMorphToMain(){
   if(
     !stack ||
     !preview ||
-    !previewVideo ||
     !targetCard ||
     !targetMedia ||
     !targetVideo
@@ -3254,8 +2998,8 @@ function startMorphToMain(){
   */
 
   DOM.morphVideo.src =
-    previewVideo.currentSrc ||
-    previewVideo.querySelector(
+    targetVideo.currentSrc ||
+    targetVideo.querySelector(
       "source"
     )?.src ||
     "";
@@ -3269,12 +3013,12 @@ function startMorphToMain(){
 
     if(
       Number.isFinite(
-        previewVideo.currentTime
+        targetVideo.currentTime
       )
     ){
 
       DOM.morphVideo.currentTime =
-        previewVideo.currentTime;
+        targetVideo.currentTime;
 
     }
 
@@ -3604,20 +3348,8 @@ function setupIntersectionObserver(){
               index
             );
 
-
-            const video =
-              card.querySelector(
-                ".card-video"
-              );
-
-
-            if(video){
-
-              video.play().catch(
-                () => {}
-              );
-
-            }
+            syncCardVideos(index);
+            window.ZNUS?.preloadCardMedia?.(index);
 
           }
         );
@@ -3726,17 +3458,30 @@ function goToCard(
       )
     );
 
+  window.ZNUS?.preloadCardMedia?.(target);
 
-  DOM.cards[target]
-    .scrollIntoView(
-      {
-        behavior:
-          "smooth",
 
-        block:
-          "start"
-      }
-    );
+  const main = DOM.main;
+  const card = DOM.cards[target];
+
+  if(!main || !card){
+    return;
+  }
+
+  /*
+    Scroll inside the card viewport itself.  scrollIntoView() can promote
+    the card to the document's top edge and discard the viewport padding,
+    which makes the first card touch the browser chrome and can shift the
+    card horizontally on narrow public URLs.
+  */
+  const mainStyle = getComputedStyle(main);
+  const topPadding = parseFloat(mainStyle.paddingTop) || 0;
+  const targetTop = card.offsetTop - topPadding;
+
+  main.scrollTo({
+    top: Math.max(0, targetTop),
+    behavior: "smooth"
+  });
 
 }
 

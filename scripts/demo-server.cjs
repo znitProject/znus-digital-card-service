@@ -18,6 +18,23 @@ http.createServer((req,res)=>{
     const source=url.pathname.endsWith('bundle.gs') ? files.map(file=>fs.readFileSync(path.join(root,'apps-script/admin-bound',file),'utf8')).join('\n\n') : fs.readFileSync(path.join(root,'apps-script/admin-bound','AdminGallery.html'),'utf8');
     res.writeHead(200,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});return res.end(source);
   }
+  if (url.pathname === '/__source/Card.html') {
+    const source = fs.readFileSync(path.join(root, 'apps-script/public-web', 'Card.html'), 'utf8');
+    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store'});
+    return res.end(source);
+  }
+  if (url.pathname === '/__copy/Card.html') {
+    const source = fs.readFileSync(path.join(root, 'apps-script/public-web', 'Card.html'), 'utf8');
+    const escaped = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'});
+    return res.end('<textarea id="source" style="width:100%;height:100vh">' + escaped + '</textarea>');
+  }
+  if (url.pathname === '/__copy/Code.gs' || url.pathname === '/__copy/Code') {
+    const source = fs.readFileSync(path.join(root, 'apps-script/public-web', 'Code.gs'), 'utf8');
+    const escaped = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'});
+    return res.end('<textarea id="source" style="width:100%;height:100vh">' + escaped + '</textarea>');
+  }
   if(url.pathname==='/dashboard'){
     const employee={employeeId:'demo-employee',name:demo.name,nameEn:demo.nameEn,department:demo.department,
       position:demo.position,positionEn:demo.positionEn,phone:demo.phone,email:demo.email,accountEmail:'demo@example.org',

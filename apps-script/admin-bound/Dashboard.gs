@@ -29,23 +29,47 @@ function connectAdminWorkspace() {
   const props = PropertiesService.getScriptProperties();
   const configured = props.getProperty('ZNUS_SPREADSHEET_ID');
   if (configured && configured !== ss.getId()) throw new Error('현재 시트와 설정된 데이터베이스가 다릅니다. 연결 설정을 확인하세요.');
-  Object.keys(ZNUS_SCHEMA).forEach(name => readRecords_(ss.getSheetByName(name), name));
+  workspaceSchemaNames_().forEach(name => readRecords_(ss.getSheetByName(name), name));
   props.setProperty('ZNUS_SPREADSHEET_ID', ss.getId());
   return {spreadsheetId: ss.getId()};
 }
 function getAdminDashboard() {
-  const cards = readRecords_(workspace_().getSheetByName('Cards'), 'Cards').map(entry => entry.value);
-  const yes = value => value === true || String(value).toLowerCase() === 'true';
-  return JSON.parse(JSON.stringify({cards: cards, company: getCompanySettings() || {}, stats: {
-    total: cards.length, public: cards.filter(card => yes(card.published) && yes(card.isActive)).length,
-    private: cards.filter(card => !yes(card.published) || !yes(card.isActive)).length,
-    processing: cards.filter(card => card.processingStatus === 'PROCESSING').length,
-    error: cards.filter(card => card.processingStatus === 'ERROR').length
-  }}));
+  const cards = getEmployees();
+  return {cards: cards, company: getCompanySettings() || {}, stats: {
+    total: cards.length, public: cards.filter(function (card) { return card.status === '생성완료'; }).length,
+    private: cards.filter(function (card) { return card.status !== '생성완료'; }).length,
+    processing: cards.filter(function (card) { return card.status === '입력완료'; }).length,
+    error: cards.filter(function (card) { return card.status === '검토필요'; }).length
+  }};
 }
-/** Adapter for the existing Admin.html gallery design. The source of truth is Cards. */
+/** Adapter for the existing Admin.html gallery design. The source of truth is the Form response sheet. */
 function getEmployees() {
-  const cards = readRecords_(workspace_().getSheetByName('Cards'), 'Cards').map(entry => entry.value);
+  const company = getCompanySettings() || {};
+  const text = function (value) { return String(value == null ? '' : value).trim(); };
+  const records = formRecords_(employeeSheet_(workspace_()));
+  return records.map(function (entry) {
+    const card = formCard_(entry.value);
+    const complete = card.processingStatus === 'COMPLETED' && /^[a-z0-9]{12}$/.test(card.publicToken);
+    const status = card.processingStatus === 'ERROR' ? '검토필요' : complete ? '생성완료' : '입력완료';
+    return {
+      employeeId: card.publicToken || ('row-' + entry.row), name: text(card.nameKo), nameEn: text(card.nameEn),
+      department: text(card.department), position: text(card.jobTitleKo), positionEn: text(card.jobTitleEn),
+      accountEmail: text(card.googleAccountEmail),
+      roles: [1,2,3,4,5].map(function (i) { return {ko: text(card['roleItem' + i + 'Ko']), en: text(card['roleItem' + i + 'En'])}; }),
+      backgrounds: ['profile', 'role', 'contact', 'company', 'links'].map(function (key) {
+        const media = publicCardMedia_(card, key); return {type: key, mode: media.kind};
+      }),
+      errorMessage: text(card.errorMessage),
+      missingFields: ZNUS_REQUIRED_TEXT.concat(['mobilePhone', 'publicEmail', 'profileImageFileId']).filter(function (key) { return !text(card[key]); }),
+      profileImage: imageUrl_(text(card.profileImageFileId)), phone: text(card.mobilePhone), email: text(card.publicEmail),
+      companyPhone: text(company.companyPhone), companyAddress: text(company.officeAddress),
+      mobileUrl: complete ? publicUrl_(card.publicToken) : '', status: status,
+      updatedAt: text(entry.value.Timestamp || entry.value['타임스탬프'] || '')
+    };
+  });
+}
+function legacyGetEmployees_() {
+  const cards = readRecords_(employeeSheet_(workspace_()), ZNUS_EMPLOYEE_SHEET).map(entry => entry.value);
   const company = getCompanySettings() || {};
   const text = value => String(value == null ? '' : value).trim();
   const status = value => {
@@ -77,8 +101,8 @@ function getEmployees() {
   }));
 }
 function adminCard_(id, revision) {
-  const sheet = workspace_().getSheetByName('Cards');
-  const entry = readRecords_(sheet, 'Cards').find(entry => entry.value.cardId === id);
+  const sheet = employeeSheet_(workspace_());
+  const entry = readRecords_(sheet, ZNUS_EMPLOYEE_SHEET).find(entry => entry.value.cardId === id);
   if (!entry) throw new Error('명함을 찾을 수 없습니다. 목록을 새로고침해 주세요.');
   if (String(entry.value.updatedAt) !== String(revision)) throw new Error('다른 작업에서 명함이 변경되었습니다. 새로고침 후 다시 수정해 주세요.');
   if (entry.value.processingStatus === 'PROCESSING') throw new Error('설문을 처리하고 있습니다. 처리가 끝나면 다시 시도해 주세요.');

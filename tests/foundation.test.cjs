@@ -13,6 +13,7 @@ class Sheet {
   getMaxRows() { return this.rows; }
   insertColumnsAfter(_,n) { this.columns+=n; }
   insertRowsAfter(_,n) { this.rows+=n; }
+  deleteRow(row) { assert.ok(row>1 && row<=this.data.length); this.data.splice(row-1,1); }
   setFrozenRows() {}
   getRange(r,c,n,m) {
     assert.ok(r>0&&c>0&&n>0&&m>0);
@@ -37,6 +38,12 @@ class Sheet {
 }
 function fixture(project='admin-bound') {
   const sheets=new Map(),folders=new Map(),properties={};
+  // The employee master moved from the legacy Cards name to the Form
+  // response tab. Keep old test fixtures source-compatible while exercising
+  // the new physical tab name.
+  const sheetGet=sheets.get.bind(sheets), sheetSet=sheets.set.bind(sheets);
+  sheets.get=name=>sheetGet(name==='Cards'?'설문지 응답 시트1':name);
+  sheets.set=(name,value)=>sheetSet(name==='Cards'?'설문지 응답 시트1':name,value);
   let seq=0,held=false,acquired=0,released=0;
   const iter=items=>({hasNext:()=>items.length>0,next:()=>items.shift()});
   class Folder {
@@ -93,6 +100,20 @@ function submission(input=validInput(), id='response-1') {
       getItem:()=>({getTitle:()=>key}),getResponse:()=>value
     }))}};
 }
+function sheetSubmission(f,input,id,timestamp) {
+  const sheet=f.sheets.get('설문지 응답 시트1');
+  for (const header of ['Timestamp','Email Address']) {
+    if (!sheet.data[0].includes(header)) sheet.data[0].push(header);
+  }
+  sheet.columns=Math.max(sheet.columns,sheet.data[0].length);
+  const row=Array(sheet.data[0].length).fill('');
+  row[sheet.data[0].indexOf('Timestamp')]=timestamp;
+  row[sheet.data[0].indexOf('Email Address')]=input.googleAccountEmail;
+  sheet.data.push(row);
+  const event=submission(input,id);
+  event.response.getTimestamp=()=>timestamp;
+  return event;
+}
 function formReady() {
   const f=ready();
   f.context.inspectCardMedia_=()=>({});
@@ -133,6 +154,30 @@ test('Form creates one public card, ignores duplicate delivery and preserves URL
   assert.equal(rows.length,1);assert.equal(rows[0].value.nameKo,'새 이름');
   assert.equal(rows[0].value.googleAccountEmail,'person@example.org');
   assert.equal(rows[0].value.published,true);
+});
+test('Form response sheet keeps one canonical row when a user resubmits',()=>{
+  const f=formReady(),firstTime=new Date('2026-09-15T01:00:00Z');
+  const first=f.context.onFormSubmitCard(sheetSubmission(f,validInput(),'response-1',firstTime));
+  const sheet=f.sheets.get('설문지 응답 시트1'),headers=sheet.data[0];
+  sheet.data[1][headers.indexOf('qrUrl')]='https://qr.example/response-1';
+  const second=f.context.onFormSubmitCard(sheetSubmission(f,{...validInput(),nameKo:'재제출 직원'},'response-2',new Date('2026-09-15T01:01:00Z')));
+  assert.equal(second.publicToken,first.publicToken);
+  assert.equal(second.publicUrl,first.publicUrl);
+  assert.equal(sheet.data.length,2);
+  assert.equal(sheet.data[1][headers.indexOf('nameKo')],'재제출 직원');
+  assert.equal(sheet.data[1][headers.indexOf('formResponseId')],'response-2');
+  assert.equal(sheet.data[1][headers.indexOf('qrUrl')],'https://qr.example/response-1');
+  assert.equal(sheet.data[1][headers.indexOf('Email Address')],'Person@Example.org');
+});
+test('new submissions collapse previously imported native response duplicates',()=>{
+  const f=formReady(),sheet=f.sheets.get('설문지 응답 시트1');
+  for (const stamp of [new Date('2026-09-15T00:58:00Z'),new Date('2026-09-15T00:59:00Z')]) {
+    sheetSubmission(f,validInput(),'historical-'+stamp.getTime(),stamp);
+  }
+  const created=f.context.onFormSubmitCard(sheetSubmission(f,validInput(),'response-current',new Date('2026-09-15T01:00:00Z')));
+  assert.equal(sheet.data.length,2);
+  assert.equal(sheet.data[1][sheet.data[0].indexOf('formResponseId')],'response-current');
+  assert.equal(sheet.data[1][sheet.data[0].indexOf('publicToken')],created.publicToken);
 });
 test('existing card with missing cardId is repaired without changing its token or URL',()=>{
   const f=formReady();
@@ -195,7 +240,7 @@ test('manual deletion during processing cannot restore the row or overwrite the 
 });
 test('deleted Sheets row immediately blocks card and media without consulting Drive',()=>{
   const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';
-  const sheet=new Sheet('Cards',[['publicToken','published','isActive'],['abcdefghijkl',true,true]]);
+  const sheet=new Sheet('Cards',[['publicToken','published','isActive','profileImageFileId'],['abcdefghijkl',true,true,'profile-file']]);
   f.sheets.set('Cards',sheet);
   f.context.DriveApp.getFileById=()=>{throw Error('Drive must not decide employee existence');};
   assert.ok(f.context.getPublicCard('abcdefghijkl'));
@@ -205,17 +250,25 @@ test('deleted Sheets row immediately blocks card and media without consulting Dr
 });
 test('default backgrounds resolve shared Drive videos independently of employee uploads',()=>{
   const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';
-  f.sheets.set('Cards',new Sheet('Cards',[['publicToken','published','isActive','roleBackgroundMode','roleBackgroundFileId'],['abcdefghijkl',true,true,'DEFAULT','']]));
+  f.sheets.set('Cards',new Sheet('Cards',[['publicToken','published','isActive','profileImageFileId','roleBackgroundMode','roleBackgroundFileId'],['abcdefghijkl',true,true,'profile-file','DEFAULT','']]));
   f.sheets.set('CompanySettings',new Sheet('CompanySettings',[['roleDefaultVideoFileId'],['shared-role']]));
   const requested=[];
   f.context.DriveApp.getFileById=id=>{requested.push(id);return {isTrashed:()=>false,getMimeType:()=> 'video/mp4',getSize:()=>123,getBlob:()=>({getBytes:()=>[1,2,3]})};};
   f.context.Utilities.base64Encode=()=> 'AQID';
   assert.equal(f.context.getPublicMedia('abcdefghijkl','role').base64,'AQID');
-  f.sheets.get('Cards').data[1][3]='IMAGE';
+  f.sheets.get('Cards').data[1][4]='IMAGE';
   assert.equal(f.context.getPublicMedia('abcdefghijkl','role',true).base64,'AQID');
-  assert.deepEqual(requested,['shared-role','shared-role']);
+  assert.deepEqual(requested,['profile-file','shared-role','profile-file','shared-role']);
   f.sheets.get('Cards').data.pop();
   assert.equal(f.context.getPublicMedia('abcdefghijkl','role',true),null);
+});
+test('public PNG download can read the configured SVG logo from Drive',()=>{
+  const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';
+  f.sheets.set('Cards',new Sheet('Cards',[['publicToken','published','isActive','profileImageFileId'],['abcdefghijkl',true,true,'profile-file']]));
+  f.sheets.set('CompanySettings',new Sheet('CompanySettings',[['companyLogoFileId'],['logo-file']]));
+  f.context.DriveApp.getFileById=id=>({isTrashed:()=>false,getMimeType:()=>id==='logo-file'?'image/svg+xml':'image/jpeg',getSize:()=>123,getBlob:()=>({getBytes:()=>[1,2,3]})});
+  f.context.Utilities.base64Encode=()=> 'AQID';
+  assert.equal(f.context.getPublicMedia('abcdefghijkl','logo').mime,'image/svg+xml');
 });
 test('all four original default videos remain readable MP4 assets',()=>{
   const f=ready();
@@ -265,12 +318,21 @@ test('initial setup is repeatable and preserves records, columns, folder IDs and
   assert.ok(card.publicUrl.endsWith('?card='+card.publicToken));
   assert.equal(f.locks().held,false);assert.equal(f.locks().acquired,f.locks().released);
 });
-test('legacy schema is rejected without changing any sheet or creating folders',()=>{
-  const f=fixture();f.sheets.set('Cards',new Sheet('Cards',[['cardId','slug'],['legacy-id','legacy-url']]));
-  const before=JSON.stringify(f.sheets.get('Cards').data);
-  assert.throws(()=>f.context.setupWorkspace(),/기존 Cards/);
-  assert.equal(JSON.stringify(f.sheets.get('Cards').data),before);
-  assert.equal(f.sheets.size,1);assert.equal(f.folders.size,1);assert.equal(f.locks().held,false);
+test('setup augments existing Form response rows without creating a Cards tab',()=>{
+  const f=fixture();
+  f.sheets.set('설문지 응답 시트1',new Sheet('설문지 응답 시트1', [['Timestamp','Email Address','이름 (국문)'],[new Date('2026-09-15T01:00:00Z'),'person@example.org','기존 응답']]));
+  f.context.setupWorkspace();
+  assert.equal(f.sheets.has('Cards'),false);
+  const sheet=f.sheets.get('설문지 응답 시트1');
+  assert.ok(sheet.data[0].includes('cardId'));
+  assert.equal(sheet.data[1][2],'기존 응답');
+});
+test('existing Form response columns are preserved while system columns are appended',()=>{
+  const f=fixture();f.sheets.set('설문지 응답 시트1',new Sheet('설문지 응답 시트1',[['Timestamp','Email Address'],['timestamp','person@example.org']]));
+  f.context.setupWorkspace();
+  assert.equal(f.sheets.has('Cards'),false);
+  assert.deepEqual(f.sheets.get('설문지 응답 시트1').data[0].slice(0,2),['Timestamp','Email Address']);
+  assert.equal(f.sheets.get('설문지 응답 시트1').data.length,2);
 });
 test('all schemas are preflighted before mutation',()=>{
   const f=fixture();
@@ -278,10 +340,10 @@ test('all schemas are preflighted before mutation',()=>{
   assert.throws(()=>f.context.setupWorkspace(),/중복/);
   assert.equal(f.sheets.size,1);assert.equal(f.folders.size,1);
 });
-test('populated incomplete Cards requires explicit migration',()=>{
-  const f=fixture();f.sheets.set('Cards',new Sheet('Cards',[['cardId','publicToken'],['old','abcdefghijkl']]));
-  assert.throws(()=>f.context.setupWorkspace(),/필수 열/);
-  assert.equal(f.sheets.get('Cards').data.length,2);
+test('Form response master accepts native columns in any order',()=>{
+  const f=fixture();f.sheets.set('설문지 응답 시트1',new Sheet('설문지 응답 시트1',[['publicToken','Timestamp','cardId'],['abcdefghijkl','timestamp','old']]));
+  f.context.setupWorkspace();
+  assert.equal(f.sheets.get('설문지 응답 시트1').data.length,2);
 });
 test('column order and extra data survive setup; reads use header names',()=>{
   const f=ready(),card=f.context.createCardRecord_(validInput()),sheet=f.sheets.get('Cards');
@@ -362,7 +424,7 @@ test('validation enforces required texts, profile, public contact; system fields
   for(const field of ['cardId','publicToken','published','isActive'])assert.equal(out[field],undefined);
 });
 test('media validation checks allowed formats and inclusive boundaries',()=>{
-  const f=fixture(),video={mimeType:'video/mp4',sizeBytes:18*1024*1024,durationSeconds:5,width:2560,height:1440};
+  const f=fixture(),video={mimeType:'video/mp4',sizeBytes:30*1024*1024,durationSeconds:5,width:2560,height:1440};
   assert.equal(f.context.validateMediaMetadata_(video,'VIDEO'),video);
   for(const patch of [{sizeBytes:video.sizeBytes+1},{durationSeconds:5.01},{durationSeconds:undefined},{width:2561},{height:1441},{mimeType:'video/webm'}])
     assert.throws(()=>f.context.validateMediaMetadata_({...video,...patch},'VIDEO'));
@@ -395,8 +457,8 @@ test('public URL cannot change after card issuance; stored URL stays stable',()=
 });
 test('public reads require active + published and exclude internal fields',()=>{
   const f=fixture('public-web');f.properties.ZNUS_SPREADSHEET_ID='sheet-id';
-  const token='abcdefghijkl',headers=['errorMessage','googleAccountEmail','cardId','publicToken','published','isActive','nameKo','publicEmail'];
-  f.sheets.set('Cards',new Sheet('Cards',[headers,['secret-error','secret@example.org','secret-id',token,true,false,'공개 이름','public@example.org']]));
+  const token='abcdefghijkl',headers=['errorMessage','googleAccountEmail','cardId','publicToken','published','isActive','nameKo','publicEmail','profileImageFileId'];
+  f.sheets.set('Cards',new Sheet('Cards',[headers,['secret-error','secret@example.org','secret-id',token,true,false,'공개 이름','public@example.org','profile-file']]));
   assert.equal(f.context.getPublicCard(token),null);
   f.sheets.get('Cards').data[1][5]=true;
   const card=f.context.getPublicCard(token);
