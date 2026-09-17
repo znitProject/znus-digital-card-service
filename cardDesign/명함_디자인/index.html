@@ -40,14 +40,14 @@
 */
 @font-face {
     font-family: "Pretendard";
-    src: url("https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Regular.woff2") format("woff2");
+    src: url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Regular.woff2") format("woff2");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
 @font-face {
     font-family: "Pretendard";
-    src: url("https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Bold.woff2") format("woff2");
+    src: url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/woff2/Pretendard-Bold.woff2") format("woff2");
     font-weight: 700;
     font-style: normal;
     font-display: swap;
@@ -971,7 +971,7 @@ calc( 100dvh - (var(--page-margin) * 2) );
     display: block;
     width: 100%;
     font-family: "pretendard", sans-serif;
-    font-size: clamp(92px, 64vw, 6.5em);
+    font-size: clamp(120px, 90vw, 9em);
     line-height: .95;
     letter-spacing: -.065em;
     white-space: pre-line;
@@ -3597,8 +3597,8 @@ function createHeartBurst(event){
   const top = Math.max(0, rect.top);
   const bottom = Math.min(window.innerHeight, rect.bottom);
   if(right <= left || bottom <= top){ return; }
-  createHeart(left + (right-left) * (.22 + Math.random() * .56),
-    top + (bottom-top) * (.35 + Math.random() * .35));
+  createHeart(left + (right-left) * (.10 + Math.random() * .80),
+    top + (bottom-top) * (.14 + Math.random() * .72));
 }
 function createHeart(originX, originY){
   const existing = document.querySelectorAll(".floating-heart");
@@ -4042,6 +4042,39 @@ window.addEventListener(
     passive:true
   }
 );
+
+
+/* =========================================================
+   CONTACT PHONE SPACING
+   원본 디자인의 FAX/TEL 라벨과 번호 간격 유지
+   ========================================================= */
+
+function restoreContactPhoneSpacing(){
+
+  const data = window.__ZNUS_CARD__ || {};
+  const links = document.querySelectorAll(".contact-details .contact-link");
+  const formatPhone = value => {
+    const digits = String(value || "").replace(/\D/g, "");
+    if(/^\d{3}\d{3}\d{4}$/.test(digits)){
+      return digits.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3");
+    }
+    if(/^\d{3}\d{4}\d{4}$/.test(digits)){
+      return digits.replace(/^(\d{3})(\d{4})(\d{4})$/, "$1 $2 $3");
+    }
+    return String(value || "");
+  };
+  const gap = String.fromCharCode(160) + String.fromCharCode(160);
+
+  if(links[1]){
+    links[1].textContent = "FAX" + gap + formatPhone(data.companyFax);
+  }
+  if(links[2]){
+    links[2].textContent = "TEL" + gap + formatPhone(data.companyPhone);
+  }
+
+}
+
+restoreContactPhoneSpacing();
 
 
 })();
