@@ -3,15 +3,23 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "build": "node scripts/build-web.cjs",
-    "bundle:admin": "node scripts/bundle-admin.cjs",
-    "demo": "node scripts/demo-server.cjs",
-    "test": "node --test tests/form-response-master.test.cjs tests/web-build.test.cjs"
+    "start": "node --env-file=.env server/index.cjs",
+    "dev": "node --watch --env-file=.env server/index.cjs",
+    "test": "node --test tests/input-security.test.cjs",
+    "db:generate": "node scripts/prisma-with-env.cjs generate",
+    "db:deploy": "node scripts/prisma-with-env.cjs migrate deploy",
+    "db:studio": "node scripts/prisma-with-env.cjs studio"
   },
   "engines": {
     "node": ">=20"
   },
+  "dependencies": {
+    "@prisma/client": "^6.16.0",
+    "busboy": "^1.6.0",
+    "nodemailer": "^7.0.6",
+    "pg": "^8.16.3"
+  },
   "devDependencies": {
-    "qrcode-generator": "^2.0.4"
+    "prisma": "^6.16.0"
   }
 }

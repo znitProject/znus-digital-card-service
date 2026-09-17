@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+enum MediaSlot {
+  profile
+  role
+  contact
+  company
+  links
+  logo
+}
+
+enum CardPage {
+  profile
+  role
+  contact
+  company
+  links
+}
+
+model CompanySettings {
+  id                 Boolean  @id @default(true)
+  companyName        String   @default("") @map("company_name")
+  companyWebsite     String   @default("") @map("company_website")
+  companyPhone       String   @default("") @map("company_phone")
+  companyFax         String   @default("") @map("company_fax")
+  officeAddress      String   @default("") @map("office_address")
+  companyLogoAssetId String?  @map("company_logo_asset_id") @db.Uuid
+  sloganLine1        String   @default("") @map("slogan_line_1")
+  sloganLine2        String   @default("") @map("slogan_line_2")
+  sloganLine3        String   @default("") @map("slogan_line_3")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("company_settings")
+}
+
+model Employee {
+  id              String               @id @default(uuid()) @db.Uuid
+  employeeNumber  String?              @unique @map("employee_number")
+  companyEmail    String               @unique @map("company_email")
+  publicEmail     String               @default("") @map("public_email")
+  nameKo          String               @default("") @map("name_ko")
+  nameEn          String               @default("") @map("name_en")
+  department      String               @default("")
+  jobTitleKo      String               @default("") @map("job_title_ko")
+  jobTitleEn      String               @default("") @map("job_title_en")
+  mobilePhone     String               @default("") @map("mobile_phone")
+  roleItems       Json                 @default("{}") @map("role_items")
+  publicToken     String               @unique @map("public_token")
+  status          EmployeeStatus       @default(ACTIVE)
+  published       Boolean              @default(false)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @default(now()) @updatedAt @map("updated_at")
+  mediaAssets     MediaAsset[]
+  pageBackgrounds CardPageBackground[]
+  otpChallenges   OtpChallenge[]
+  sessions        InputSession[]
+  auditLogs       AuditLog[]
+
+  @@map("employees")
+}
+
+model MediaAsset {
+  id             String              @id @default(uuid()) @db.Uuid
+  employeeId     String?             @map("employee_id") @db.Uuid
+  slot           MediaSlot
+  kind           MediaKind
+  storageKey     String              @unique @map("storage_key")
+  originalName   String              @map("original_name")
+  mimeType       String              @map("mime_type")
+  sizeBytes      BigInt              @map("size_bytes")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  employee       Employee?           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  pageBackground CardPageBackground?
+  defaultBackground CardPageDefaultBackground?
+
+  @@index([employeeId, slot, createdAt])
+  @@map("media_assets")
+}
+
+model CardPageBackground {
+  id           String     @id @default(uuid()) @db.Uuid
+  employeeId   String     @map("employee_id") @db.Uuid
+  page         CardPage
+  mediaAssetId String     @unique @map("media_asset_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at")
+  employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, page])
+  @@index([employeeId, page])
+  @@map("card_page_backgrounds")
+}
+
+model CardPageDefaultBackground {
+  id           String     @id @default(uuid()) @db.Uuid
+  page         CardPage  @unique
+  mediaAssetId String     @unique @map("media_asset_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at")
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@map("card_page_default_backgrounds")
+}
+
+model OtpChallenge {
+  id         String    @id @default(uuid()) @db.Uuid
+  email      String
+  codeHash   String    @map("code_hash")
+  expiresAt  DateTime  @map("expires_at")
+  attempts   Int       @default(0)
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  employeeId String?   @map("employee_id") @db.Uuid
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([email, createdAt])
+  @@map("otp_challenges")
+}
+
+model InputSession {
+  id         String   @id @default(uuid()) @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  employeeId String   @map("employee_id") @db.Uuid
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("input_sessions")
+}
+
+model AuditLog {
+  id         BigInt    @id @default(autoincrement())
+  employeeId String?   @map("employee_id") @db.Uuid
+  action     String
+  ipAddress  String?   @map("ip_address")
+  metadata   Json      @default("{}")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model DeletedToken {
+  publicToken String   @id @map("public_token")
+  deletedAt   DateTime @default(now()) @map("deleted_at")
+
+  @@map("deleted_tokens")
+}

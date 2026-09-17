@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZNUS 직원 명함 갤러리</title>
+    <style>
+      :root { color-scheme: light; --bg:#f2f5fb; --surface:#fff; --surface-soft:#f7f9fd; --line:#e4e9f2; --text:#15223b; --muted:#71809a; --accent:#315bea; --accent-soft:#edf2ff; --success:#168866; --warning:#b97813; --danger:#c44355; --radius:18px; }
+      * { box-sizing:border-box; }
+      body { margin:0; min-width:320px; color:var(--text); background:radial-gradient(circle at 0 0,#dfe8ff 0,transparent 30rem),var(--bg); font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      button,input,select { font:inherit; } button { cursor:pointer; }
+      .shell { max-width:1440px; margin:0 auto; padding:42px 32px 72px; }
+      .topbar { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:30px; }
+      .eyebrow { margin:0 0 10px; color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; }
+      h1 { margin:0; font-size:clamp(30px,4vw,48px); line-height:1.05; letter-spacing:-.065em; }
+      .subtitle { margin:13px 0 0; color:var(--muted); font-size:15px; }
+      .connection { display:flex; align-items:center; gap:9px; padding:10px 14px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:rgba(255,255,255,.75); font-size:12px; white-space:nowrap; box-shadow:0 7px 24px rgba(35,56,100,.06); }
+      .connection::before { content:""; width:8px; height:8px; border-radius:50%; background:#d69b3d; }
+      .connection.ready::before { background:var(--success); box-shadow:0 0 0 4px #dff5ed; }
+      .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+      .stat,.toolbar,.panel { border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,255,255,.9); box-shadow:0 15px 45px rgba(35,56,100,.08); }
+      .stat { position:relative; overflow:hidden; padding:20px 21px; }
+      .stat::before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--accent); }
+      .stat:nth-child(2)::before { background:#20a37e; } .stat:nth-child(3)::before { background:#d69b3d; } .stat:nth-child(4)::before { background:#c95768; }
+      .stat__label { color:var(--muted); font-size:13px; font-weight:600; } .stat__value { margin-top:9px; font-size:34px; line-height:1; letter-spacing:-.06em; }
+      .toolbar { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(180px,.65fr) auto; gap:10px; padding:12px; margin-bottom:22px; }
+      input,select { width:100%; min-height:46px; color:var(--text); border:1px solid var(--line); border-radius:12px; outline:none; padding:12px 14px; background:var(--surface-soft); }
+      input::placeholder { color:#9aa6ba; } input:focus,select:focus { border-color:var(--accent); box-shadow:0 0 0 4px rgba(49,91,234,.12); background:#fff; }
+      .btn { min-height:44px; border:1px solid var(--line); border-radius:11px; color:var(--text); padding:0 17px; background:#fff; transition:.18s ease; }
+      .btn:hover { border-color:#b9c6e1; transform:translateY(-1px); } .btn.primary { color:#fff; border-color:transparent; background:var(--accent); font-weight:750; box-shadow:0 7px 16px rgba(49,91,234,.2); }
+      .btn.primary:hover { background:#234bd4; } .btn.danger { color:var(--danger); }
+      .layout { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(340px,.75fr); gap:22px; align-items:start; }
+      .panel { overflow:hidden; } .panel__head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:19px 22px; border-bottom:1px solid var(--line); }
+      .panel__title { margin:0; font-size:16px; letter-spacing:-.02em; } .panel__meta { color:var(--muted); font-size:12px; }
+      .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(235px,1fr)); gap:13px; padding:17px; }
+      .employee { position:relative; padding:16px; border:1px solid var(--line); border-radius:15px; background:linear-gradient(150deg,#fff,#f8faff); transition:.18s ease; }
+      .employee:hover,.employee.selected { transform:translateY(-2px); border-color:#9db2f7; box-shadow:0 10px 24px rgba(49,91,234,.1); }
+      .employee__top { display:flex; gap:12px; align-items:center; } .avatar { display:grid; place-items:center; flex:0 0 48px; width:48px; height:48px; border-radius:14px; color:#fff; background:linear-gradient(135deg,#315bea,#8d72e8); font-weight:800; }
+      .avatar img { width:100%; height:100%; border-radius:inherit; object-fit:cover; } .employee__name { margin:0; font-size:15px; font-weight:750; } .employee__role { margin:5px 0 0; color:var(--muted); font-size:12px; }
+      .employee__url { overflow:hidden; margin:18px 0 14px; color:var(--accent); font-size:12px; text-overflow:ellipsis; white-space:nowrap; } .chips { display:flex; flex-wrap:wrap; gap:6px; }
+      .chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:5px 9px; color:var(--muted); background:#eef1f6; font-size:11px; font-weight:650; } .chip.success { color:var(--success); background:#e5f7f0; } .chip.warning { color:var(--warning); background:#fff2d9; }
+      .empty { padding:54px 20px; color:var(--muted); text-align:center; } .detail { position:sticky; top:18px; } .preview { min-height:560px; display:grid; place-items:stretch; padding:0; overflow:hidden; background:#0d1018; }
+      .current-card-frame { width:100%; height:560px; display:block; border:0; background:#0d1018; } .detail__body { padding:20px 22px 24px; } .detail__name { margin:0; font-size:24px; letter-spacing:-.05em; } .detail__meta { margin:5px 0 20px; color:var(--muted); font-size:13px; }
+      .detail-list { display:grid; gap:11px; margin:0; } .detail-list div { display:flex; justify-content:space-between; gap:16px; color:var(--muted); font-size:12px; } .detail-list dd { max-width:65%; margin:0; color:var(--text); text-align:right; overflow-wrap:anywhere; }
+      .detail__actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:20px; } .company-panel { margin-top:22px; } .company-form { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:18px; }
+      .company-form label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:650; } .company-form label.wide { grid-column:1/-1; } .company-form button { min-height:44px; }
+      .error { margin:16px 18px 0; padding:12px 14px; border:1px solid #f1c6cd; border-radius:12px; color:var(--danger); background:#fff4f5; font-size:13px; } .hidden { display:none !important; }
+      .auth-gate { min-height:100vh; display:grid; place-items:center; padding:24px; background:radial-gradient(circle at 50% 0,#dfe8ff 0,transparent 36rem),var(--bg); } .auth-card { width:min(100%,430px); padding:34px; border:1px solid var(--line); border-radius:24px; background:rgba(255,255,255,.94); box-shadow:0 24px 70px rgba(35,56,100,.14); } .auth-mark { display:grid; place-items:center; width:48px; height:48px; margin-bottom:24px; border-radius:15px; color:#fff; background:var(--accent); font-weight:850; letter-spacing:-.08em; } .auth-card h1 { font-size:28px; } .auth-card p { color:var(--muted); line-height:1.6; } .auth-card form { display:grid; gap:10px; margin-top:24px; } .auth-card label { color:var(--text); font-size:13px; font-weight:700; } .auth-card .error { margin:2px 0 0; }
+      @media (max-width:900px) { .layout{grid-template-columns:1fr;} .detail{position:static;} }
+      @media (max-width:680px) { .shell{padding:28px 16px 48px;} .topbar{display:block;} .connection{width:max-content; margin-top:18px;} .stats{grid-template-columns:repeat(2,1fr); gap:10px;} .stat{padding:17px 15px;} .stat__value{font-size:29px;} .toolbar,.company-form{grid-template-columns:1fr;} .company-form label.wide{grid-column:auto;} .btn{min-height:46px;} .auth-card{padding:28px 22px;} }
+    </style>
+    <style>
+      :root { color-scheme: dark; --bg:#08090d; --panel:#12151d; --panel-soft:#181c26; --line:rgba(255,255,255,.1); --text:#f5f7fb; --muted:#8992a4; --accent:#8ca7ff; --success:#63d3a0; --warning:#f3c976; --danger:#ff8d8d; --radius:20px; }
+      * { box-sizing:border-box; }
+      body { margin:0; min-width:320px; color:var(--text); background:radial-gradient(circle at 10% 0%,rgba(97,112,255,.18),transparent 32rem),var(--bg); font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      button,input,select { font:inherit; } button { cursor:pointer; }
+      .shell { max-width:1440px; margin:0 auto; padding:34px 28px 64px; }
+      .topbar { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:30px; }
+      .eyebrow { margin:0 0 8px; color:var(--accent); font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+      h1 { margin:0; font-size:clamp(28px,4vw,46px); letter-spacing:-.055em; } .subtitle { margin:12px 0 0; color:var(--muted); }
+      .connection { display:flex; align-items:center; gap:9px; padding:10px 14px; border:1px solid rgba(255,255,255,.16); border-radius:999px; color:#f2f6ff; font-size:13px; font-weight:750; white-space:nowrap; background:rgba(255,255,255,.07); } .connection::before { content:""; width:8px; height:8px; flex:0 0 8px; border-radius:50%; background:var(--warning); box-shadow:0 0 16px var(--warning); } .connection.ready { color:#d9ffec; border-color:rgba(99,211,160,.35); background:rgba(99,211,160,.1); } .connection.ready::before { background:var(--success); box-shadow:0 0 16px var(--success); }
+      .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; } .stat,.toolbar,.panel { border:1px solid var(--line); border-radius:var(--radius); background:rgba(18,21,29,.88); box-shadow:0 20px 70px rgba(0,0,0,.16); } .stat { padding:20px; }
+      .stat__label { color:var(--muted); font-size:13px; } .stat__value { margin-top:10px; font-size:32px; letter-spacing:-.05em; }
+      .toolbar { display:grid; grid-template-columns:1.4fr .8fr auto; gap:12px; padding:14px; margin-bottom:24px; } input,select { width:100%; color:var(--text); border:1px solid var(--line); border-radius:12px; outline:none; padding:13px 14px; background:var(--panel-soft); } input:focus,select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(140,167,255,.14); }
+      .btn { border:1px solid var(--line); border-radius:12px; color:var(--text); padding:0 18px; background:#202636; } .btn:hover { border-color:rgba(255,255,255,.3); background:#293148; } .btn.primary { color:#0a0d14; border-color:transparent; background:var(--accent); font-weight:700; }
+      .layout { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(340px,.8fr); gap:24px; align-items:start; } .panel { overflow:hidden; } .panel__head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:20px 22px; border-bottom:1px solid var(--line); } .panel__title { margin:0; font-size:16px; } .panel__meta { color:var(--muted); font-size:12px; }
+      .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; padding:18px; } .employee { position:relative; padding:14px; border:1px solid var(--line); border-radius:17px; background:linear-gradient(145deg,#1a1f2a,#11141b); transition:transform .2s ease,border-color .2s ease; } .employee:hover,.employee.selected { transform:translateY(-3px); border-color:rgba(140,167,255,.75); }
+      .employee__top { display:flex; gap:12px; align-items:center; } .avatar { display:grid; place-items:center; flex:0 0 48px; width:48px; height:48px; border-radius:15px; color:#fff; background:linear-gradient(135deg,#6375d9,#af72d7); font-weight:800; } .avatar img { width:100%; height:100%; border-radius:inherit; object-fit:cover; } .employee__name { margin:0; font-weight:700; } .employee__role { margin:4px 0 0; color:var(--muted); font-size:12px; }
+      .employee__url { overflow:hidden; margin:18px 0 14px; color:#b8c4ff; font-size:12px; text-overflow:ellipsis; white-space:nowrap; } .chips { display:flex; flex-wrap:wrap; gap:6px; } .chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:5px 8px; color:var(--muted); background:rgba(255,255,255,.07); font-size:11px; } .chip.success { color:var(--success); background:rgba(99,211,160,.1); } .chip.warning { color:var(--warning); background:rgba(243,201,118,.1); }
+      .empty { padding:54px 20px; color:var(--muted); text-align:center; } .detail { position:sticky; top:20px; } .preview { min-height:620px; display:grid; place-items:stretch; padding:0; overflow:hidden; background:#050505; } .current-card-frame { width:100%; height:620px; display:block; border:0; background:#050505; }
+      .card-preview { position:relative; width:min(100%,300px); min-height:420px; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:25px; border:1px solid rgba(255,255,255,.18); border-radius:25px; background:linear-gradient(150deg,#25314c,#11141d 60%,#30204b); box-shadow:0 28px 60px rgba(0,0,0,.45); } .card-preview::after { content:""; position:absolute; width:250px; height:250px; right:-95px; bottom:-80px; border-radius:50%; background:rgba(110,231,220,.14); filter:blur(10px); }
+      .card-preview__brand { position:relative; z-index:1; color:#b8c4ff; font-size:12px; font-weight:800; letter-spacing:.14em; } .card-preview__body { position:relative; z-index:1; } .card-preview__name { margin:0; font-size:30px; letter-spacing:-.06em; } .card-preview__role { margin:8px 0 0; color:#bfc5d7; font-size:13px; } .card-preview__details { display:grid; gap:8px; margin-top:32px; color:#d8dce8; font-size:12px; } .card-preview__details span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .detail__body { padding:20px 22px 24px; } .detail__name { margin:0; font-size:24px; letter-spacing:-.04em; } .detail__meta { margin:5px 0 20px; color:var(--muted); font-size:13px; } .detail-list { display:grid; gap:11px; margin:0; } .detail-list div { display:flex; justify-content:space-between; gap:16px; color:var(--muted); font-size:12px; } .detail-list dd { max-width:65%; margin:0; color:var(--text); text-align:right; overflow-wrap:anywhere; }
+      .detail__actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:20px; } .company-panel { margin-top:24px; } .company-form { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:18px; } .company-form label { display:grid; gap:6px; color:var(--muted); font-size:12px; } .company-form label.wide { grid-column:1/-1; } .company-form button { min-height:44px; } .error { margin:16px 18px 0; padding:12px 14px; border:1px solid rgba(255,141,141,.25); border-radius:12px; color:var(--danger); background:rgba(255,141,141,.08); font-size:13px; }
+      .action-menu { display:grid; gap:9px; margin-top:9px; } .action-menu .btn { width:100%; }
+      .auth-gate { min-height:100vh; display:grid; place-items:center; padding:24px; background:radial-gradient(circle at 10% 0%,rgba(97,112,255,.18),transparent 32rem),var(--bg); } .auth-card { width:min(100%,430px); padding:34px; border:1px solid var(--line); border-radius:20px; background:rgba(18,21,29,.96); box-shadow:0 20px 70px rgba(0,0,0,.28); } .auth-mark { display:grid; place-items:center; width:48px; height:48px; margin-bottom:24px; border-radius:15px; color:#0a0d14; background:var(--accent); font-weight:850; } .auth-card h1 { font-size:28px; } .auth-card p { color:var(--muted); line-height:1.6; } .auth-card form { display:grid; gap:10px; margin-top:24px; } .auth-card label { color:var(--text); font-size:13px; font-weight:700; } .auth-card .error { margin:2px 0 0; }
+      @media(max-width:900px) { .layout{grid-template-columns:1fr;} .detail{position:static;} } @media(max-width:680px) { .shell{padding:24px 16px 42px;} .topbar{display:block;} .connection{margin-top:18px;} .stats{grid-template-columns:repeat(2,1fr);} .toolbar,.company-form{grid-template-columns:1fr;} .company-form label.wide{grid-column:auto;} .btn{min-height:44px;} }
+      .stats-area { position:relative; padding-top:46px; }
+      .settings-button { position:absolute; top:0; right:0; display:inline-flex; align-items:center; gap:8px; min-height:38px; padding:0 13px; border:1px solid rgba(140,167,255,.35); border-radius:12px; color:#dfe6ff; background:rgba(140,167,255,.12); font-size:12px; font-weight:750; }
+      .settings-button:hover { border-color:rgba(140,167,255,.7); background:rgba(140,167,255,.2); }
+      .settings-button__icon { font-size:17px; line-height:1; }
+      .settings-modal { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:24px; background:rgba(2,4,10,.72); backdrop-filter:blur(12px); }
+      .settings-dialog { width:min(100%,760px); max-height:min(90vh,780px); overflow:auto; border:1px solid rgba(255,255,255,.16); border-radius:22px; background:#121722; box-shadow:0 30px 100px rgba(0,0,0,.5); }
+      .settings-dialog__head { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding:22px 24px; border-bottom:1px solid var(--line); }
+      .settings-dialog__title { margin:0; font-size:20px; letter-spacing:-.04em; }
+      .settings-dialog__description { margin:7px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
+      .settings-close { display:grid; place-items:center; width:36px; height:36px; border:1px solid var(--line); border-radius:10px; color:#dce3f7; background:rgba(255,255,255,.06); font-size:22px; }
+      .settings-close:hover { background:rgba(255,255,255,.12); }
+      .settings-dialog .company-form { padding:14px 24px 24px; }
+      .settings-dialog .company-form label { padding:12px 13px; border:1px solid rgba(255,255,255,.08); border-radius:12px; color:#bfc9df; background:rgba(255,255,255,.035); }
+      .settings-dialog .company-form input { margin-top:2px; background:rgba(255,255,255,.055); }
+      .settings-message { margin:0 24px 20px; padding:11px 13px; border-radius:10px; color:#c8d2eb; background:rgba(255,255,255,.06); font-size:12px; }
+      .settings-message.success { color:#c8ffe5; background:rgba(99,211,160,.12); }
+      .settings-message.error { margin:0 24px 20px; color:#ffb8b8; background:rgba(255,141,141,.1); }
+      .settings-section-title { margin:22px 24px 0; color:#f5f7fb; font-size:13px; }
+      .settings-section-description { margin:7px 24px 0; color:#8992a4; font-size:11px; line-height:1.5; }
+      .default-background-list { display:grid; gap:10px; margin:14px 24px 22px; }
+      .default-background-item { display:grid; grid-template-columns:86px minmax(0,1fr); gap:10px; align-items:center; padding:11px 12px; border:1px solid rgba(255,255,255,.1); border-radius:12px; background:rgba(255,255,255,.035); }
+      .default-background-item__name { color:#dfe6ff; font-size:12px; font-weight:700; }
+      .default-background-item input { min-width:0; width:100%; padding:8px; border:1px dashed rgba(140,167,255,.35); border-radius:8px; color:#c8d2eb; background:rgba(140,167,255,.06); font-size:11px; }
+      .default-background-current { grid-column:2; color:#63d3a0; font-size:10px; overflow-wrap:anywhere; }
+      .default-background-current.empty { color:#8992a4; }
+      .settings-footer { position:sticky; bottom:0; display:flex; justify-content:flex-end; padding:14px 24px 18px; border-top:1px solid var(--line); background:rgba(18,23,34,.96); backdrop-filter:blur(12px); }
+      .settings-footer .btn { min-width:170px; }
+      @media(max-width:680px) { .settings-modal{padding:14px;} .settings-dialog__head{padding:20px;} .settings-dialog .company-form{padding:14px 20px 20px;} .settings-section-title,.settings-section-description{margin-left:20px;margin-right:20px;} .default-background-list{margin-left:20px;margin-right:20px;} .settings-footer{padding-left:20px;padding-right:20px;} .settings-footer .btn{width:100%;} .settings-message,.settings-message.error{margin-left:20px;margin-right:20px;} }
+    </style>
+  </head>
+  <body>
+    <section class="auth-gate" id="authGate">
+      <div class="auth-card">
+        <div class="auth-mark" aria-hidden="true">Z</div>
+        <p class="eyebrow">ZNUS / PRIVATE ADMIN</p>
+        <h1>관리자 대시보드</h1>
+        <p>직원 명함과 회사 정보를 관리하려면 관리자 접근 키를 입력하세요.</p>
+        <form id="authForm">
+          <label for="adminKeyInput">관리자 접근 키</label>
+          <input id="adminKeyInput" type="password" autocomplete="current-password" placeholder="접근 키 입력" required />
+          <button class="btn primary" type="submit">대시보드 열기</button>
+          <p class="error hidden" id="authError" role="alert"></p>
+        </form>
+      </div>
+    </section>
+    <main class="shell hidden" id="appShell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">ZNUS / ADMIN GALLERY</p>
+          <h1>직원 명함 갤러리</h1>
+          <p class="subtitle">PostgreSQL에 저장된 직원 데이터를 한눈에 확인합니다.</p>
+        </div>
+        <div class="connection" id="connectionStatus">DB 연결 중</div>
+      </header>
+
+      <div class="stats-area">
+        <button class="settings-button" id="settingsButton" type="button" aria-haspopup="dialog" aria-controls="settingsModal">
+          <span class="settings-button__icon" aria-hidden="true">⚙</span>
+          <span>회사 설정</span>
+        </button>
+        <section class="stats" aria-label="요약">
+          <article class="stat"><div class="stat__label">전체 직원</div><div class="stat__value" id="totalCount">-</div></article>
+          <article class="stat"><div class="stat__label">생성 완료</div><div class="stat__value" id="completeCount">-</div></article>
+          <article class="stat"><div class="stat__label">처리 중</div><div class="stat__value" id="processingCount">-</div></article>
+          <article class="stat"><div class="stat__label">검토 필요</div><div class="stat__value" id="errorCount">-</div></article>
+        </section>
+      </div>
+
+      <section class="toolbar" aria-label="직원 검색">
+        <input id="searchInput" type="search" placeholder="이름, 부서, 직원 ID 검색" />
+        <select id="statusFilter">
+          <option value="all">전체 상태</option>
+          <option value="생성완료">생성 완료</option>
+          <option value="입력완료">입력 완료</option>
+          <option value="비활성">비활성</option>
+          <option value="삭제됨">삭제됨</option>
+          <option value="검토필요">검토 필요</option>
+        </select>
+        <button class="btn primary" id="refreshButton" type="button">새로고침</button>
+      </section>
+
+      <div id="errorBox" class="error hidden" role="alert"></div>
+
+      <section class="layout">
+        <section class="panel">
+          <div class="panel__head">
+            <h2 class="panel__title">직원 목록</h2>
+            <span class="panel__meta" id="listMeta">불러오는 중</span>
+          </div>
+          <div class="grid" id="employeeGrid"></div>
+        </section>
+
+        <aside class="panel detail" id="detailPanel">
+          <div class="panel__head"><h2 class="panel__title">명함 미리보기</h2><span class="panel__meta">선택한 직원</span></div>
+          <div class="preview" id="preview"></div>
+          <div class="detail__body" id="detailBody"></div>
+        </aside>
+      </section>
+    </main>
+
+    <section class="settings-modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="settings-dialog">
+        <div class="settings-dialog__head">
+          <div>
+            <p class="eyebrow">ZNUS / COMPANY</p>
+            <h2 class="settings-dialog__title" id="settingsTitle">회사 공용데이터</h2>
+            <p class="settings-dialog__description">공개되는 모든 직원 명함에 공통으로 표시되는 정보를 수정합니다.</p>
+          </div>
+          <button class="settings-close" id="settingsCloseButton" type="button" aria-label="회사 설정 닫기">×</button>
+        </div>
+        <h3 class="settings-section-title">회사 기본 정보</h3>
+        <p class="settings-section-description">모든 공개 명함에 공통으로 표시되는 회사 정보입니다.</p>
+        <div class="company-form">
+          <label>회사명<input name="companyName" id="companyName"></label>
+          <label>홈페이지<input name="companyWebsite" id="companyWebsite" type="url" placeholder="https://znus.co.kr"></label>
+          <label>대표 전화<input name="companyPhone" id="companyPhone"></label>
+          <label>대표 팩스<input name="companyFax" id="companyFax"></label>
+          <label class="wide">주소<input name="officeAddress" id="officeAddress"></label>
+          <label>슬로건 1<input name="sloganLine1" id="sloganLine1"></label>
+          <label>슬로건 2<input name="sloganLine2" id="sloganLine2"></label>
+          <label>슬로건 3<input name="sloganLine3" id="sloganLine3"></label>
+        </div>
+        <h3 class="settings-section-title">페이지별 기본 배경</h3>
+        <p class="settings-section-description">직원별 배경을 지정하지 않은 직무·연락처·회사·링크 페이지에 공통으로 사용할 이미지 또는 MP4 영상을 저장합니다. 프로필 배경은 직원이 직접 업로드해야 합니다.</p>
+        <div class="default-background-list">
+          <label class="default-background-item"><span class="default-background-item__name">01 직무</span><input data-default-background="role" type="file" accept="image/jpeg,image/png,image/webp,video/mp4"><span class="default-background-current empty" data-default-current="role">기본 배경 없음</span></label>
+          <label class="default-background-item"><span class="default-background-item__name">02 연락처</span><input data-default-background="contact" type="file" accept="image/jpeg,image/png,image/webp,video/mp4"><span class="default-background-current empty" data-default-current="contact">기본 배경 없음</span></label>
+          <label class="default-background-item"><span class="default-background-item__name">03 회사</span><input data-default-background="company" type="file" accept="image/jpeg,image/png,image/webp,video/mp4"><span class="default-background-current empty" data-default-current="company">기본 배경 없음</span></label>
+          <label class="default-background-item"><span class="default-background-item__name">04 링크</span><input data-default-background="links" type="file" accept="image/jpeg,image/png,image/webp,video/mp4"><span class="default-background-current empty" data-default-current="links">기본 배경 없음</span></label>
+        </div>
+        <div class="settings-footer">
+          <button class="btn primary" id="saveCompanyButton" type="button">회사 설정 저장</button>
+        </div>
+        <p class="settings-message hidden" id="settingsMessage" role="status"></p>
+      </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script>
+      const state = { employees: [], selectedId: null };
+
+      const $ = (selector) => document.querySelector(selector);
+      const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+      const initials = (employee) => (employee.name || employee.nameEn || '?').replace(/\s+/g, '').slice(0, 2).toUpperCase();
+      const selectedEmployee = () => state.employees.find((employee) => employee.employeeId === state.selectedId);
+
+      function setConnection(ready, text) {
+        const element = $('#connectionStatus');
+        element.textContent = text;
+        element.classList.toggle('ready', ready);
+      }
+
+      function showError(message) {
+        $('#errorBox').textContent = message;
+        $('#errorBox').classList.remove('hidden');
+      }
+
+      function clearError() { $('#errorBox').classList.add('hidden'); }
+
+      function filteredEmployees() {
+        const query = $('#searchInput').value.trim().toLowerCase();
+        const status = $('#statusFilter').value;
+        return state.employees.filter((employee) => {
+          const searchable = [employee.employeeId, employee.name, employee.nameEn, employee.department, employee.position].join(' ').toLowerCase();
+          return (!query || searchable.includes(query)) && (status === 'all' || employee.status === status);
+        });
+      }
+
+      function renderStats() {
+        const employees = state.employees;
+        $('#totalCount').textContent = employees.length;
+        $('#completeCount').textContent = employees.filter((employee) => employee.status === '생성완료').length;
+        $('#processingCount').textContent = employees.filter((employee) => employee.status === '입력완료').length;
+        $('#errorCount').textContent = employees.filter((employee) => employee.status === '검토필요' || employee.missingFields?.length).length;
+      }
+
+      function statusChip(label, completed) {
+        return `<span class="chip ${completed ? 'success' : 'warning'}">${escapeHtml(label)} ${completed ? '완료' : '대기'}</span>`;
+      }
+
+      function renderGrid() {
+        const employees = filteredEmployees();
+        $('#listMeta').textContent = `${employees.length}명 표시 / 전체 ${state.employees.length}명`;
+        if (!employees.length) {
+          $('#employeeGrid').innerHTML = '<div class="empty">조건에 맞는 직원이 없습니다.</div>';
+          return;
+        }
+
+        $('#employeeGrid').innerHTML = employees.map((employee) => `
+          <article class="employee ${employee.employeeId === state.selectedId ? 'selected' : ''}" data-id="${escapeHtml(employee.employeeId)}" tabindex="0">
+            <div class="employee__top">
+              <div class="avatar">${employee.profileImage ? `<img src="${escapeHtml(employee.profileImage)}" alt="">` : escapeHtml(initials(employee))}</div>
+              <div>
+                <h3 class="employee__name">${escapeHtml(employee.name || employee.nameEn || '이름 없음')}</h3>
+                <p class="employee__role">${escapeHtml([employee.department, employee.position].filter(Boolean).join(' / ') || '직무 정보 없음')}</p>
+              </div>
+            </div>
+            <div class="employee__url">${escapeHtml(employee.mobileUrl || '모바일 명함 URL 없음')}</div>
+            <div class="chips">
+              <span class="chip ${employee.status === '생성완료' ? 'success' : 'warning'}">${escapeHtml(employee.status)}</span>
+              ${employee.missingFields?.length ? '<span class="chip warning">입력 누락</span>' : ''}
+            </div>
+          </article>
+        `).join('');
+
+        document.querySelectorAll('.employee').forEach((card) => {
+          card.addEventListener('click', () => selectEmployee(card.dataset.id));
+          card.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') selectEmployee(card.dataset.id); });
+        });
+      }
+
+      function renderDetail() {
+        const employee = selectedEmployee();
+        if (!employee) {
+          $('#preview').innerHTML = '<div class="empty">직원을 선택하면 명함을 미리볼 수 있습니다.</div>';
+          $('#detailBody').innerHTML = '';
+          return;
+        }
+
+        const previewKey = [employee.mobileUrl || '', employee.updatedAt || ''].join('|');
+        if ($('#preview').dataset.previewKey !== previewKey) {
+          $('#preview').innerHTML = employee.mobileUrl
+            ? `<iframe class="current-card-frame" src="${escapeHtml(employee.mobileUrl)}" title="${escapeHtml(employee.name || '직원')} 최신 명함 미리보기"></iframe>`
+            : '<div class="empty">공개 명함 URL을 연결하면 최신 카드 디자인을 미리볼 수 있습니다.</div>';
+          $('#preview').dataset.previewKey = previewKey;
+        }
+
+        $('#detailBody').innerHTML = `
+          <h3 class="detail__name">${escapeHtml(employee.name || employee.nameEn || '이름 없음')}</h3>
+          <p class="detail__meta">${escapeHtml([employee.department, employee.position].filter(Boolean).join(' / '))}</p>
+          <dl class="detail-list">
+            <div><dt>직원 ID</dt><dd>${escapeHtml(employee.employeeId)}</dd></div>
+            <div><dt>회사 이메일</dt><dd>${escapeHtml(employee.accountEmail || '-')}</dd></div>
+            <div><dt>영문 이름 / 직책</dt><dd>${escapeHtml([employee.nameEn, employee.positionEn].filter(Boolean).join(' / '))}</dd></div>
+            <div><dt>공개 전화</dt><dd>${escapeHtml(employee.phone || '-')}</dd></div>
+            <div><dt>모바일 URL</dt><dd>${escapeHtml(employee.mobileUrl || '-')}</dd></div>
+            <div><dt>이메일</dt><dd>${escapeHtml(employee.email || '-')}</dd></div>
+            <div><dt>최종 수정</dt><dd>${escapeHtml(employee.updatedAt || '-')}</dd></div>
+            ${(employee.roles || []).map((role, i) => `<div><dt>업무 ${i + 1}</dt><dd>${escapeHtml(role.ko)}<br>${escapeHtml(role.en)}</dd></div>`).join('')}
+            ${(employee.backgrounds || []).map(background => `<div><dt>${escapeHtml(({profile:'프로필',role:'직무',contact:'연락처',company:'회사',links:'링크'})[background.type])} 배경</dt><dd>${escapeHtml(({DEFAULT:'기본',IMAGE:'이미지',VIDEO:'영상'})[background.mode] || background.mode)}</dd></div>`).join('')}
+          </dl>
+          ${employee.errorMessage ? `<p class="error">${escapeHtml(employee.errorMessage)}</p>` : ''}
+          ${employee.missingFields?.length ? `<p class="error">입력 누락: ${escapeHtml(employee.missingFields.join(', '))}</p>` : ''}
+          <div id="employeeQr" aria-label="직원 명함 QR" style="background:white;max-width:180px;margin:20px auto"></div>
+          <div class="detail__actions">
+            <button class="btn" id="copyUrlButton" type="button">URL 복사</button>
+            <button class="btn primary" id="openUrlButton" type="button">명함 열기</button>
+          </div>
+          <div class="detail__actions">
+            <button class="btn primary" id="visibilityButton" type="button">공개하기</button>
+            <button class="btn" id="moreActionsButton" type="button" aria-expanded="false">더보기 ···</button>
+          </div>
+          <div class="action-menu hidden" id="actionMenu">
+            <button class="btn danger" id="deleteButton" type="button">삭제</button>
+          </div>
+        `;
+        if (employee.mobileUrl && typeof qrcode === 'function') {
+          const qr = qrcode(0, 'M'); qr.addData(employee.mobileUrl); qr.make();
+          $('#employeeQr').innerHTML = qr.createSvgTag({cellSize:4, margin:4, scalable:true});
+        }
+        $('#copyUrlButton').addEventListener('click', () => copyText(employee.mobileUrl));
+        $('#openUrlButton').addEventListener('click', () => { if (employee.mobileUrl) window.open(employee.mobileUrl, '_blank', 'noopener'); });
+        const changeState = async (action) => {
+          const response = await fetch('/api/admin/employees/' + encodeURIComponent(employee.employeeId), {
+            method: 'PATCH', headers: {'Content-Type': 'application/json', 'x-admin-key': adminKey}, body: JSON.stringify({action})
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error || '상태 변경에 실패했습니다.');
+          loadEmployees();
+        };
+        const isDeleted = employee.status === '삭제됨';
+        const visibilityButton = $('#visibilityButton');
+        const moreActionsButton = $('#moreActionsButton');
+        const actionMenu = $('#actionMenu');
+        if (isDeleted) {
+          visibilityButton.textContent = '삭제됨';
+          visibilityButton.disabled = true;
+          actionMenu.innerHTML = '<button class="btn primary" id="recoverButton" type="button">복구</button>';
+        } else {
+          visibilityButton.textContent = employee.status === '생성완료' ? '비공개로 전환' : '공개하기';
+        }
+        visibilityButton.addEventListener('click', () => {
+          if (isDeleted) return;
+          changeState(employee.status === '생성완료' ? 'private' : 'publish')
+            .catch((error) => showError(error.message));
+        });
+        moreActionsButton.addEventListener('click', () => {
+          const expanded = actionMenu.classList.toggle('hidden') === false;
+          moreActionsButton.setAttribute('aria-expanded', String(expanded));
+        });
+        if (isDeleted) {
+          $('#recoverButton').addEventListener('click', () => {
+            changeState('recover').catch((error) => showError(error.message));
+          });
+        } else {
+          $('#deleteButton').addEventListener('click', () => {
+            if (!window.confirm('이 직원의 명함을 삭제할까요? 삭제 후에는 복구 메뉴에서만 되돌릴 수 있습니다.')) return;
+            fetch('/api/admin/employees/' + encodeURIComponent(employee.employeeId), {method:'DELETE', headers:{'x-admin-key':adminKey}})
+              .then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || '삭제에 실패했습니다.'); loadEmployees(); })
+              .catch((error) => showError(error.message));
+          });
+        }
+      }
+
+      function selectEmployee(employeeId) {
+        state.selectedId = employeeId;
+        renderGrid();
+        renderDetail();
+      }
+
+      async function copyText(value) {
+        if (!value) return;
+        try {
+          await navigator.clipboard.writeText(value);
+          const button = $('#copyUrlButton');
+          button.textContent = '복사 완료';
+          setTimeout(() => { button.textContent = 'URL 복사'; }, 1200);
+        } catch (error) {
+          showError('URL을 복사하지 못했습니다.');
+        }
+      }
+
+      let adminKey = sessionStorage.getItem('znus_admin_key') || '';
+      function showAuthGate(message = '') {
+        $('#appShell').classList.add('hidden');
+        $('#authGate').classList.remove('hidden');
+        $('#authError').textContent = message;
+        $('#authError').classList.toggle('hidden', !message);
+        $('#adminKeyInput').focus();
+      }
+      function showApp() {
+        $('#authGate').classList.add('hidden');
+        $('#appShell').classList.remove('hidden');
+      }
+      $('#authForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        adminKey = $('#adminKeyInput').value.trim();
+        if (!adminKey) return;
+        sessionStorage.setItem('znus_admin_key', adminKey);
+        $('#authError').classList.add('hidden');
+        showApp();
+        loadEmployees();
+        loadCompany().catch((error) => showError(error.message));
+        loadDefaultBackgrounds().catch((error) => showError(error.message));
+      });
+      let refreshInFlight = false;
+      const companyFields = ['companyName','companyWebsite','companyPhone','companyFax','officeAddress','sloganLine1','sloganLine2','sloganLine3'];
+      const defaultBackgroundPages = ['role','contact','company','links'];
+      function fillCompany(settings) {
+        const mapping = {companyName:'company_name', companyWebsite:'company_website', companyPhone:'company_phone', companyFax:'company_fax', officeAddress:'office_address', sloganLine1:'slogan_line_1', sloganLine2:'slogan_line_2', sloganLine3:'slogan_line_3'};
+        companyFields.forEach((field) => { $('#' + field).value = settings[mapping[field]] || ''; });
+      }
+      async function loadCompany() {
+        const response = await fetch('/api/admin/company', {headers: {'x-admin-key': adminKey}});
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || '회사 설정을 불러오지 못했습니다.');
+        fillCompany(body);
+      }
+      const settingsModal = $('#settingsModal');
+      const settingsMessage = $('#settingsMessage');
+      function showSettingsMessage(message, type = '') {
+        settingsMessage.textContent = message;
+        settingsMessage.className = 'settings-message' + (type ? ' ' + type : '');
+        settingsMessage.classList.toggle('hidden', !message);
+      }
+      function openSettings() {
+        settingsModal.classList.remove('hidden');
+        showSettingsMessage('');
+        loadCompany().catch((error) => showSettingsMessage(error.message, 'error'));
+        loadDefaultBackgrounds().catch((error) => showSettingsMessage(error.message, 'error'));
+        setTimeout(() => $('#companyName').focus(), 0);
+      }
+      function closeSettings() {
+        settingsModal.classList.add('hidden');
+        showSettingsMessage('');
+      }
+      $('#settingsButton').addEventListener('click', openSettings);
+      $('#settingsCloseButton').addEventListener('click', closeSettings);
+      settingsModal.addEventListener('click', (event) => {
+        if (event.target === settingsModal) closeSettings();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !settingsModal.classList.contains('hidden')) closeSettings();
+      });
+      $('#saveCompanyButton').addEventListener('click', async () => {
+        const payload = Object.fromEntries(companyFields.map((field) => [field, $('#' + field).value.trim()]));
+        const button = $('#saveCompanyButton');
+        button.disabled = true;
+        showSettingsMessage('회사 설정 저장 중...');
+        try {
+          const response = await fetch('/api/admin/company', {method:'PUT', headers:{'Content-Type':'application/json', 'x-admin-key':adminKey}, body:JSON.stringify(payload)});
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error || '회사 설정을 저장하지 못했습니다.');
+          for (const page of defaultBackgroundPages) {
+            const input = document.querySelector('[data-default-background="' + page + '"]');
+            const file = input?.files?.[0];
+            if (!file) continue;
+            const formData = new FormData();
+            formData.append('file', file);
+            const upload = await fetch('/api/admin/default-backgrounds?page=' + encodeURIComponent(page), {method:'POST', headers:{'x-admin-key':adminKey}, body:formData});
+            const uploadBody = await upload.json().catch(() => ({}));
+            if (!upload.ok) throw new Error(uploadBody.error || page + ' 기본 배경을 저장하지 못했습니다.');
+            input.value = '';
+          }
+          await loadDefaultBackgrounds();
+          showSettingsMessage('회사 설정과 페이지별 기본 배경이 저장되었습니다.', 'success');
+        } catch (error) {
+          showSettingsMessage(error.message, 'error');
+        } finally {
+          button.disabled = false;
+        }
+      });
+      async function loadDefaultBackgrounds() {
+        const response = await fetch('/api/admin/default-backgrounds', {headers: {'x-admin-key': adminKey}});
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || '페이지별 기본 배경을 불러오지 못했습니다.');
+        defaultBackgroundPages.forEach((page) => {
+          const element = document.querySelector('[data-default-current="' + page + '"]');
+          const background = body[page];
+          if (!element) return;
+          element.textContent = background ? '현재 파일: ' + background.originalName + ' (' + (background.kind === 'VIDEO' ? '영상' : '이미지') + ')' : '기본 배경 없음';
+          element.classList.toggle('empty', !background);
+        });
+      }
+      function loadEmployees() {
+        if (refreshInFlight) return;
+        refreshInFlight = true;
+        clearError();
+        setConnection(false, 'DB 연결 중');
+        fetch('/api/admin/employees', {headers: {'x-admin-key': adminKey}})
+          .then((response) => response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body.error || '관리자 데이터를 불러오지 못했습니다.'))))
+          .then((employees) => {
+            state.employees = employees || [];
+            const selectedStillExists = state.employees.some((employee) => employee.employeeId === state.selectedId);
+            state.selectedId = selectedStillExists ? state.selectedId : (state.employees[0]?.employeeId || null);
+            renderStats();
+            renderGrid();
+            renderDetail();
+        setConnection(true, 'DB 연결됨');
+            refreshInFlight = false;
+          })
+          .catch((error) => {
+            setConnection(false, 'DB 연결 실패');
+            if (error.message === '관리자 인증이 필요합니다.') {
+              sessionStorage.removeItem('znus_admin_key');
+              adminKey = '';
+              showAuthGate('접근 키를 확인해 주세요.');
+              return;
+            }
+            showError(error?.message || 'PostgreSQL 데이터를 불러오지 못했습니다.');
+            $('#listMeta').textContent = '데이터를 불러오지 못함';
+            refreshInFlight = false;
+          });
+      }
+
+      $('#searchInput').addEventListener('input', renderGrid);
+      $('#statusFilter').addEventListener('change', renderGrid);
+      $('#refreshButton').addEventListener('click', loadEmployees);
+      if (adminKey) {
+        showApp();
+        loadEmployees();
+        loadCompany().catch((error) => showError(error.message));
+        loadDefaultBackgrounds().catch((error) => showError(error.message));
+      } else {
+        showAuthGate();
+      }
+      // PostgreSQL 데이터가 바뀌면 열린 관리자 화면에도 신규 직원과 수정 내용이 반영됩니다.
+      setInterval(loadEmployees, 10000);
+    </script>
+  </body>
+</html>

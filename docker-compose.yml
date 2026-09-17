@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-znus_cards}
+      POSTGRES_USER: ${DB_USER:-znus_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+    volumes:
+      - znus_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-znus_admin} -d ${DB_NAME:-znus_cards}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Do not publish PostgreSQL to the internet. The app reaches it over the private Docker network.
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4173
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-znus_cards}
+      DB_USER: ${DB_USER:-znus_admin}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:?ALLOWED_EMAIL_DOMAINS must be set}
+      ADMIN_ACCESS_KEY: ${ADMIN_ACCESS_KEY:?ADMIN_ACCESS_KEY must be set}
+      INPUT_SESSION_HOURS: ${INPUT_SESSION_HOURS:-24}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    ports:
+      - "${APP_BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-4173}:4173"
+    volumes:
+      - znus_app_data:/app/.data
+volumes:
+  znus_postgres:
+  znus_app_data:

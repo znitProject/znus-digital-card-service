@@ -465,7 +465,6 @@ transform:scale(1.11);
   intro stack에서는 요소를 모두 제거하고
   영상/배경만 보이게 한다.
 */
-
 .stack-card .card-content, .stack-card .card-number, .stack-card .circle-action, .stack-card .video-overlay + *, .stack-card .reveal-item {
     visibility: hidden !important;
 }
@@ -571,7 +570,7 @@ margin-top:-8px;
     position: absolute;
     z-index: 20;
     left: 50%;
-    bottom: max( 9vh, 55px );
+    bottom: max( 13vh, 90px );
     width: 90%;
     text-align: center;
     opacity: 0;
@@ -706,6 +705,11 @@ opacity:1;
     opacity: 1;
     visibility: visible;
 }
+#main.initial-reveal {
+    opacity: 1;
+    visibility: visible;
+    transition: none;
+}
 #main::-webkit-scrollbar {
 display:none;
 }
@@ -727,7 +731,7 @@ calc( 100dvh - (var(--page-margin) * 2) );
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    scroll-margin-block-start: var(--page-margin);
+    scroll-margin-block-start: 0;
     isolation: isolate;
 }
 /* =========================================================
@@ -801,6 +805,21 @@ calc( 100dvh - (var(--page-margin) * 2) );
     opacity: 1;
     transform: translateY(0) scale(1);
 }
+.links-card.is-active .reveal-item {
+    transition: none;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.profile-card.is-active .reveal-item {
+    transition: none;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.profile-card .reveal-item {
+    transition: none;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
 /* =========================================================
    PROFILE
    ========================================================= */
@@ -871,64 +890,32 @@ calc( 100dvh - (var(--page-margin) * 2) );
 .floating-heart {
     position: fixed;
     z-index: 9999;
-    left: 0;
-    top: 0;
     display: block;
     pointer-events: none;
-    font-size: clamp(90px, 18vw, 180px);
-    line-height: 1;
-    color: #fff;
+    user-select: none;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    font-size: clamp(48px, 12vw, 84px);
+    line-height: 1.2;
     opacity: 0;
-    -webkit-transform: translate3d(-50%, -50%, 0) scale(.2);
     transform: translate3d(-50%, -50%, 0) scale(.2);
-    -webkit-animation: none;
-    animation: none;
     will-change: transform, opacity;
 }
 .floating-heart.is-active {
-    -webkit-animation: heartPop 1s var(--ease) forwards;
-    animation: heartPop 1s var(--ease) forwards;
-    -webkit-font-smoothing: antialiased;
+    animation: heartPop 1250ms ease-out forwards;
 }
-@-webkit-keyframes heartPop {
-  0% {
-    opacity: 0;
-    -webkit-transform: translate3d(-50%, -50%, 0) scale(.35);
-    transform: translate3d(-50%, -50%, 0) scale(.35);
-  }
-  22% {
-    opacity: 1;
-    -webkit-transform: translate3d(-50%, -50%, 0) scale(1.12);
-    transform: translate3d(-50%, -50%, 0) scale(1.12);
-  }
-  52% {
-    opacity: 1;
-    -webkit-transform: translate3d(-50%, -50%, 0) scale(1);
-    transform: translate3d(-50%, -50%, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    -webkit-transform: translate3d(-50%, -50%, 0) scale(1.28);
-    transform: translate3d(-50%, -50%, 0) scale(1.28);
-  }
-}
-
 @keyframes heartPop {
-  0% {
-    opacity: 0;
-    transform: translate3d(-50%, -50%, 0) scale(.35);
-  }
-  22% {
-    opacity: 1;
-    transform: translate3d(-50%, -50%, 0) scale(1.12);
-  }
-  52% {
-    opacity: 1;
-    transform: translate3d(-50%, -50%, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate3d(-50%, -50%, 0) scale(1.28);
+  0% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(.2) rotate(-14deg); }
+  18% { opacity: 1; transform: translate3d(-50%, -65%, 0) scale(1.2, .9) rotate(10deg); }
+  32% { opacity: 1; transform: translate3d(-50%, -55%, 0) scale(.94, 1.08) rotate(-7deg); }
+  48% { opacity: 1; transform: translate3d(-50%, -70%, 0) scale(1) rotate(5deg); }
+  72% { opacity: 1; transform: translate3d(calc(-50% + var(--x) * .5), calc(-50% + var(--y) * .5), 0) scale(1) rotate(-4deg); }
+  100% { opacity: 0; transform: translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), 0) scale(.7) rotate(var(--tilt)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .floating-heart.is-active { animation: heartFade 500ms ease-out forwards; }
+  @keyframes heartFade {
+    0%, 100% { opacity: 0; transform: translate(-50%, -50%); }
+    25%, 75% { opacity: 1; transform: translate(-50%, -50%); }
   }
 }
 
@@ -953,10 +940,10 @@ calc( 100dvh - (var(--page-margin) * 2) );
 .role-text h2 {
     max-width: 100%;
     font-family: "Pretendard", sans-serif;
-    font-size: clamp(34px, 11vw, 180px);
-    line-height: 1;
+    font-size: clamp( 46px, 13vw, 90px );
+    line-height: .95;
     font-weight: 700;
-    letter-spacing: -.06em;
+    letter-spacing: -.07em;
     word-wrap: normal;
 }
 .role-list {
@@ -984,7 +971,7 @@ calc( 100dvh - (var(--page-margin) * 2) );
     display: block;
     width: 100%;
     font-family: "pretendard", sans-serif;
-    font-size: clamp(120px, 90vw, 9em);
+    font-size: clamp(92px, 64vw, 6.5em);
     line-height: .95;
     letter-spacing: -.065em;
     white-space: pre-line;
@@ -1447,7 +1434,7 @@ min( 30vw, 600px );
     
     <div
       id="intro-person"
-      class="intro-person"> <strong> 김가원  </strong> <span class="en"> Kim Gawon </span> </div>
+      class="intro-person"> <strong></strong> <span class="en"></span> </div>
   </div>
   
   <!-- =====================================================
@@ -1456,7 +1443,7 @@ min( 30vw, 600px );
   
   <div
     id="intro-hint"
-    class="intro-hint"> <span class="en"> ZNUS Mobile </span> </div>
+    class="intro-hint"> <span class="en"></span> </div>
 </section>
 
 <!-- =========================================================
@@ -1516,17 +1503,14 @@ min( 30vw, 600px );
   <section
     class="profile-card screen-card"
     data-index="0">
-    <!-- One profile media slot: either a photo or a video; shared with Form and Apps Script. -->
     <div class="card-media" data-content-key="profileImageFileId">
       <video
         class="card-video"
         muted
         loop
         playsinline
-        preload="metadata"
-        poster="assets/universe.jpg">
+        preload="metadata">
         <source
-          src="assets/profile.mp4"
           type="video/mp4">
       </video>
     </div>
@@ -1535,9 +1519,9 @@ min( 30vw, 600px );
     <div
       class="card-content profile-content">
       <div
-        class="profile-name reveal-item">
-        <h1> 김가원 </h1>
-        <p class="en"> Kim Gawon </p>
+        class="profile-name">
+        <h1></h1>
+        <p class="en"></p>
       </div>
     </div>
     <button
@@ -1564,10 +1548,8 @@ min( 30vw, 600px );
         muted
         loop
         playsinline
-        preload="metadata"
-        poster="assets/universe.jpg">
+        preload="metadata">
         <source
-          src="assets/role.mp4"
           type="video/mp4">
       </video>
     </div>
@@ -1576,26 +1558,26 @@ min( 30vw, 600px );
     <div
       class="card-content role-content">
       <div
-        class="role-text reveal-item"> <span class="eyebrow en"> 디자인 사업부 </span>
+        class="role-text reveal-item"> <span class="eyebrow en"></span>
         <h2
-          data-ko="UI/UX"
-          data-en="UI/UX"> UI/UX </h2>
+          data-ko=""
+          data-en=""> </h2>
         <ul class="role-list">
           <li
-            data-ko="브랜드 전략"
-            data-en="Brand Strategy"> 브랜드 전략 </li>
+            data-ko=""
+            data-en=""> </li>
           <li
-            data-ko="디지털 콘텐츠"
-            data-en="Digital Content"> 디지털 콘텐츠 </li>
+            data-ko=""
+            data-en=""> </li>
           <li
-            data-ko="UX / UI 디자인"
-            data-en="UX / UI Design"> UX / UI 디자인 </li>
+            data-ko=""
+            data-en=""> </li>
           <li
-            data-ko="웹 개발"
-            data-en="Web Development"> 웹 개발 </li>
+            data-ko=""
+            data-en=""> </li>
           <li
-            data-ko="글로벌 커뮤니케이션"
-            data-en="Global Communication"> 글로벌 커뮤니케이션 </li>
+            data-ko=""
+            data-en=""> </li>
         </ul>
       </div>
     </div>
@@ -1631,10 +1613,8 @@ min( 30vw, 600px );
         muted
         loop
         playsinline
-        preload="metadata"
-        poster="assets/universe.jpg">
+        preload="metadata">
         <source
-          src="assets/contact.mp4"
           type="video/mp4">
       </video>
     </div>
@@ -1643,18 +1623,18 @@ min( 30vw, 600px );
     <div
       class="card-content contact-content"> <a
         class="phone-number reveal-item en"
-        href="tel:01012345678"> 010 1234 5678 </a>
+        href=""></a>
       <div
         class="contact-details reveal-item">
         <button
           class="contact-link"
-          data-copy="hello@znus.co.kr"> hello@znus.co.kr </button>
+          data-copy=""> </button>
         <button
           class="contact-link"
-          data-copy="0319964824"> FAX&nbsp;&nbsp;031 996 4824 </button>
+          data-copy=""> </button>
         <a
           class="contact-link"
-          href="tel:0319964823"> TEL&nbsp;&nbsp;031 996 4823 </a> </div>
+          href=""> </a> </div>
     </div>
   </section>
   
@@ -1671,10 +1651,8 @@ min( 30vw, 600px );
         muted
         loop
         playsinline
-        preload="metadata"
-        poster="assets/universe.jpg">
+        preload="metadata">
         <source
-          src="assets/web.mp4"
           type="video/mp4">
       </video>
     </div>
@@ -1687,7 +1665,7 @@ min( 30vw, 600px );
           class="company-logo"
           src="assets/logo_w_2.svg"
           alt="ZNUS">
-        <div class="slogan"> <span class="en"> Sharing Information </span> <span class="en"> Connecting the World </span> <span class="en"> Shaping the Future </span> </div>
+        <div class="slogan"> <span class="en"></span> <span class="en"></span> <span class="en"></span> </div>
       </div>
     </div>
     <button
@@ -1718,10 +1696,8 @@ min( 30vw, 600px );
         muted
         loop
         playsinline
-        preload="metadata"
-        poster="assets/universe.jpg">
+        preload="metadata">
         <source
-          src="assets/links.mp4"
           type="video/mp4">
       </video>
     </div>
@@ -1751,8 +1727,8 @@ min( 30vw, 600px );
         </span> <span> 프로필 공유하기 </span> </button>
         <a
           class="large-action"
-          href="assets/profile.jpg"
-          download="ZNUS-profile.jpg"> <span class="action-icon">
+          href="#"
+          download> <span class="action-icon">
         <svg viewBox="0 0 24 24">
           <path
                 d="M12 3v12"> </path>
@@ -1803,8 +1779,7 @@ min( 30vw, 600px );
       aria-label="닫기"> × </button>
     <span class="modal-eyebrow en"> LOCATION </span>
     <h3> 찾아오시는 길 </h3>
-    <p class="address"> 경기도 김포시 장차로5번길 20<br>
-      4층 ZNUS </p>
+    <p class="address"></p>
     <div class="map-buttons">
       <button id="kakao-map"> <span> 카카오맵 </span> <small class="en"> DIRECTIONS </small> </button>
       <button id="naver-map"> <span> 네이버지도 </span> <small class="en"> DIRECTIONS </small> </button>
@@ -1822,12 +1797,6 @@ min( 30vw, 600px );
    ========================================================= */
 
 const CONFIG = {
-
-  companyUrl:
-    "https://znus.co.kr",
-
-  address:
-    "경기도 김포시 장차로5번길 20 4층 ZNUS",
 
   loadingDuration:
     2200,
@@ -2067,15 +2036,81 @@ function createIntroCards(){
         previewVideo
       ){
 
-        /* Intro cards are visual copies only. Keeping five cloned video
-           decoders alive makes the main-card transition noticeably janky. */
-        previewVideo.pause();
-        previewVideo.removeAttribute("src");
-        previewVideo.querySelectorAll("source").forEach(source => source.remove());
-        previewVideo.preload = "none";
-        if(sourceVideo.poster){
-          previewVideo.poster = sourceVideo.poster;
+        const sourceElement =
+          sourceVideo.querySelector(
+            "source"
+          );
+
+        const videoUrl =
+          sourceElement?.getAttribute("src") ||
+          sourceVideo.getAttribute("src") ||
+          sourceVideo.currentSrc ||
+          "";
+
+        if(videoUrl){
+          previewVideo.removeAttribute("src");
+
+          const previewSource =
+            previewVideo.querySelector(
+              "source"
+            );
+
+          if(previewSource){
+            previewSource.setAttribute(
+              "src",
+              videoUrl
+            );
+
+            previewSource.setAttribute(
+              "type",
+              sourceElement?.getAttribute("type") ||
+              "video/mp4"
+            );
+          }else{
+            previewVideo.src =
+              videoUrl;
+          }
         }
+
+        previewVideo.muted =
+          true;
+
+        previewVideo.loop =
+          true;
+
+        previewVideo.playsInline =
+          true;
+
+        previewVideo.setAttribute(
+          "muted",
+          ""
+        );
+
+        previewVideo.setAttribute(
+          "playsinline",
+          ""
+        );
+
+        previewVideo.setAttribute(
+          "webkit-playsinline",
+          ""
+        );
+
+        previewVideo.setAttribute(
+          "preload",
+          "auto"
+        );
+
+        try{
+          previewVideo.load();
+        }catch(e){}
+
+        previewVideo.currentTime =
+          0;
+
+        previewVideo.play().catch(
+          () => {}
+        );
 
       }
 
@@ -2184,7 +2219,7 @@ function syncCardVideos(activeIndex){
         return;
       }
 
-      if(index === activeIndex){
+      if(index === activeIndex && !document.hidden){
         video.preload = "auto";
         video.play().catch(() => {});
       }else{
@@ -2498,11 +2533,12 @@ function bindEvents(){
       "click",
       () => {
 
-        window.open(
-          CONFIG.companyUrl,
-          "_blank",
-          "noopener,noreferrer"
-        );
+        const website = window.__ZNUS_CARD__?.companyWebsite?.trim();
+        if(!website){
+          showToast("회사 홈페이지가 등록되지 않았습니다");
+          return;
+        }
+        window.open(website, "_blank", "noopener,noreferrer");
 
       }
     );
@@ -2658,6 +2694,7 @@ function bindEvents(){
   if(
     DOM.main
   ){
+
 
     DOM.main.addEventListener(
       "touchstart",
@@ -2836,7 +2873,22 @@ function finishLoading(){
 
 function playIntroVideos(){
 
-  /* Intro cards use posters only. Video playback starts on the active card. */
+  DOM.stackCards.forEach(
+    stack => {
+
+      const video =
+        stack.querySelector(
+          ".card-video"
+        );
+
+      if(video){
+        video.play().catch(
+          () => {}
+        );
+      }
+
+    }
+  );
 
 }
 
@@ -2909,11 +2961,11 @@ function handleIntroInteraction(){
 
   /*
     카드 펼침 완료 후
-    첫 번째 카드로 모핑
+    첫 번째 프로필 카드 즉시 표시
   */
 
   setTimeout(
-    startMorphToMain,
+    enterMainFallback,
     CONFIG.spreadDuration
   );
 
@@ -2965,13 +3017,21 @@ function startMorphToMain(){
       ".card-video"
     );
 
+  const targetVideoUrl =
+    targetVideo?.currentSrc ||
+    targetVideo?.querySelector(
+      "source"
+    )?.src ||
+    "";
+
 
   if(
     !stack ||
     !preview ||
     !targetCard ||
     !targetMedia ||
-    !targetVideo
+    !targetVideo ||
+    !targetVideoUrl
   ){
 
     enterMainFallback();
@@ -2998,11 +3058,7 @@ function startMorphToMain(){
   */
 
   DOM.morphVideo.src =
-    targetVideo.currentSrc ||
-    targetVideo.querySelector(
-      "source"
-    )?.src ||
-    "";
+    targetVideoUrl;
 
 
   /*
@@ -3036,6 +3092,10 @@ function startMorphToMain(){
 
   DOM.main.classList.add(
     "active"
+  );
+
+  DOM.main.classList.add(
+    "initial-reveal"
   );
 
 
@@ -3221,17 +3281,24 @@ function finishMorph(
   }catch{}
 
 
-  targetVideo.play().catch(
-    () => {}
-  );
+  let revealed = false;
+  const revealTarget = () => {
 
+    if(revealed){
+      return;
+    }
 
-  DOM.morphLayer.style.opacity =
-    "0";
+    revealed = true;
 
+    targetVideo.play().catch(
+      () => {}
+    );
 
-  setTimeout(
-    () => {
+    DOM.morphLayer.style.opacity =
+      "0";
+
+    setTimeout(
+      () => {
 
       DOM.morphLayer.classList.remove(
         "active"
@@ -3264,13 +3331,28 @@ function finishMorph(
       );
 
 
-      targetVideo.play().catch(
-        () => {}
-      );
+        targetVideo.play().catch(
+          () => {}
+        );
 
-    },
-    350
-  );
+      },
+      350
+    );
+  };
+
+  if(targetVideo.readyState < 2){
+    targetVideo.addEventListener(
+      "canplay",
+      revealTarget,
+      {once:true}
+    );
+    setTimeout(
+      revealTarget,
+      900
+    );
+  }else{
+    revealTarget();
+  }
 
 }
 
@@ -3290,6 +3372,10 @@ function enterMainFallback(){
 
   DOM.main.classList.add(
     "active"
+  );
+
+  DOM.main.classList.add(
+    "initial-reveal"
   );
 
 
@@ -3474,17 +3560,21 @@ function goToCard(
     which makes the first card touch the browser chrome and can shift the
     card horizontally on narrow public URLs.
   */
+  const mainRect = main.getBoundingClientRect();
   const mainStyle = getComputedStyle(main);
   const topPadding = parseFloat(mainStyle.paddingTop) || 0;
-  const targetTop = card.offsetTop - topPadding;
+  // Measure the card in the actual scroll viewport. offsetTop can be based on
+  // a different offset parent after media/content changes, which causes
+  // intermittent top or horizontal drift on later cards.
+  const targetTop = main.scrollTop + card.getBoundingClientRect().top - mainRect.top - topPadding;
 
   main.scrollTo({
     top: Math.max(0, targetTop),
+    left: 0,
     behavior: "smooth"
   });
 
 }
-
 
 /* =========================================================
    HEART
@@ -3492,182 +3582,46 @@ function goToCard(
    화면의 랜덤한 위치에 하트 하나
    ========================================================= */
 
-function createHeartBurst(
-  event
-){
-
+const reactionEmojis = ["❤️", "👍", "👏", "🥰", "😍", "😊"];
+let previousReaction = -1;
+function createHeartBurst(event){
   event?.preventDefault?.();
   event?.stopPropagation?.();
-
-
-  const button =
-    DOM.heartButton;
-
-
-  if(!button){
-    return;
-  }
-
-
-  /*
-    화면 전체에서 랜덤 위치 생성
-  */
-
-  const padding =
-    40;
-
-
-  const originX =
-    padding +
-    Math.random() *
-    Math.max(
-      1,
-      window.innerWidth -
-      padding * 2
-    );
-
-
-  const originY =
-    padding +
-    Math.random() *
-    Math.max(
-      1,
-      window.innerHeight -
-      padding * 2
-    );
-
-
-  /*
-    하트 하나만 생성
-  */
-
-  createHeart(
-    originX,
-    originY
-  );
-
+  if(!DOM.heartButton){ return; }
+  const card = DOM.heartButton.closest(".screen-card");
+  if(!card){ return; }
+  const rect = card.getBoundingClientRect();
+  // Keep reactions within the visible profile, away from the screen edges.
+  const left = Math.max(0, rect.left);
+  const right = Math.min(window.innerWidth, rect.right);
+  const top = Math.max(0, rect.top);
+  const bottom = Math.min(window.innerHeight, rect.bottom);
+  if(right <= left || bottom <= top){ return; }
+  createHeart(left + (right-left) * (.22 + Math.random() * .56),
+    top + (bottom-top) * (.35 + Math.random() * .35));
 }
-
-
-/* =========================================================
-   CREATE HEART
-   ========================================================= */
-
-function createHeart(
-  originX,
-  originY
-){
-
-  const heart =
-    document.createElement(
-      "span"
-    );
-
-
-  heart.className =
-    "floating-heart";
-
-
-  heart.textContent =
-    "♥";
-
-
-  /*
-    하트가 랜덤한 위치에서
-    위쪽으로 살짝 떠오르도록 한다.
-  */
-
-  const x =
-    Math.random() *
-    160 -
-    80;
-
-
-  const y =
-    Math.random() *
-    -180 -
-    40;
-
-
-  heart.style.left =
-    `${originX}px`;
-
-
-  heart.style.top =
-    `${originY}px`;
-
-
-  heart.style.setProperty(
-    "--x",
-    `${x}px`
-  );
-
-
-  heart.style.setProperty(
-    "--y",
-    `${y}px`
-  );
-
-
-  document.body.appendChild(
-    heart
-  );
-
-
-  /*
-    iOS Safari에서 animation 누락 방지
-  */
-
-  requestAnimationFrame(
-    () => {
-
-      requestAnimationFrame(
-        () => {
-
-          heart.classList.add(
-            "is-active"
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  const removeHeart =
-    () => {
-
-      if(
-        heart.parentNode
-      ){
-
-        heart.parentNode.removeChild(
-          heart
-        );
-
-      }
-
-    };
-
-
-  heart.addEventListener(
-    "animationend",
-    removeHeart,
-    {
-      once:true
-    }
-  );
-
-
-  heart.addEventListener(
-    "webkitAnimationEnd",
-    removeHeart,
-    {
-      once:true
-    }
-  );
-
+function createHeart(originX, originY){
+  const existing = document.querySelectorAll(".floating-heart");
+  if(existing.length >= 8){ existing[0].remove(); }
+  const heart = document.createElement("span");
+  heart.className = "floating-heart";
+  heart.setAttribute("aria-hidden", "true");
+  // Avoid the same emoji on consecutive taps.
+  const choice = (previousReaction + 1 + Math.floor(Math.random() * (reactionEmojis.length - 1))) % reactionEmojis.length;
+  previousReaction = choice;
+  heart.textContent = reactionEmojis[choice];
+  heart.style.left = originX + "px";
+  heart.style.top = originY + "px";
+  heart.style.setProperty("--x", (Math.random() * 48 - 24) + "px");
+  heart.style.setProperty("--y", (-70 - Math.random() * 35) + "px");
+  heart.style.setProperty("--tilt", (Math.random() * 24 - 12) + "deg");
+  document.body.appendChild(heart);
+  requestAnimationFrame(() => heart.classList.add("is-active"));
+  const timeout = setTimeout(() => heart.remove(), 1600);
+  heart.addEventListener("animationend", () => {
+    clearTimeout(timeout);
+    heart.remove();
+  }, {once:true});
 }
 
 
@@ -3968,10 +3922,12 @@ function closeMapModal(){
 
 function openKakaoMap(){
 
-  const encoded =
-    encodeURIComponent(
-      CONFIG.address
-    );
+  const address = window.__ZNUS_CARD__?.companyAddress?.trim();
+  if(!address){
+    showToast("회사 주소가 등록되지 않았습니다");
+    return;
+  }
+  const encoded = encodeURIComponent(address);
 
 
   window.open(
@@ -3989,10 +3945,12 @@ function openKakaoMap(){
 
 function openNaverMap(){
 
-  const encoded =
-    encodeURIComponent(
-      CONFIG.address
-    );
+  const address = window.__ZNUS_CARD__?.companyAddress?.trim();
+  if(!address){
+    showToast("회사 주소가 등록되지 않았습니다");
+    return;
+  }
+  const encoded = encodeURIComponent(address);
 
 
   window.open(
@@ -4041,6 +3999,11 @@ window.addEventListener(
 document.addEventListener(
   "visibilitychange",
   () => {
+
+    if(document.hidden){
+      document.querySelectorAll("video").forEach(video => video.pause());
+      return;
+    }
 
     if(
       !document.hidden &&

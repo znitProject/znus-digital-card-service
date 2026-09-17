@@ -2,12 +2,6 @@
   "use strict";
 
   const CONFIG = {
-    companyUrl: "https://znus.co.kr",
-    phone: "01012345678",
-    companyPhone: "0319964823",
-    fax: "0319964824",
-    email: "hello@znus.co.kr",
-    address: "경기도 김포시 장차로5번길 20 4층 ZNUS",
     loadingDuration: 2200,
     toastDuration: 1800
   };
@@ -66,7 +60,12 @@
     DOM.languageButton.addEventListener("click", toggleLanguage);
 
     DOM.homeButton.addEventListener("click", () => {
-      window.open(CONFIG.companyUrl, "_blank", "noopener,noreferrer");
+      const website = window.__ZNUS_CARD__?.companyWebsite?.trim();
+      if (!website) {
+        showToast("회사 홈페이지가 등록되지 않았습니다");
+        return;
+      }
+      window.open(website, "_blank", "noopener,noreferrer");
     });
 
     document.querySelectorAll("[data-copy]").forEach(button => {
@@ -283,13 +282,23 @@
   }
 
   function openKakaoMap() {
-    const encoded = encodeURIComponent(CONFIG.address);
-    window.open(`https://map.kakao.com/?q=${encoded}`, "_blank", "noopener,noreferrer");
+    const address = window.__ZNUS_CARD__?.companyAddress?.trim();
+    if (!address) {
+      showToast("회사 주소가 등록되지 않았습니다");
+      return;
+    }
+    const encoded = encodeURIComponent(address);
+    window.open("https://map.kakao.com/?q=" + encoded, "_blank", "noopener,noreferrer");
   }
 
   function openNaverMap() {
-    const encoded = encodeURIComponent(CONFIG.address);
-    window.open(`https://map.naver.com/p/search/${encoded}`, "_blank", "noopener,noreferrer");
+    const address = window.__ZNUS_CARD__?.companyAddress?.trim();
+    if (!address) {
+      showToast("회사 주소가 등록되지 않았습니다");
+      return;
+    }
+    const encoded = encodeURIComponent(address);
+    window.open("https://map.naver.com/p/search/" + encoded, "_blank", "noopener,noreferrer");
   }
 
   document.addEventListener("DOMContentLoaded", init);
