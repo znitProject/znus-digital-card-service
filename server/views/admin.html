@@ -190,8 +190,8 @@
         <div class="company-form">
           <label>회사명<input name="companyName" id="companyName"></label>
           <label>홈페이지<input name="companyWebsite" id="companyWebsite" type="url" placeholder="https://znus.co.kr"></label>
-          <label>대표 전화<input name="companyPhone" id="companyPhone"></label>
-          <label>대표 팩스<input name="companyFax" id="companyFax"></label>
+          <label>대표 전화<input name="companyPhone" id="companyPhone" type="tel" inputmode="numeric"></label>
+          <label>대표 팩스<input name="companyFax" id="companyFax" type="tel" inputmode="numeric"></label>
           <label class="wide">주소<input name="officeAddress" id="officeAddress"></label>
           <label>슬로건 1<input name="sloganLine1" id="sloganLine1"></label>
           <label>슬로건 2<input name="sloganLine2" id="sloganLine2"></label>
@@ -325,9 +325,6 @@
           </div>
           <div class="detail__actions">
             <button class="btn primary" id="visibilityButton" type="button">공개하기</button>
-            <button class="btn" id="moreActionsButton" type="button" aria-expanded="false">더보기 ···</button>
-          </div>
-          <div class="action-menu hidden" id="actionMenu">
             <button class="btn danger" id="deleteButton" type="button">삭제</button>
           </div>
         `;
@@ -347,12 +344,12 @@
         };
         const isDeleted = employee.status === '삭제됨';
         const visibilityButton = $('#visibilityButton');
-        const moreActionsButton = $('#moreActionsButton');
-        const actionMenu = $('#actionMenu');
+        const deleteButton = $('#deleteButton');
         if (isDeleted) {
           visibilityButton.textContent = '삭제됨';
           visibilityButton.disabled = true;
-          actionMenu.innerHTML = '<button class="btn primary" id="recoverButton" type="button">복구</button>';
+          deleteButton.className = 'btn primary';
+          deleteButton.textContent = '복구';
         } else {
           visibilityButton.textContent = employee.status === '생성완료' ? '비공개로 전환' : '공개하기';
         }
@@ -361,16 +358,12 @@
           changeState(employee.status === '생성완료' ? 'private' : 'publish')
             .catch((error) => showError(error.message));
         });
-        moreActionsButton.addEventListener('click', () => {
-          const expanded = actionMenu.classList.toggle('hidden') === false;
-          moreActionsButton.setAttribute('aria-expanded', String(expanded));
-        });
         if (isDeleted) {
-          $('#recoverButton').addEventListener('click', () => {
+          deleteButton.addEventListener('click', () => {
             changeState('recover').catch((error) => showError(error.message));
           });
         } else {
-          $('#deleteButton').addEventListener('click', () => {
+          deleteButton.addEventListener('click', () => {
             if (!window.confirm('이 직원의 명함을 삭제할까요? 삭제 후에는 복구 메뉴에서만 되돌릴 수 있습니다.')) return;
             fetch('/api/admin/employees/' + encodeURIComponent(employee.employeeId), {method:'DELETE', headers:{'x-admin-key':adminKey}})
               .then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || '삭제에 실패했습니다.'); loadEmployees(); })
@@ -423,9 +416,42 @@
       let refreshInFlight = false;
       const companyFields = ['companyName','companyWebsite','companyPhone','companyFax','officeAddress','sloganLine1','sloganLine2','sloganLine3'];
       const defaultBackgroundPages = ['role','contact','company','links'];
+      const companyPhoneFields = new Set(['companyPhone', 'companyFax']);
+      function normalizePhone(value) {
+        return String(value ?? '').replace(/\D/g, '');
+      }
+      function formatPhone(value) {
+        const digits = normalizePhone(value);
+        if (!digits) return '';
+        if (digits.startsWith('02')) {
+          if (digits.length <= 2) return digits;
+          if (digits.length <= 6) return digits.slice(0, 2) + '-' + digits.slice(2);
+          return digits.slice(0, 2) + '-' + digits.slice(2, -4) + '-' + digits.slice(-4);
+        }
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 7) return digits.slice(0, 3) + '-' + digits.slice(3);
+        if (digits.length <= 10) return digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6);
+        return digits.slice(0, 3) + '-' + digits.slice(3, 7) + '-' + digits.slice(7, 11);
+      }
+      function formatPhoneInput(input) {
+        const cursor = input.selectionStart ?? input.value.length;
+        const digitsBeforeCursor = normalizePhone(input.value.slice(0, cursor)).length;
+        const formatted = formatPhone(input.value);
+        input.value = formatted;
+        let nextCursor = 0;
+        let digitCount = 0;
+        while (nextCursor < formatted.length && digitCount < digitsBeforeCursor) {
+          if (/\d/.test(formatted[nextCursor])) digitCount += 1;
+          nextCursor += 1;
+        }
+        input.setSelectionRange(nextCursor, nextCursor);
+      }
       function fillCompany(settings) {
         const mapping = {companyName:'company_name', companyWebsite:'company_website', companyPhone:'company_phone', companyFax:'company_fax', officeAddress:'office_address', sloganLine1:'slogan_line_1', sloganLine2:'slogan_line_2', sloganLine3:'slogan_line_3'};
-        companyFields.forEach((field) => { $('#' + field).value = settings[mapping[field]] || ''; });
+        companyFields.forEach((field) => {
+          const value = settings[mapping[field]] || '';
+          $('#' + field).value = companyPhoneFields.has(field) ? formatPhone(value) : value;
+        });
       }
       async function loadCompany() {
         const response = await fetch('/api/admin/company', {headers: {'x-admin-key': adminKey}});
@@ -453,6 +479,9 @@
       }
       $('#settingsButton').addEventListener('click', openSettings);
       $('#settingsCloseButton').addEventListener('click', closeSettings);
+      companyPhoneFields.forEach((field) => {
+        $('#' + field).addEventListener('input', (event) => formatPhoneInput(event.currentTarget));
+      });
       settingsModal.addEventListener('click', (event) => {
         if (event.target === settingsModal) closeSettings();
       });
@@ -460,7 +489,10 @@
         if (event.key === 'Escape' && !settingsModal.classList.contains('hidden')) closeSettings();
       });
       $('#saveCompanyButton').addEventListener('click', async () => {
-        const payload = Object.fromEntries(companyFields.map((field) => [field, $('#' + field).value.trim()]));
+        const payload = Object.fromEntries(companyFields.map((field) => {
+          const value = $('#' + field).value.trim();
+          return [field, companyPhoneFields.has(field) ? normalizePhone(value) : value];
+        }));
         const button = $('#saveCompanyButton');
         button.disabled = true;
         showSettingsMessage('회사 설정 저장 중...');

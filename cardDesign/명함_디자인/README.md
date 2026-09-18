@@ -1,10 +1,6 @@
 # 직원 명함 디자인
 
-- `index.html`: 빌드 기준. 주요 CSS·HTML·JavaScript 포함.
-- `font.css`: 글꼴.
-- `assets/`: 로고 SVG·배경 이미지·영상.
-- `style.css`, `app.js`: 현재 빌드에서 직접 읽지 않는 별도 파일.
+- `index.html`: 공개 명함의 단일 디자인 소스입니다. CSS와 브라우저 동작을 함께 포함합니다.
+- `assets/`: 공개 명함에서 사용하는 로고와 공용 우주 배경입니다.
 
-데이터 연결은 `web/card-service.js`에서 처리합니다. 변경 후 프로젝트 루트에서 `npm run build`를 실행합니다.
-
-[전체 디자인 코드 안내](../../docs/stage-4.md)
+직원 정보와 카드별 미디어는 `server/index.cjs`가 PostgreSQL에서 읽어 공개 페이지에 주입합니다. 기본 배경 미디어는 관리자 화면에서 DB에 등록하며, 이 폴더에는 직원별 업로드 파일을 저장하지 않습니다.

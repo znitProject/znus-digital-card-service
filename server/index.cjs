@@ -64,8 +64,8 @@ function json(res, status, body, headers = {}) {
   res.end(payload);
 }
 
-function html(res, status, body) {
-  res.writeHead(status, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'});
+function html(res, status, body, headers = {}) {
+  res.writeHead(status, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', ...headers});
   res.end(body);
 }
 
@@ -240,7 +240,7 @@ async function saveEmployee(req, res) {
     WHERE id=$9 AND status='ACTIVE' RETURNING *
   `, [input.nameKo, input.nameEn, input.department, input.jobTitleKo, input.jobTitleEn, input.mobilePhone, input.publicEmail, roleItems, employee.id])).rows[0];
   await pool.query(`INSERT INTO audit_logs(employee_id, action, metadata) VALUES($1, $2, $3::jsonb)`, [employee.id, 'EMPLOYEE_CARD_SAVED', JSON.stringify({published: true})]);
-  json(res, 200, {employee: publicEmployee(saved)});
+  json(res, 200, {employee: publicEmployee(saved)}, {'Set-Cookie': expiredCookie()});
 }
 
 async function uploadMedia(req, res, slot) {
@@ -344,7 +344,29 @@ function renderCardHtml(data) {
     companyAddress: settings.office_address, slogans: [settings.slogan_line_1, settings.slogan_line_2, settings.slogan_line_3],
     roles, media: Object.fromEntries(assets.map(asset => [asset.slot, {url: `/media/${asset.id}`, kind: asset.kind}]))};
   const bootstrap = `<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script>window.__ZNUS_CARD__=${safeJson(card)};</script><script>\n(() => {\n  const d=window.__ZNUS_CARD__; const text=(s,v)=>{if(s){s.textContent=v||'';}};\n  text(document.querySelector('#intro-person strong'),d.nameKo); text(document.querySelector('#intro-person .en'),d.nameEn); text(document.querySelector('#intro-hint .en'),d.companyName);\n  text(document.querySelector('.profile-name h1'),d.nameKo); text(document.querySelector('.profile-name p'),d.nameEn);\n  text(document.querySelector('.role-text .eyebrow'),d.department); const roleTitle=document.querySelector('.role-text h2'); if(roleTitle){roleTitle.dataset.ko=d.jobTitleKo||'';roleTitle.dataset.en=d.jobTitleEn||'';text(roleTitle,d.jobTitleKo);}\n  const items=document.querySelectorAll('.role-list li'); items.forEach((item,i)=>{const ko=(d.roles.ko||[])[i]||'';item.dataset.ko=ko;item.dataset.en=(d.roles.en||[])[i]||'';text(item,ko);});\n  const phone=document.querySelector('.phone-number'); if(phone){const digits=String(d.mobilePhone||'').replace(/\\D/g,'');const match=digits.match(/^(\\d{3})(\\d{3,4})(\\d{4})$/);const display=match?match[1]+' '+match[2]+' '+match[3]:(d.mobilePhone||'');text(phone,display);phone.href='tel:'+digits;}\n  const contact=document.querySelectorAll('.contact-details .contact-link'); if(contact[0]){contact[0].textContent=d.publicEmail||'';contact[0].dataset.copy=d.publicEmail||'';}\n  if(contact[1]){contact[1].textContent='FAX  '+(d.companyFax||'');contact[1].dataset.copy=d.companyFax||'';}\n  if(contact[2]){contact[2].textContent='TEL  '+(d.companyPhone||'');contact[2].href='tel:'+d.companyPhone;}\n  const logo=document.querySelector('.company-logo'); if(logo&&d.companyName)logo.alt=d.companyName;\n  const slogan=document.querySelectorAll('.slogan span'); (d.slogans||[]).forEach((v,i)=>text(slogan[i],v));\n  const address=document.querySelector('.modal-card .address'); text(address,d.companyAddress);\n  async function downloadCardImage(){\n    if(document.fonts&&document.fonts.ready)await document.fonts.ready;\n    const canvas=document.createElement('canvas'); canvas.width=626; canvas.height=1110;\n    const ctx=canvas.getContext('2d');\n    const gradient=ctx.createLinearGradient(0,0,626,1110); gradient.addColorStop(0,'#060D15'); gradient.addColorStop(1,'#002041'); ctx.fillStyle=gradient; ctx.fillRect(0,0,626,1110);\n    const fit=(value,x,y,size,color,weight,align,max)=>{value=String(value||'');ctx.fillStyle=color;ctx.textAlign=align||'left';ctx.font=(weight||400)+' '+size+'px Paperozi, sans-serif';while(ctx.measureText(value).width>(max||540)&&size>12){size-=1;ctx.font=(weight||400)+' '+size+'px Paperozi, sans-serif';}ctx.fillText(value,x,y);};\n    const phoneDigits=String(d.mobilePhone||'').replace(/\\D/g,''); const phoneMatch=phoneDigits.match(/^(\\d{3})(\\d{3,4})(\\d{4})$/); const phonePrefix=phoneMatch?.[1]||phoneDigits.slice(0,3); const phoneMiddle=phoneMatch?.[2]||phoneDigits.slice(3,-4); const phoneLast=phoneMatch?.[3]||phoneDigits.slice(-4);\n    fit(d.nameKo,38,120,86,'#fff',500,'left',475); fit(d.nameEn,38,174,42,'#91a0b3',400,'left',475); fit(d.jobTitleKo,38,239,50,'#c1c2c4',400,'left',475);\n    fit(phonePrefix,582,360,92,'#91a0b3',300,'right',540); fit(phoneMiddle,582,525,188,'#fff',300,'right',540); fit(phoneLast,582,692,188,'#fff',300,'right',540);\n    const email=String(d.publicEmail||''); const at=email.lastIndexOf('@'); fit(at>0?email.slice(0,at):email,582,820,75,'#fff',600,'right',540); fit(at>0?email.slice(at):'',582,870,38,'#91a0b3',400,'right',540);\n    const formatPhone=(value)=>{const digits=String(value||'').replace(/\\D/g,''); if(/^\\d{3}\\d{3}\\d{4}$/.test(digits))return digits.replace(/^(\\d{3})(\\d{3})(\\d{4})$/,'$1.$2.$3'); if(/^\\d{3}\\d{4}\\d{4}$/.test(digits))return digits.replace(/^(\\d{3})(\\d{4})(\\d{4})$/,'$1.$2.$3'); return String(value||'');}; fit('T',43,972,26,'#fff',700,'left',40); fit(formatPhone(d.companyPhone),91,972,26,'#91a0b3',400,'left',495); fit('F',43,1019,26,'#fff',700,'left',40); fit(formatPhone(d.companyFax),91,1019,26,'#91a0b3',400,'left',495); fit('A',43,1066,26,'#fff',700,'left',40); fit(d.companyAddress,91,1066,26,'#91a0b3',400,'left',495);\n    try{const logo=new Image(); logo.src='/assets/logo_s_aw.svg'; await logo.decode(); const scale=Math.min(40/logo.width,40/logo.height); ctx.drawImage(logo,540,43,logo.width*scale,logo.height*scale);}catch{}\n    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png')); if(!blob)throw Error('PNG 변환 실패');\n    const url=URL.createObjectURL(blob); const link=document.createElement('a'); link.href=url; link.download=(d.nameKo||'명함')+'-명함.png'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),10000);\n  }\n  const downloadLink=document.querySelector('.link-actions a[download]'); if(downloadLink){downloadLink.addEventListener('click',event=>{event.preventDefault();downloadCardImage().catch(()=>alert('명함 이미지를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'));});}\n  const slotNames=['profile','role','contact','company','links']; slotNames.forEach((slot,i)=>{const media=d.media&&d.media[slot]; const section=document.querySelectorAll('.screen-card')[i]; if(!media||!section)return; const box=section.querySelector('.card-media'); if(media.kind==='IMAGE'){box.innerHTML='<img src="'+media.url+'" alt="" style="width:100%;height:100%;object-fit:cover">';}else{const source=box.querySelector('source');if(source){source.src=media.url;const video=box.querySelector('video');if(video){video.load();video.play().catch(()=>{});}}}});\n})();\n</script>`;
-  return cardDesignHtml.replaceAll('assets/', '/assets/').replace('<script src="qrcode.min.js"></script>', bootstrap);
+  return cardDesignHtml
+    .replace('__ZNUS_CARD_TOKEN__', row.public_token)
+    .replaceAll('assets/', '/assets/')
+    .replace('<script src="qrcode.min.js"></script>', bootstrap);
+}
+
+async function cardManifest(res, token) {
+  const data = await publicCardData(token);
+  if (!data) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
+  const companyName = String(data.settings.company_name || 'ZNUS').trim() || 'ZNUS';
+  return json(res, 200, {
+    name: `${companyName} 디지털 명함`,
+    short_name: companyName,
+    start_url: `/c/${token}`,
+    scope: `/c/${token}`,
+    display: 'standalone',
+    orientation: 'portrait',
+    theme_color: '#050505',
+    background_color: '#050505',
+    icons: [
+      {src: '/assets/logo_s_v.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable'}
+    ]
+  });
 }
 
 async function adminEmployees(req, res) {
@@ -481,23 +503,70 @@ async function uploadDefaultBackground(req, res, page) {
   });
   json(res, 201, upload);
 }
-async function serveMedia(res, id) {
+async function serveMedia(req, res, id) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
   const asset = (await pool.query(`SELECT a.* FROM media_assets a LEFT JOIN employees e ON e.id=a.employee_id LEFT JOIN card_page_default_backgrounds d ON d.media_asset_id=a.id WHERE a.id=$1 AND ((e.status='ACTIVE' AND e.published=true) OR d.media_asset_id IS NOT NULL)`, [id])).rows[0];
   if (!asset) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
   const absolute = path.resolve(dataDir, asset.storage_key);
   if (!absolute.startsWith(path.resolve(dataDir) + path.sep) || !fs.existsSync(absolute)) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
-  res.writeHead(200, {'Content-Type': asset.mime_type, 'Cache-Control': 'public, max-age=300'});
-  createReadStream(absolute).pipe(res);
+  return serveVideoFile(req, res, absolute, asset.mime_type, 'public, max-age=300');
 }
 
-function serveAsset(res, name) {
+function serveVideoFile(req, res, absolute, mime, cacheControl) {
+  const size = fs.statSync(absolute).size;
+  const range = req.headers.range;
+  const commonHeaders = {
+    'Content-Type': mime,
+    'Accept-Ranges': 'bytes',
+    'Cache-Control': cacheControl
+  };
+
+  if (!range) {
+    res.writeHead(200, {...commonHeaders, 'Content-Length': size});
+    return createReadStream(absolute).pipe(res);
+  }
+
+  const match = /^bytes=(\d*)-(\d*)$/i.exec(range.trim());
+  if (!match) {
+    res.writeHead(416, {...commonHeaders, 'Content-Range': `bytes */${size}`});
+    return res.end();
+  }
+
+  let start;
+  let end;
+  if(match[1]){
+    start = Number(match[1]);
+    end = match[2] ? Number(match[2]) : size - 1;
+  }else{
+    const suffixLength = Number(match[2]);
+    start = suffixLength > 0 ? Math.max(size - suffixLength, 0) : size;
+    end = size - 1;
+  }
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start >= size || end < start) {
+    res.writeHead(416, {...commonHeaders, 'Content-Range': `bytes */${size}`});
+    return res.end();
+  }
+  end = Math.min(end, size - 1);
+  const length = end - start + 1;
+  res.writeHead(206, {
+    ...commonHeaders,
+    'Content-Length': length,
+    'Content-Range': `bytes ${start}-${end}/${size}`
+  });
+  return createReadStream(absolute, {start, end}).pipe(res);
+}
+
+function serveAsset(req, res, name) {
   if (!/^[A-Za-z0-9_.-]+$/.test(name)) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
   const absolute = path.join(root, 'cardDesign', '명함_디자인', 'assets', name);
   if (!absolute.startsWith(path.resolve(root, 'cardDesign', '명함_디자인', 'assets') + path.sep) || !fs.existsSync(absolute)) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
   const mime = {'.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.mp4': 'video/mp4'}[path.extname(name).toLowerCase()] || 'application/octet-stream';
-  res.writeHead(200, {'Content-Type': mime, 'Cache-Control': 'public, max-age=3600'});
-  createReadStream(absolute).pipe(res);
+  return mime === 'video/mp4'
+    ? serveVideoFile(req, res, absolute, mime, 'public, max-age=3600')
+    : (() => {
+      res.writeHead(200, {'Content-Type': mime, 'Cache-Control': 'public, max-age=3600'});
+      return createReadStream(absolute).pipe(res);
+    })();
 }
 
 async function route(req, res) {
@@ -505,9 +574,15 @@ async function route(req, res) {
   if (req.method === 'GET' && url.pathname === '/healthz') {
     await pool.query('SELECT 1'); return json(res, 200, {ok: true});
   }
-  if (req.method === 'GET' && url.pathname === '/input') return html(res, 200, viewHtml('input.html'));
+  if (req.method === 'GET' && url.pathname === '/input') {
+    const editMode = url.searchParams.get('edit') === '1';
+    return html(res, 200, viewHtml('input.html'), editMode ? {} : {'Set-Cookie': expiredCookie()});
+  }
   if (req.method === 'GET' && url.pathname === '/input/complete') return html(res, 200, viewHtml('complete.html'));
   if (req.method === 'GET' && url.pathname === '/admin') return html(res, 200, viewHtml('admin.html'));
+  if (req.method === 'GET' && /^\/c\/[A-Za-z0-9_-]+\/manifest\.webmanifest$/.test(url.pathname)) {
+    return cardManifest(res, url.pathname.split('/')[2]);
+  }
   if (req.method === 'GET' && /^\/c\/[A-Za-z0-9_-]+$/.test(url.pathname)) {
     const data = await publicCardData(decodeURIComponent(url.pathname.split('/').pop()));
     return data ? html(res, 200, renderCardHtml(data)) : html(res, 404, '<h1>이용할 수 없는 명함입니다.</h1>');
@@ -527,9 +602,12 @@ async function route(req, res) {
   if (req.method === 'GET' && url.pathname === '/api/admin/default-backgrounds') return adminDefaultBackgrounds(req, res);
   if (req.method === 'POST' && url.pathname === '/api/admin/default-backgrounds') return uploadDefaultBackground(req, res, url.searchParams.get('page'));
   if ((req.method === 'GET' || req.method === 'PUT') && url.pathname === '/api/admin/company') return companySettings(req, res);
-  if (req.method === 'GET' && /^\/media\/[0-9a-f-]{36}$/i.test(url.pathname)) return serveMedia(res, url.pathname.split('/').pop());
-  if (req.method === 'GET' && /^\/assets\/[A-Za-z0-9_.-]+$/.test(url.pathname)) return serveAsset(res, url.pathname.split('/').pop());
-  if (req.method === 'GET' && url.pathname === '/') return html(res, 200, '<h1>ZNUS Digital Card Service</h1><p><a href="/input">직원 입력</a></p>');
+  if (req.method === 'GET' && /^\/media\/[0-9a-f-]{36}$/i.test(url.pathname)) return serveMedia(req, res, url.pathname.split('/').pop());
+  if (req.method === 'GET' && /^\/assets\/[A-Za-z0-9_.-]+$/.test(url.pathname)) return serveAsset(req, res, url.pathname.split('/').pop());
+  if (req.method === 'GET' && url.pathname === '/') {
+    res.writeHead(302, {'Location': '/input', 'Cache-Control': 'no-store'});
+    return res.end();
+  }
   json(res, 404, {error: 'Not found'});
 }
 

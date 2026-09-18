@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta
   name="viewport"
-  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"
 >
 <meta name="theme-color" content="#050505">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ZNUS">
 <meta property="og:title" content="ZNUS">
@@ -27,6 +30,10 @@
   rel="icon"
   type="image/svg+xml"
   href="assets/logo_s_v.svg"
+>
+<link
+  rel="manifest"
+  href="/c/__ZNUS_CARD_TOKEN__/manifest.webmanifest"
 >
 <title>ZNUS Digital Profile</title>
 <style>
@@ -95,13 +102,15 @@
 }
 html {
     width: 100%;
+    height: 100%;
     min-height: 100%;
     background: #000;
     scroll-behavior: smooth;
 }
 body {
     width: 100%;
-    min-height: 100dvh;
+    height: 100dvh;
+    min-height: 100svh;
     overflow: hidden;
     background: #000;
     color: #fff;
@@ -134,7 +143,7 @@ a {
 
 .universe-background {
     position: fixed;
-    z-index: -100;
+    z-index: 0;
     inset: -6%;
     background: linear-gradient( 180deg, rgba(0,0,0,.08), rgba(0,0,0,.32) ), url("assets/universe.jpg") center center / cover no-repeat;
     transform: scale(1.04);
@@ -206,6 +215,8 @@ scale(1.10) translate3d(-.5%, -.5%, 0);
 .intro {
     position: fixed;
     inset: 0;
+    min-height: 100svh;
+    height: 100dvh;
     z-index: 2000;
     overflow: hidden;
     display: flex;
@@ -367,6 +378,9 @@ transform:scale(1.11);
     visibility: visible;
     pointer-events: none;
 }
+.loading-area.ready-to-continue {
+    cursor: pointer;
+}
 .loading-area.complete {
     opacity: 0;
     transform: translate(-50%, -80%);
@@ -442,7 +456,7 @@ transform:scale(1.11);
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
     border: 1px solid rgba(255,255,255,.14);
     box-shadow: 0 40px 120px rgba(0,0,0,.58), 0 10px 40px rgba(0,0,0,.45);
-    transform-origin: center center;
+    transform-origin: 50% 92%;
     transition: transform 1.35s var(--ease), opacity .8s var(--ease);
     will-change: transform;
 }
@@ -458,6 +472,9 @@ transform:scale(1.11);
     margin: 0;
     border: 0;
     border-radius: 0;
+    opacity: 1;
+    transform: none;
+    z-index: 0;
     box-shadow: none;
     scroll-snap-align: none;
 }
@@ -512,23 +529,23 @@ transform:scale(1.11);
 
 .stack-card-1 {
     z-index: 5;
-    transform: translate3d(0, 0, 40px) rotate(-2deg);
+    transform: translate3d(0, 8px, 40px) rotate(-1.2deg);
 }
 .stack-card-2 {
     z-index: 4;
-    transform: translate3d(18px, -4px, 20px) rotate(4deg);
+    transform: translate3d(10px, 2px, 20px) rotate(-.6deg);
 }
 .stack-card-3 {
     z-index: 3;
-    transform: translate3d(-17px, -8px, 0) rotate(-6deg);
+    transform: translate3d(20px, -4px, 0) rotate(0deg);
 }
 .stack-card-4 {
     z-index: 2;
-    transform: translate3d(27px, -24px, -20px) rotate(8deg);
+    transform: translate3d(30px, -10px, -20px) rotate(.6deg);
 }
 .stack-card-5 {
     z-index: 1;
-    transform: translate3d(-27px, -16px, -40px) rotate(-10deg);
+    transform: translate3d(40px, -16px, -40px) rotate(1.2deg);
 }
 /* =========================================================
    STACK FLOAT
@@ -556,11 +573,11 @@ margin-top:-8px;
 .intro-stack.spread .stack-card-3 { animation-name:cardDropRise3; animation-delay:200ms; }
 .intro-stack.spread .stack-card-4 { animation-name:cardDropRise4; animation-delay:300ms; }
 .intro-stack.spread .stack-card-5 { animation-name:cardDropRise5; animation-delay:400ms; }
-@keyframes cardDropRise1 { 0%{transform:translate3d(0,0,40px) rotate(-2deg)} 38%{transform:translate3d(0,78vh,40px) rotate(-1deg)} 100%{transform:translate3d(0,0,40px) rotate(0)} }
-@keyframes cardDropRise2 { 0%{transform:translate3d(18px,-4px,20px) rotate(4deg)} 38%{transform:translate3d(18px,calc(78vh - 4px),20px) rotate(2deg)} 100%{transform:translate3d(0,0,20px) rotate(0)} }
-@keyframes cardDropRise3 { 0%{transform:translate3d(-17px,-8px,0) rotate(-6deg)} 38%{transform:translate3d(-17px,calc(78vh - 8px),0) rotate(-2deg)} 100%{transform:translate3d(0,0,0) rotate(0)} }
-@keyframes cardDropRise4 { 0%{transform:translate3d(27px,-24px,-20px) rotate(8deg)} 38%{transform:translate3d(27px,calc(78vh - 24px),-20px) rotate(3deg)} 100%{transform:translate3d(0,0,-20px) rotate(0)} }
-@keyframes cardDropRise5 { 0%{transform:translate3d(-27px,-16px,-40px) rotate(-10deg)} 38%{transform:translate3d(-27px,calc(78vh - 16px),-40px) rotate(-3deg)} 100%{transform:translate3d(0,0,-40px) rotate(0)} }
+@keyframes cardDropRise1 { 0%{transform:translate3d(0,8px,40px) rotate(-1.2deg)} 38%{transform:translate3d(0,calc(78vh + 8px),40px) rotate(-.6deg)} 100%{transform:translate3d(0,0,40px) rotate(0)} }
+@keyframes cardDropRise2 { 0%{transform:translate3d(10px,2px,20px) rotate(-.6deg)} 38%{transform:translate3d(10px,calc(78vh + 2px),20px) rotate(-.3deg)} 100%{transform:translate3d(0,0,20px) rotate(0)} }
+@keyframes cardDropRise3 { 0%{transform:translate3d(20px,-4px,0) rotate(0deg)} 38%{transform:translate3d(20px,calc(78vh - 4px),0) rotate(0deg)} 100%{transform:translate3d(0,0,0) rotate(0)} }
+@keyframes cardDropRise4 { 0%{transform:translate3d(30px,-10px,-20px) rotate(.6deg)} 38%{transform:translate3d(30px,calc(78vh - 10px),-20px) rotate(.3deg)} 100%{transform:translate3d(0,0,-20px) rotate(0)} }
+@keyframes cardDropRise5 { 0%{transform:translate3d(40px,-16px,-40px) rotate(1.2deg)} 38%{transform:translate3d(40px,calc(78vh - 16px),-40px) rotate(.6deg)} 100%{transform:translate3d(0,0,-40px) rotate(0)} }
 
 /* =========================================================
    INTRO PERSON
@@ -589,10 +606,13 @@ margin-top:-8px;
 }
 .intro-person span {
     display: block;
-    margin-top: 8px;
+    margin-top: 10px;
     font-family: "Paperlogy", sans-serif;
-    font-size: 1.2em;
-    opacity: .7;
+    font-size: clamp(15px, 1.25em, 21px);
+    font-weight: 500;
+    letter-spacing: .03em;
+    opacity: .88;
+    text-shadow: 0 2px 12px rgba(0,0,0,.62);
 }
 .intro-person small {
     display: block;
@@ -610,20 +630,22 @@ margin-top:-8px;
     position: absolute;
     z-index: 30;
     left: 50%;
-    bottom: 25px;
+    bottom: clamp(34px, 5vh, 52px);
     transform: translateX(-50%);
     display: flex;
     align-items: center;
     gap: 10px;
     white-space: nowrap;
     font-family: "Paperlogy", sans-serif;
-    font-size: 1em;
-    font-weight: 500;
+    font-size: clamp(14px, 1.05em, 18px);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-shadow: 0 2px 12px rgba(0,0,0,.68);
     opacity: 0;
     transition: opacity .6s ease;
 }
 .intro-hint.visible {
-    opacity: .65;
+    opacity: .84;
 }
 .intro-hint i {
     display: block;
@@ -689,14 +711,13 @@ opacity:1;
     position: relative;
     z-index: 10;
     width: 100%;
+    min-height: 100svh;
     height: 100dvh;
-    padding: var(--page-margin) 0;
-    overflow-y: auto;
+    padding: 0;
+    overflow: hidden;
     overflow-x: hidden;
-    scrollbar-width: none;
-    scroll-snap-type: y mandatory;
-    scroll-padding-block: var(--page-margin);
-    overscroll-behavior-y: contain;
+    overscroll-behavior: none;
+    touch-action: none;
     opacity: 0;
     visibility: hidden;
     transition: opacity .7s ease, visibility .7s;
@@ -718,21 +739,29 @@ display:none;
    ========================================================= */
 
 .screen-card {
-    position: relative;
-width:
-calc( 100% - (var(--page-margin) * 2) );
-height:
-calc( 100dvh - (var(--page-margin) * 2) );
-min-height:
-calc( 100dvh - (var(--page-margin) * 2) );
-    margin: 0 auto var(--page-margin);
+    position: absolute;
+    inset: var(--page-margin);
+    width: auto;
+    height: auto;
+    min-height: 0;
+    margin: 0;
     overflow: hidden;
     border-radius: var(--card-radius);
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    scroll-margin-block-start: 0;
+    transform: perspective(1200px) translate3d(var(--deck-x, 0px), var(--deck-y, 18px), 0) rotate(var(--deck-rotate, 0deg)) scale(var(--deck-scale, .96));
+    opacity: var(--deck-opacity, 0);
+    z-index: var(--deck-z, 1);
+    box-shadow: 0 22px 55px rgba(0,0,0,.24);
+    transition: transform .82s cubic-bezier(.16,1,.3,1), opacity .68s ease, filter .82s ease, box-shadow .82s ease;
+    will-change: transform, opacity;
+    container-type: size;
     isolation: isolate;
+}
+.screen-card.is-dragging {
+    transition: none;
+}
+.screen-card.is-wheel-scrubbing {
+    transition: transform .22s cubic-bezier(.22,.82,.25,1), opacity .22s ease, filter .22s ease;
 }
 /* =========================================================
    CARD MEDIA
@@ -1015,20 +1044,24 @@ calc( 100dvh - (var(--page-margin) * 2) );
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    gap: 3vh;
+    width: 100%;
+    gap: clamp(14px, 3cqh, 28px);
 }
 .company-logo {
-    width: min(80vw );
-    max-height: 120px;
+    width: min(80cqw, 320px);
+    max-width: 80%;
+    max-height: 18cqh;
     object-fit: contain;
 }
 .slogan {
 display: flex;
     flex-direction: column;
     gap: 5px;
-    margin-top: 30px;
+    max-width: 90%;
+    margin-top: clamp(12px, 3cqh, 30px);
     font-family: "Paperlogy", sans-serif;
-    font-size: 1.4em;
+    font-size: clamp(15px, 5cqw, 22px);
+    line-height: 1.25;
     letter-spacing: -.02em;
     opacity: 1;
 }
@@ -1272,6 +1305,43 @@ display: flex;
 }
 
 /* =========================================================
+   CARD TYPE SCALE
+   iPhone 16 Pro Max card width (400px) is the 1x reference.
+   cqw keeps the type proportional to the actual card, not the browser UI.
+   ========================================================= */
+
+.screen-card .profile-name h1,
+.screen-card .role-text h2 {
+    font-size: clamp(46px, 14.3cqw, 90px);
+}
+
+.screen-card .profile-name p {
+    font-size: clamp(18px, 6cqw, 24px);
+}
+
+.screen-card .eyebrow {
+    font-size: clamp(12px, 4cqw, 16px);
+}
+
+.screen-card .role-list li {
+    font-size: clamp(15px, 4.8cqw, 19.2px);
+}
+
+.screen-card .phone-number {
+    font-size: clamp(120px, 36cqw, 144px);
+}
+
+.screen-card .contact-link,
+.screen-card .qr-wrap > span,
+.screen-card .large-action {
+    font-size: clamp(13px, 4cqw, 16px);
+}
+
+.screen-card .slogan {
+    font-size: clamp(17px, 5.6cqw, 22.4px);
+}
+
+/* =========================================================
    DESKTOP
    ========================================================= */
 
@@ -1281,15 +1351,39 @@ display: flex;
 --intro-card-width:
 min( 38vw, 560px );
 }
+.intro-stack {
+    width: min(
+        calc(100vw - (var(--page-margin) * 2)),
+        440px,
+        calc((100dvh - (var(--page-margin) * 2)) * .43668)
+    );
+    height: auto;
+    aspect-ratio: 400 / 916;
+}
+.screen-card {
+    inset: 0;
+    width: min(
+        calc(100vw - (var(--page-margin) * 2)),
+        440px,
+        calc((100dvh - (var(--page-margin) * 2)) * .43668)
+    );
+    height: auto;
+    aspect-ratio: 400 / 916;
+    margin: auto;
+}
 .card-content {
-    padding-left: 8vw;
-    padding-right: 8vw;
+    padding-left: 6cqw;
+    padding-right: 6cqw;
 }
 .contact-details {
-    left: 8vw;
+    left: 6cqw;
+    bottom: 6cqw;
 }
 .circle-action {
-    right: 35px;
+    right: 5cqw;
+    bottom: 5cqw;
+    width: 14.5cqw;
+    height: 14.5cqw;
 }
 .fixed-header {
     left: 30px;
@@ -1316,11 +1410,11 @@ min( 30vw, 600px );
 @media (max-width:767px) {
  .fixed-header,.fixed-intro-logo{width:34px}.screen-card{border-radius:20px}
  .intro-stack.spread .stack-card{animation-duration:1150ms}
- @keyframes cardDropRise1{0%{transform:translate3d(0,0,40px) rotate(-2deg)}38%{transform:translate3d(0,76vh,40px) rotate(-1deg)}100%{transform:translate3d(0,0,40px) rotate(0)}}
- @keyframes cardDropRise2{0%{transform:translate3d(18px,-4px,20px) rotate(4deg)}38%{transform:translate3d(18px,calc(76vh - 4px),20px) rotate(2deg)}100%{transform:translate3d(0,0,20px) rotate(0)}}
- @keyframes cardDropRise3{0%{transform:translate3d(-17px,-8px,0) rotate(-6deg)}38%{transform:translate3d(-17px,calc(76vh - 8px),0) rotate(-2deg)}100%{transform:translate3d(0,0,0) rotate(0)}}
- @keyframes cardDropRise4{0%{transform:translate3d(27px,-24px,-20px) rotate(8deg)}38%{transform:translate3d(27px,calc(76vh - 24px),-20px) rotate(3deg)}100%{transform:translate3d(0,0,-20px) rotate(0)}}
- @keyframes cardDropRise5{0%{transform:translate3d(-27px,-16px,-40px) rotate(-10deg)}38%{transform:translate3d(-27px,calc(76vh - 16px),-40px) rotate(-3deg)}100%{transform:translate3d(0,0,-40px) rotate(0)}}
+ @keyframes cardDropRise1{0%{transform:translate3d(0,8px,40px) rotate(-1.2deg)}38%{transform:translate3d(0,calc(76vh + 8px),40px) rotate(-.6deg)}100%{transform:translate3d(0,0,40px) rotate(0)}}
+ @keyframes cardDropRise2{0%{transform:translate3d(10px,2px,20px) rotate(-.6deg)}38%{transform:translate3d(10px,calc(76vh + 2px),20px) rotate(-.3deg)}100%{transform:translate3d(0,0,20px) rotate(0)}}
+ @keyframes cardDropRise3{0%{transform:translate3d(20px,-4px,0) rotate(0deg)}38%{transform:translate3d(20px,calc(76vh - 4px),0) rotate(0deg)}100%{transform:translate3d(0,0,0) rotate(0)}}
+ @keyframes cardDropRise4{0%{transform:translate3d(30px,-10px,-20px) rotate(.6deg)}38%{transform:translate3d(30px,calc(76vh - 10px),-20px) rotate(.3deg)}100%{transform:translate3d(0,0,-20px) rotate(0)}}
+ @keyframes cardDropRise5{0%{transform:translate3d(40px,-16px,-40px) rotate(1.2deg)}38%{transform:translate3d(40px,calc(76vh - 16px),-40px) rotate(.6deg)}100%{transform:translate3d(0,0,-40px) rotate(0)}}
 }
 
 /* =========================================================
@@ -1798,9 +1892,6 @@ min( 30vw, 600px );
 
 const CONFIG = {
 
-  loadingDuration:
-    2200,
-
   stackRevealDelay:
     350,
 
@@ -1939,7 +2030,49 @@ const state = {
   touchStartY:
     0,
 
+  deckDragging:
+    false,
+
+  deckStartY:
+    0,
+
+  deckOffsetY:
+    0,
+
+  deckPointerId:
+    null,
+
+  deckAnimating:
+    false,
+
+  deckWheelScrubbing:
+    false,
+
+  deckWheelResetTimer:
+    null,
+
+  deckWheelLocked:
+    false,
+
+  deckWheelUnlockTimer:
+    null,
+
+  deckBoundaryTimer:
+    null,
+
   videoApproved:
+    false,
+
+  loadingVideos:
+    [],
+
+  loadingFrame:
+    null,
+
+  loadingComplete:
+    false,
+
+  loadingContinueStarted:
     false
 
 };
@@ -1963,6 +2096,10 @@ function init(){
     prepareVideos();
   }catch(e){}
 
+  try{
+    setupLoadingVideoTracking();
+  }catch(e){}
+
   if (CONFIG.skipIntro) {
     enterMainFallback();
   } else {
@@ -1971,7 +2108,7 @@ function init(){
 
   createQRCode();
 
-  setupIntersectionObserver();
+  setupDeck();
 
 }
 
@@ -2190,6 +2327,20 @@ function prepareVideos(){
 
       video.preload = index === 0 ? "auto" : "metadata";
 
+      video.addEventListener(
+        "canplay",
+        () => {
+          if(
+            state.videoApproved &&
+            index === state.currentCard &&
+            !document.hidden
+          ){
+            playCardVideo(video);
+          }
+        },
+        {passive:true}
+      );
+
 
       try{
 
@@ -2208,6 +2359,29 @@ function prepareVideos(){
 }
 
 
+function playCardVideo(video){
+
+  if(!video){
+    return;
+  }
+
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.setAttribute("muted", "");
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+
+  try{
+    const playback = video.play();
+    if(playback && typeof playback.catch === "function"){
+      playback.catch(() => {});
+    }
+  }catch(e){}
+
+}
+
+
 function syncCardVideos(activeIndex){
 
   DOM.cards.forEach(
@@ -2221,7 +2395,7 @@ function syncCardVideos(activeIndex){
 
       if(index === activeIndex && !document.hidden){
         video.preload = "auto";
-        video.play().catch(() => {});
+        playCardVideo(video);
       }else{
         video.pause();
       }
@@ -2381,6 +2555,13 @@ function bindEvents(){
           "ready"
         )
       ){
+        if(
+          state.loadingComplete &&
+          !state.loadingContinueStarted
+        ){
+          continueAfterLoading();
+        }
+
         return;
       }
 
@@ -2688,65 +2869,183 @@ function bindEvents(){
 
 
   /* -------------------------------------------------------
-     TOUCH SWIPE
+     CARD DECK DRAG
   ------------------------------------------------------- */
 
-  if(
-    DOM.main
-  ){
+  if(DOM.main){
 
-
-    DOM.main.addEventListener(
-      "touchstart",
-      event => {
-
-        state.touchStartY =
-          event.changedTouches[0]
-            .clientY;
-
-      },
-      {
-        passive:true
-      }
+    const isInteractiveTarget = target => target.closest(
+      "button, a, input, textarea, select, option"
     );
 
+    DOM.main.addEventListener("pointerdown", event => {
 
-    DOM.main.addEventListener(
-      "touchend",
-      event => {
+      if(
+        !state.introComplete ||
+        state.morphing ||
+        state.deckAnimating ||
+        state.deckWheelLocked ||
+        state.deckWheelScrubbing ||
+        event.button > 0 ||
+        isInteractiveTarget(event.target)
+      ){
+        return;
+      }
 
-        const endY =
-          event.changedTouches[0]
-            .clientY;
+      state.deckDragging = true;
+      state.deckPointerId = event.pointerId;
+      state.deckStartY = event.clientY;
+      state.deckOffsetY = 0;
 
+      try{
+        DOM.main.setPointerCapture(event.pointerId);
+      }catch(e){}
 
-        const diff =
-          state.touchStartY -
-          endY;
+      renderDeck();
 
+    }, {passive:true});
 
-        if(
-          Math.abs(diff) <
-          50
-        ){
-          return;
+    DOM.main.addEventListener("pointermove", event => {
+
+      if(
+        !state.deckDragging ||
+        event.pointerId !== state.deckPointerId
+      ){
+        return;
+      }
+
+      event.preventDefault();
+      const maxDrag = Math.max(DOM.main.clientHeight * .92, 240);
+      state.deckOffsetY = clampDeck(
+        event.clientY - state.deckStartY,
+        -maxDrag,
+        maxDrag
+      );
+      renderDeck();
+
+    }, {passive:false});
+
+    const finishDeckDrag = event => {
+
+      if(
+        !state.deckDragging ||
+        event.pointerId !== state.deckPointerId
+      ){
+        return;
+      }
+
+      const offset = state.deckOffsetY;
+      const threshold = Math.max(DOM.main.clientHeight * .16, 70);
+      const target = offset < -threshold
+        ? state.currentCard + 1
+        : offset > threshold
+          ? state.currentCard - 1
+          : state.currentCard;
+
+      state.deckDragging = false;
+      state.deckOffsetY = 0;
+
+      try{
+        DOM.main.releasePointerCapture(event.pointerId);
+      }catch(e){}
+
+      if(target !== state.currentCard){
+        if(target >= 0 && target < DOM.cards.length){
+          animateDeckTo(target);
+        }else{
+          bounceDeckBoundary(offset < 0 ? -1 : 1);
         }
-
-
-        goToCard(
-          state.currentCard +
-          (
-            diff > 0
-              ? 1
-              : -1
-          )
-        );
-
-      },
-      {
-        passive:true
+      }else{
+        renderDeck();
       }
-    );
+
+    };
+
+    DOM.main.addEventListener("pointerup", finishDeckDrag, {passive:true});
+    DOM.main.addEventListener("pointercancel", finishDeckDrag, {passive:true});
+
+    const settleWheelDeck = () => {
+
+      if(!state.deckWheelScrubbing){
+        return;
+      }
+
+      const offset = state.deckOffsetY;
+      const threshold = Math.max(DOM.main.clientHeight * .085, 60);
+      const target = offset < -threshold
+        ? state.currentCard + 1
+        : offset > threshold
+          ? state.currentCard - 1
+          : state.currentCard;
+
+      state.deckWheelScrubbing = false;
+      state.deckDragging = false;
+      state.deckOffsetY = 0;
+      state.deckWheelResetTimer = null;
+
+      if(
+        target >= 0 &&
+        target < DOM.cards.length &&
+        target !== state.currentCard
+      ){
+        lockDeckWheel();
+        animateDeckTo(target, {source:"wheel"});
+      }else if(Math.abs(offset) >= threshold){
+        lockDeckWheel();
+        bounceDeckBoundary(offset < 0 ? -1 : 1);
+      }else{
+        renderDeck();
+      }
+
+    };
+
+    DOM.main.addEventListener("wheel", event => {
+
+      if(!state.introComplete){
+        return;
+      }
+
+      event.preventDefault();
+
+      if(state.deckWheelLocked){
+        scheduleDeckWheelUnlock();
+        return;
+      }
+
+      cancelDeckBoundaryBounce();
+
+      const unit = event.deltaMode === 1
+        ? 16
+        : event.deltaMode === 2
+          ? DOM.main.clientHeight
+          : 1;
+      const delta = event.deltaY * unit;
+
+      if(state.deckAnimating){
+        scheduleDeckWheelUnlock();
+        return;
+      }
+
+      if(state.deckDragging && !state.deckWheelScrubbing){
+        return;
+      }
+
+      state.deckWheelScrubbing = true;
+      state.deckDragging = true;
+      state.deckOffsetY = clampDeck(
+        state.deckOffsetY - delta * .70,
+        -Math.max(DOM.main.clientHeight * .42, 260),
+        Math.max(DOM.main.clientHeight * .42, 260)
+      );
+      renderDeck();
+
+      window.clearTimeout(state.deckWheelResetTimer);
+      state.deckWheelResetTimer = window.setTimeout(
+        settleWheelDeck,
+        28
+      );
+
+    }, {passive:false});
 
   }
 
@@ -2757,60 +3056,171 @@ function bindEvents(){
    INTRO LOADING
    ========================================================= */
 
-function startIntro(){
+function getLoadingVideos(){
 
-  const start =
-    performance.now();
+  return [
+    ...DOM.introStack.querySelectorAll(
+      ".intro-preview-card .card-video"
+    )
+  ].filter(
+    video =>
+      video.currentSrc ||
+      video.src ||
+      video.querySelector("source")?.src
+  );
 
-
-  function tick(now){
-
-    const progress =
-      Math.min(
-        (now - start) /
-        CONFIG.loadingDuration,
-        1
-      );
-
-
-    const percent =
-      Math.round(
-        progress * 100
-      );
+}
 
 
-    DOM.loadingProgress.style.width =
-      `${percent}%`;
+function getVideoLoadProgress(video){
 
-
-    DOM.rocket.style.left =
-      `${percent}%`;
-
-
-    DOM.loadingText.textContent =
-      `${percent}%`;
-
-
-    if(
-      progress < 1
-    ){
-
-      requestAnimationFrame(
-        tick
-      );
-
-    }else{
-
-      finishLoading();
-
-    }
-
+  if(video.error){
+    return 0;
   }
 
+  if(video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA){
+    return 1;
+  }
 
-  requestAnimationFrame(
-    tick
+  const duration = video.duration;
+  if(
+    Number.isFinite(duration) &&
+    duration > 0 &&
+    video.buffered.length
+  ){
+    const bufferedEnd = video.buffered.end(
+      video.buffered.length - 1
+    );
+
+    return Math.min(
+      bufferedEnd / duration,
+      .98
+    );
+  }
+
+  if(video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA){
+    return .9;
+  }
+
+  if(video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA){
+    return .55;
+  }
+
+  if(video.readyState >= HTMLMediaElement.HAVE_METADATA){
+    return .2;
+  }
+
+  return 0;
+
+}
+
+
+function areLoadingVideosReady(){
+
+  return state.loadingVideos.length === 0 ||
+    state.loadingVideos.every(
+      video =>
+        !video.error &&
+        video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+    );
+
+}
+
+
+function renderLoadingProgress(){
+
+  const videos = state.loadingVideos;
+  const progress = videos.length
+    ? videos.reduce(
+      (total, video) => total + getVideoLoadProgress(video),
+      0
+    ) / videos.length
+    : 1;
+
+  const ready = areLoadingVideosReady();
+  const percent = ready
+    ? 100
+    : Math.min(
+      99,
+      Math.round(progress * 100)
+    );
+
+  DOM.loadingProgress.style.width =
+    `${percent}%`;
+
+  DOM.rocket.style.left =
+    `${percent}%`;
+
+  DOM.loadingText.textContent =
+    `${percent}%`;
+
+  return ready;
+
+}
+
+
+function scheduleLoadingProgress(){
+
+  if(state.loadingFrame !== null){
+    return;
+  }
+
+  state.loadingFrame = requestAnimationFrame(
+    () => {
+      state.loadingFrame = null;
+
+      if(renderLoadingProgress()){
+        finishLoading();
+      }
+    }
   );
+
+}
+
+
+function setupLoadingVideoTracking(){
+
+  state.loadingVideos = getLoadingVideos();
+
+  state.loadingVideos.forEach(
+    video => {
+      [
+        "loadedmetadata",
+        "durationchange",
+        "loadeddata",
+        "canplay",
+        "canplaythrough",
+        "progress",
+        "timeupdate",
+        "stalled",
+        "suspend",
+        "error"
+      ].forEach(
+        eventName =>
+          video.addEventListener(
+            eventName,
+            scheduleLoadingProgress,
+            {passive:true}
+          )
+      );
+    }
+  );
+
+}
+
+
+function startIntro(){
+
+  state.loadingComplete = false;
+  state.loadingContinueStarted = false;
+  state.loadingVideos = getLoadingVideos();
+
+  if(renderLoadingProgress()){
+    finishLoading();
+    return;
+  }
+
+  scheduleLoadingProgress();
 
 }
 
@@ -2820,6 +3230,39 @@ function startIntro(){
    ========================================================= */
 
 function finishLoading(){
+
+  if(state.loadingComplete){
+    return;
+  }
+
+  if(!areLoadingVideosReady()){
+    scheduleLoadingProgress();
+    return;
+  }
+
+  state.loadingComplete = true;
+
+  DOM.loadingArea.classList.add(
+    "ready-to-continue"
+  );
+
+}
+
+
+function continueAfterLoading(){
+
+  if(
+    !state.loadingComplete ||
+    state.loadingContinueStarted
+  ){
+    return;
+  }
+
+  state.loadingContinueStarted = true;
+
+  DOM.loadingArea.classList.remove(
+    "ready-to-continue"
+  );
 
   DOM.loadingArea.classList.add(
     "complete"
@@ -2882,9 +3325,7 @@ function playIntroVideos(){
         );
 
       if(video){
-        video.play().catch(
-          () => {}
-        );
+        playCardVideo(video);
       }
 
     }
@@ -3290,9 +3731,7 @@ function finishMorph(
 
     revealed = true;
 
-    targetVideo.play().catch(
-      () => {}
-    );
+    playCardVideo(targetVideo);
 
     DOM.morphLayer.style.opacity =
       "0";
@@ -3326,14 +3765,15 @@ function finishMorph(
         0;
 
 
+      renderDeck({immediate:true});
+
+
       updateNavigation(
         0
       );
 
 
-        targetVideo.play().catch(
-          () => {}
-        );
+        playCardVideo(targetVideo);
 
       },
       350
@@ -3345,10 +3785,6 @@ function finishMorph(
       "canplay",
       revealTarget,
       {once:true}
-    );
-    setTimeout(
-      revealTarget,
-      900
     );
   }else{
     revealTarget();
@@ -3384,6 +3820,9 @@ function enterMainFallback(){
   );
 
 
+  renderDeck({immediate:true});
+
+
   DOM.intro.classList.add(
     "is-hidden"
   );
@@ -3392,76 +3831,255 @@ function enterMainFallback(){
 
 
 /* =========================================================
-   INTERSECTION OBSERVER
+   CARD DECK
    ========================================================= */
 
-function setupIntersectionObserver(){
+function clampDeck(value, min, max){
 
-  const observer =
-    new IntersectionObserver(
-      entries => {
+  return Math.max(min, Math.min(max, value));
 
-        entries.forEach(
-          entry => {
-
-            if(
-              !entry.isIntersecting
-            ){
-              return;
-            }
+}
 
 
-            const card =
-              entry.target;
+function setupDeck(){
+
+  renderDeck({immediate:true});
+
+}
 
 
-            const index =
-              Number(
-                card.dataset.index
-              );
+function cancelDeckBoundaryBounce(){
+
+  const wasBouncing = state.deckBoundaryTimer !== null;
+
+  if(state.deckBoundaryTimer){
+    window.clearTimeout(state.deckBoundaryTimer);
+    state.deckBoundaryTimer = null;
+  }
+
+  const currentCard = DOM.cards[state.currentCard];
+  if(wasBouncing && currentCard){
+    currentCard.style.transition = "";
+  }
+
+}
 
 
-            state.currentCard =
-              index;
+function lockDeckWheel(){
+
+  state.deckWheelLocked = true;
+  window.clearTimeout(state.deckWheelUnlockTimer);
+  state.deckWheelUnlockTimer = null;
+
+}
 
 
-            activateCard(
-              card
-            );
+function scheduleDeckWheelUnlock(){
+
+  window.clearTimeout(state.deckWheelUnlockTimer);
+  state.deckWheelUnlockTimer = window.setTimeout(() => {
+    state.deckWheelUnlockTimer = null;
+    state.deckWheelLocked = false;
+  }, 180);
+
+}
 
 
-            updateNavigation(
-              index
-            );
+function bounceDeckBoundary(direction){
 
-            syncCardVideos(index);
-            window.ZNUS?.preloadCardMedia?.(index);
+  const card = DOM.cards[state.currentCard];
+  if(!card){
+    renderDeck();
+    return;
+  }
 
-          }
-        );
+  cancelDeckBoundaryBounce();
+  state.deckAnimating = false;
+  state.deckDragging = false;
+  lockDeckWheel();
+  state.deckWheelScrubbing = false;
+  state.deckOffsetY = 0;
 
-      },
-      {
+  const nudge = direction < 0 ? -24 : 24;
+  card.style.transition = "transform .14s cubic-bezier(.22,.86,.25,1), opacity .14s ease, filter .14s ease";
+  card.style.setProperty("--deck-y", `${nudge}px`);
 
-        root:
-          DOM.main,
+  state.deckBoundaryTimer = window.setTimeout(() => {
+    card.style.transition = "transform .24s cubic-bezier(.22,1,.36,1), opacity .18s ease, filter .18s ease";
+    card.style.setProperty("--deck-y", "0px");
 
-        threshold:
-          .65
+    state.deckBoundaryTimer = window.setTimeout(() => {
+      state.deckBoundaryTimer = null;
+      card.style.transition = "";
+      renderDeck();
+      scheduleDeckWheelUnlock();
+    }, 240);
+  }, 55);
 
-      }
-    );
+}
 
+
+function renderDeck(options = {}){
+
+  const current = state.currentCard;
+  const dragOffset = state.deckOffsetY;
+  const cardHeight = DOM.main?.clientHeight || window.innerHeight;
+  const dragProgress = clampDeck(Math.abs(dragOffset) / Math.max(cardHeight, 1), 0, 1);
+  const isDragging = state.deckDragging;
 
   DOM.cards.forEach(
-    card => {
+    (card, index) => {
 
-      observer.observe(
-        card
-      );
+      const relative = index - current;
+      let y = 0;
+      let scale = 1;
+      let rotate = 0;
+      let opacity = 1;
+      let zIndex = 1;
+      let visible = true;
+
+      if(relative === 0){
+        y = isDragging ? dragOffset : 0;
+        scale = isDragging ? 1 - dragProgress * .025 : 1;
+        rotate = isDragging ? dragOffset * -.0125 : 0;
+        zIndex = 100;
+      }else if(relative > 0 && relative <= 3){
+        y = relative * 14;
+        scale = 1 - relative * .035;
+        opacity = 1 - relative * .12;
+        zIndex = 100 - relative;
+
+        if(isDragging && dragOffset < 0 && relative === 1){
+          y = 14 * (1 - dragProgress);
+          scale = .965 + dragProgress * .035;
+          opacity = .88 + dragProgress * .12;
+        }
+      }else if(relative === -1 && isDragging && dragOffset > 0){
+        y = -14 * (1 - dragProgress);
+        scale = .965 + dragProgress * .035;
+        opacity = .88 + dragProgress * .12;
+        zIndex = 99;
+      }else{
+        visible = false;
+        opacity = 0;
+        zIndex = 0;
+      }
+
+      card.classList.toggle("is-active", relative === 0);
+      card.classList.toggle("is-dragging", isDragging && !state.deckWheelScrubbing && relative === 0);
+      card.classList.toggle("is-wheel-scrubbing", state.deckWheelScrubbing && visible);
+      card.style.transform = "";
+      card.style.opacity = "";
+      card.style.zIndex = "";
+      card.style.filter = "";
+      card.style.boxShadow = "";
+      card.style.setProperty("--deck-y", `${y}px`);
+      card.style.setProperty("--deck-scale", scale);
+      card.style.setProperty("--deck-rotate", `${rotate}deg`);
+      card.style.setProperty("--deck-opacity", opacity);
+      card.style.setProperty("--deck-z", zIndex);
+      card.style.pointerEvents = relative === 0 && !state.deckAnimating ? "auto" : "none";
+      card.setAttribute("aria-hidden", relative === 0 ? "false" : "true");
+
+      if(!visible){
+        card.classList.add("deck-hidden");
+      }else{
+        card.classList.remove("deck-hidden");
+      }
 
     }
   );
+
+  if(options.immediate){
+    DOM.cards.forEach(card => { card.style.transition = "none"; });
+    requestAnimationFrame(() => {
+      DOM.cards.forEach(card => { card.style.transition = ""; });
+    });
+  }
+
+}
+
+
+function animateDeckTo(target, options = {}){
+
+  if(
+    state.deckAnimating ||
+    target < 0 ||
+    target >= DOM.cards.length ||
+    target === state.currentCard
+  ){
+    return;
+  }
+
+  const from = state.currentCard;
+  const direction = target > from ? -1 : 1;
+  const currentCard = DOM.cards[from];
+  const nextCard = DOM.cards[target];
+  const isWheel = options.source === "wheel";
+  const motionDuration = isWheel ? .30 : .82;
+  const opacityDuration = isWheel ? .24 : .68;
+  const motionEase = isWheel
+    ? "cubic-bezier(.22,.86,.25,1)"
+    : "cubic-bezier(.16,1,.3,1)";
+  const finishDelay = isWheel ? 325 : 870;
+
+  cancelDeckBoundaryBounce();
+  window.clearTimeout(state.deckWheelResetTimer);
+  state.deckWheelResetTimer = null;
+  if(isWheel){
+    lockDeckWheel();
+  }
+  state.deckAnimating = true;
+  state.deckDragging = false;
+  state.deckWheelScrubbing = false;
+  state.deckOffsetY = 0;
+
+  // Start preparing the destination video before the card transition begins.
+  // This removes the visible pause at the end of the deck animation.
+  syncCardVideos(target);
+  window.ZNUS?.preloadCardMedia?.(target);
+
+  renderDeck({immediate:true});
+
+  requestAnimationFrame(() => {
+
+    // Reveal the incoming card's content as its video and card motion begin.
+    nextCard.classList.add("is-active");
+
+    currentCard.style.transition = `transform ${motionDuration}s ${motionEase}, opacity ${opacityDuration}s ease, filter ${motionDuration}s ease, box-shadow ${motionDuration}s ease`;
+    currentCard.style.setProperty("--deck-y", `${direction * 108}%`);
+    currentCard.style.setProperty("--deck-rotate", `${direction * -2.5}deg`);
+    currentCard.style.setProperty("--deck-scale", ".975");
+    currentCard.style.setProperty("--deck-opacity", "0");
+    currentCard.style.filter = "brightness(.78) saturate(.9)";
+    currentCard.style.boxShadow = "0 8px 25px rgba(0,0,0,0)";
+
+    nextCard.style.transition = `transform ${motionDuration}s ${motionEase}, opacity ${opacityDuration}s ease, filter ${motionDuration}s ease, box-shadow ${motionDuration}s ease`;
+    nextCard.style.setProperty("--deck-y", "0px");
+    nextCard.style.setProperty("--deck-rotate", "0deg");
+    nextCard.style.setProperty("--deck-scale", "1");
+    nextCard.style.setProperty("--deck-opacity", "1");
+    nextCard.style.filter = "brightness(1) saturate(1)";
+    nextCard.style.boxShadow = "0 28px 70px rgba(0,0,0,.3)";
+    nextCard.style.setProperty("--deck-z", "110");
+
+  });
+
+  window.setTimeout(() => {
+
+    state.currentCard = target;
+    state.deckAnimating = false;
+    state.deckOffsetY = 0;
+    renderDeck();
+    updateNavigation(target);
+    syncCardVideos(target);
+    window.ZNUS?.preloadCardMedia?.(target);
+
+    if(isWheel){
+      scheduleDeckWheelUnlock();
+    }
+
+  }, finishDelay);
 
 }
 
@@ -3529,7 +4147,8 @@ function goToCard(
 ){
 
   if(
-    !state.introComplete
+    !state.introComplete ||
+    state.deckAnimating
   ){
     return;
   }
@@ -3544,35 +4163,11 @@ function goToCard(
       )
     );
 
-  window.ZNUS?.preloadCardMedia?.(target);
-
-
-  const main = DOM.main;
-  const card = DOM.cards[target];
-
-  if(!main || !card){
+  if(target === state.currentCard){
     return;
   }
 
-  /*
-    Scroll inside the card viewport itself.  scrollIntoView() can promote
-    the card to the document's top edge and discard the viewport padding,
-    which makes the first card touch the browser chrome and can shift the
-    card horizontally on narrow public URLs.
-  */
-  const mainRect = main.getBoundingClientRect();
-  const mainStyle = getComputedStyle(main);
-  const topPadding = parseFloat(mainStyle.paddingTop) || 0;
-  // Measure the card in the actual scroll viewport. offsetTop can be based on
-  // a different offset parent after media/content changes, which causes
-  // intermittent top or horizontal drift on later cards.
-  const targetTop = main.scrollTop + card.getBoundingClientRect().top - mainRect.top - topPadding;
-
-  main.scrollTo({
-    top: Math.max(0, targetTop),
-    left: 0,
-    behavior: "smooth"
-  });
+  animateDeckTo(target);
 
 }
 
