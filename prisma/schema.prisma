@@ -101,6 +101,9 @@ model CardPageBackground {
   page         CardPage
   mediaAssetId String     @unique @map("media_asset_id") @db.Uuid
   createdAt    DateTime   @default(now()) @map("created_at")
+  cropX        Float      @default(50) @map("crop_x")
+  cropY        Float      @default(50) @map("crop_y")
+  cropScale    Float      @default(1) @map("crop_scale")
   employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
 
@@ -114,6 +117,9 @@ model CardPageDefaultBackground {
   page         CardPage  @unique
   mediaAssetId String     @unique @map("media_asset_id") @db.Uuid
   createdAt    DateTime   @default(now()) @map("created_at")
+  cropX        Float      @default(50) @map("crop_x")
+  cropY        Float      @default(50) @map("crop_y")
+  cropScale    Float      @default(1) @map("crop_scale")
   mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
 
   @@map("card_page_default_backgrounds")

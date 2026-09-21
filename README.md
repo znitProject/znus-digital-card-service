@@ -9,7 +9,7 @@ Google Form·Sheets·Drive·Apps Script 대신 자체 Node.js 서비스와 Postg
 - 신규 직원 자동 생성 및 기존 직원 수정
 - PostgreSQL 영속 저장
 - 공개 명함 API: `/api/cards/{publicToken}`
-- 공개 명함 페이지: `/c/{publicToken}`
+- 공개 명함 페이지: `/{publicToken}` (기존 `/c/{publicToken}` 링크도 자동 연결)
 - 기존 카드 디자인 기반 공개 페이지와 미디어 슬롯 연결
 - 관리자 대시보드: 검색·필터·미리보기·상태 변경
 - 회사 설정 및 감사 로그 API

@@ -24,7 +24,7 @@ Google Form·Sheets·Drive·Apps Script·Cafe24에 의존하지 않고, DB부터
 ## 3. URL 구조
 
 - `/input`: 모든 직원이 사용하는 공용 입력·수정 페이지
-- `/c/{publicToken}`: 공개 명함 페이지
+- `/{publicToken}`: 공개 명함 페이지 (기존 `/c/{publicToken}` 링크는 호환)
 - `/admin`: 운영자용 관리 화면
  - `/healthz`: 서비스와 DB 상태 확인
 

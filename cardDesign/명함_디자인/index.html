@@ -33,7 +33,7 @@
 >
 <link
   rel="manifest"
-  href="/c/__ZNUS_CARD_TOKEN__/manifest.webmanifest"
+  href="/__ZNUS_CARD_TOKEN__/manifest.webmanifest"
 >
 <title>ZNUS Digital Profile</title>
 <style>
@@ -77,6 +77,31 @@
     font-style: normal;
     font-display: swap;
 }
+@property --float-rotate-x {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+@property --float-rotate-y {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+@property --float-light-x {
+    syntax: "<percentage>";
+    inherits: true;
+    initial-value: 50%;
+}
+@property --float-light-y {
+    syntax: "<percentage>";
+    inherits: true;
+    initial-value: 42%;
+}
+@property --float-chroma {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+}
 /* =========================================================
    ROOT
    ========================================================= */
@@ -88,8 +113,17 @@
 --ease-soft:cubic-bezier(.16, 1, .3, 1);
 --blur:24px;
 --card-radius:18px;
---card-surface-shadow: 0 1.5px 0 rgba(57,62,70,.85), 0 5px 10px rgba(0,0,0,.32), 0 22px 44px rgba(0,0,0,.22);
---card-edge-gradient: linear-gradient(135deg, rgba(235,242,250,.48) 0%, rgba(192,205,222,.22) 24%, rgba(145,160,182,.09) 55%, rgba(22,28,38,.48) 100%);
+--card-contact-shadow: 0 5px 10px rgba(0,0,0,.38);
+--card-ambient-shadow: 0 24px 52px rgba(0,0,0,.28);
+--card-surface-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(2,6,12,.72),
+    var(--card-contact-shadow),
+    var(--card-ambient-shadow);
+--card-edge-gradient:
+    radial-gradient(circle at 7% 5%, rgba(255,255,255,.76) 0 1%, rgba(188,229,246,.38) 3%, transparent 11%),
+    radial-gradient(circle at 94% 96%, rgba(118,229,239,.44) 0 1%, rgba(76,148,169,.23) 5%, transparent 12%),
+    linear-gradient(135deg, rgba(235,244,248,.68) 0%, rgba(171,203,221,.34) 20%, rgba(75,94,110,.20) 46%, rgba(18,27,37,.58) 76%, rgba(105,205,216,.32) 100%);
 --page-margin:20px;
 --intro-card-width:min(72vw, 520px);
 }
@@ -147,10 +181,35 @@ a {
     position: fixed;
     z-index: 0;
     inset: -6%;
-    background: linear-gradient( 180deg, rgba(0,0,0,.08), rgba(0,0,0,.32) ), url("assets/universe.jpg") center center / cover no-repeat;
+    /* 이미지 대신, 카드의 좁은 외곽에서도 읽히는 심우주 컬러 필드 */
+    background:
+        radial-gradient(ellipse 70% 80% at -18% 32%, #17446b 0%, #09233d 35%, transparent 68%),
+        radial-gradient(ellipse 68% 72% at 119% 78%, #372552 0%, #151534 38%, transparent 70%),
+        linear-gradient(142deg, #020711 0%, #071426 48%, #02040c 100%);
     transform: scale(1.04);
     animation: universeDrift 32s ease-in-out infinite alternate;
     pointer-events: none;
+}
+.universe-background:before {
+    content: "";
+    position: absolute;
+    inset: -4%;
+    /* 성간 먼지가 카드 양옆을 스쳐 지나가는 깊이감 */
+    background:
+        linear-gradient(105deg, transparent 0 14%, rgba(69, 164, 220, .20) 26%, transparent 39%),
+        linear-gradient(105deg, transparent 57%, rgba(139, 88, 204, .17) 72%, transparent 86%),
+        radial-gradient(ellipse 11% 70% at 4% 37%, rgba(67, 178, 226, .32), transparent 76%),
+        radial-gradient(ellipse 13% 64% at 97% 69%, rgba(151, 86, 221, .25), transparent 78%),
+        radial-gradient(circle, rgba(204, 237, 255, .92) 0 .8px, transparent 1.3px) 14px 29px / 91px 107px,
+        radial-gradient(circle, rgba(101, 203, 241, .72) 0 .6px, transparent 1px) 47px 3px / 131px 123px,
+        radial-gradient(circle, rgba(255, 255, 255, .48) 0 .55px, transparent .9px) 0 0 / 173px 151px;
+    opacity: .96;
+    mix-blend-mode: screen;
+    animation: deepSpaceDrift 44s linear infinite alternate;
+}
+@keyframes deepSpaceDrift {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-1.2%, .8%, 0); }
 }
 @keyframes universeDrift {
 from {
@@ -166,7 +225,7 @@ scale(1.07) translate3d(-.3%, -.3%, 0);
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient( circle at 50% 45%, rgba(255,255,255,.04), transparent 55% );
+    background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.035), transparent 55%);
 }
 /* =========================================================
    FIXED LOGO
@@ -457,9 +516,10 @@ transform:scale(1.11);
     border-radius: var(--card-radius);
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
     border: 0;
-    box-shadow: var(--card-surface-shadow);
+    box-shadow: var(--stack-shadow, var(--card-surface-shadow));
+    filter: var(--stack-filter, none);
     transform-origin: 50% 92%;
-    transition: transform 1.35s var(--ease), opacity .8s var(--ease);
+    transition: transform 1.35s var(--ease), opacity .8s var(--ease), filter 1.1s var(--ease), box-shadow 1.1s var(--ease);
     will-change: transform;
 }
 /*
@@ -522,13 +582,14 @@ transform:scale(1.11);
     inset: 0;
     z-index: 5;
     border-radius: inherit;
-    padding: 1px;
+    padding: 2px;
     background: var(--card-edge-gradient);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     pointer-events: none;
+    filter: drop-shadow(0 1px 0 rgba(255,255,255,.08));
 }
 /* =========================================================
    STACK POSITION
@@ -536,23 +597,33 @@ transform:scale(1.11);
 
 .stack-card-1 {
     z-index: 5;
-    transform: translate3d(0, 8px, 40px) rotate(-1.2deg);
+    --stack-filter: brightness(1) saturate(1);
+    --stack-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(2,6,12,.72), 0 5px 10px rgba(0,0,0,.40), 0 26px 56px rgba(0,0,0,.30);
+    transform: translate3d(0, 8px, 40px) rotate(-1.2deg) scale(1);
 }
 .stack-card-2 {
     z-index: 4;
-    transform: translate3d(10px, 2px, 20px) rotate(-.6deg);
+    --stack-filter: brightness(.92) saturate(.90) blur(.2px);
+    --stack-shadow: inset 0 1px 0 rgba(255,255,255,.13), inset 0 -1px 0 rgba(2,6,12,.74), 0 4px 8px rgba(0,0,0,.36), 0 18px 38px rgba(0,0,0,.24);
+    transform: translate3d(18px, 0, 20px) rotate(-.55deg) scale(.985);
 }
 .stack-card-3 {
     z-index: 3;
-    transform: translate3d(20px, -4px, 0) rotate(0deg);
+    --stack-filter: brightness(.84) saturate(.80) blur(.45px);
+    --stack-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(2,6,12,.76), 0 3px 7px rgba(0,0,0,.32), 0 13px 28px rgba(0,0,0,.20);
+    transform: translate3d(31px, -7px, 0) rotate(0deg) scale(.971);
 }
 .stack-card-4 {
     z-index: 2;
-    transform: translate3d(30px, -10px, -20px) rotate(.6deg);
+    --stack-filter: brightness(.76) saturate(.70) blur(.7px);
+    --stack-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(2,6,12,.78), 0 3px 6px rgba(0,0,0,.28), 0 9px 20px rgba(0,0,0,.16);
+    transform: translate3d(40px, -13px, -20px) rotate(.55deg) scale(.960);
 }
 .stack-card-5 {
     z-index: 1;
-    transform: translate3d(40px, -16px, -40px) rotate(1.2deg);
+    --stack-filter: brightness(.68) saturate(.60) blur(1px);
+    --stack-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -1px 0 rgba(2,6,12,.80), 0 2px 5px rgba(0,0,0,.24), 0 6px 14px rgba(0,0,0,.13);
+    transform: translate3d(46px, -18px, -40px) rotate(1.05deg) scale(.952);
 }
 /* =========================================================
    STACK FLOAT
@@ -585,11 +656,11 @@ margin-top:-8px;
 .intro-stack.spread .stack-card-3 { animation-name:cardDropRise3; animation-delay:200ms; }
 .intro-stack.spread .stack-card-4 { animation-name:cardDropRise4; animation-delay:300ms; }
 .intro-stack.spread .stack-card-5 { animation-name:cardDropRise5; animation-delay:400ms; }
-@keyframes cardDropRise1 { 0%{transform:translate3d(0,8px,40px) rotate(-1.2deg)} 38%{transform:translate3d(0,calc(78vh + 8px),40px) rotate(-.6deg)} 100%{transform:translate3d(0,0,40px) rotate(0)} }
-@keyframes cardDropRise2 { 0%{transform:translate3d(10px,2px,20px) rotate(-.6deg)} 38%{transform:translate3d(10px,calc(78vh + 2px),20px) rotate(-.3deg)} 100%{transform:translate3d(0,0,20px) rotate(0)} }
-@keyframes cardDropRise3 { 0%{transform:translate3d(20px,-4px,0) rotate(0deg)} 38%{transform:translate3d(20px,calc(78vh - 4px),0) rotate(0deg)} 100%{transform:translate3d(0,0,0) rotate(0)} }
-@keyframes cardDropRise4 { 0%{transform:translate3d(30px,-10px,-20px) rotate(.6deg)} 38%{transform:translate3d(30px,calc(78vh - 10px),-20px) rotate(.3deg)} 100%{transform:translate3d(0,0,-20px) rotate(0)} }
-@keyframes cardDropRise5 { 0%{transform:translate3d(40px,-16px,-40px) rotate(1.2deg)} 38%{transform:translate3d(40px,calc(78vh - 16px),-40px) rotate(.6deg)} 100%{transform:translate3d(0,0,-40px) rotate(0)} }
+@keyframes cardDropRise1 { 0%{transform:translate3d(0,8px,40px) rotate(-1.2deg) scale(1)} 38%{transform:translate3d(0,calc(78vh + 8px),40px) rotate(-.6deg) scale(1)} 100%{transform:translate3d(0,0,40px) rotate(0) scale(1)} }
+@keyframes cardDropRise2 { 0%{transform:translate3d(18px,0,20px) rotate(-.55deg) scale(.985)} 38%{transform:translate3d(18px,78vh,20px) rotate(-.3deg) scale(.985)} 100%{transform:translate3d(0,0,20px) rotate(0) scale(1)} }
+@keyframes cardDropRise3 { 0%{transform:translate3d(31px,-7px,0) rotate(0deg) scale(.971)} 38%{transform:translate3d(31px,calc(78vh - 7px),0) rotate(0deg) scale(.971)} 100%{transform:translate3d(0,0,0) rotate(0) scale(1)} }
+@keyframes cardDropRise4 { 0%{transform:translate3d(40px,-13px,-20px) rotate(.55deg) scale(.960)} 38%{transform:translate3d(40px,calc(78vh - 13px),-20px) rotate(.3deg) scale(.960)} 100%{transform:translate3d(0,0,-20px) rotate(0) scale(1)} }
+@keyframes cardDropRise5 { 0%{transform:translate3d(46px,-18px,-40px) rotate(1.05deg) scale(.952)} 38%{transform:translate3d(46px,calc(78vh - 18px),-40px) rotate(.6deg) scale(.952)} 100%{transform:translate3d(0,0,-40px) rotate(0) scale(1)} }
 
 /* =========================================================
    INTRO PERSON
@@ -760,10 +831,12 @@ display:none;
     overflow: hidden;
     border-radius: var(--card-radius);
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
-    transform: perspective(1200px) translate3d(var(--deck-x, 0px), var(--deck-y, 18px), 0) rotate(var(--deck-rotate, 0deg)) scale(var(--deck-scale, .96));
+    border: 0;
+    transform: perspective(1200px) translate3d(var(--deck-x, 0px), var(--deck-y, 18px), 0) rotateX(var(--float-rotate-x, 0deg)) rotateY(var(--float-rotate-y, 0deg)) rotate(var(--deck-rotate, 0deg)) scale(var(--deck-scale, .96));
     opacity: var(--deck-opacity, 0);
     z-index: var(--deck-z, 1);
-    box-shadow: var(--card-surface-shadow);
+    box-shadow: var(--deck-shadow, var(--card-surface-shadow));
+    filter: var(--deck-filter, none);
     transition: transform .82s cubic-bezier(.16,1,.3,1), opacity .68s ease, filter .82s ease;
     will-change: transform, opacity;
     container-type: size;
@@ -772,6 +845,53 @@ display:none;
 .screen-card.is-dragging {
     transition: none;
 }
+/* The reading state is a single floating card. The intro stack keeps its
+   separate multi-card motion, while deck gestures temporarily pause drift. */
+#main.active:not(.is-deck-busy) > .screen-card.is-active {
+    animation: cardDrift 9.6s ease-in-out 450ms infinite;
+}
+@keyframes cardDrift {
+    0%, 100% {
+        translate: 0 0;
+        --float-rotate-x: 0deg;
+        --float-rotate-y: 0deg;
+        --float-light-x: 50%;
+        --float-light-y: 42%;
+        --float-chroma: .01;
+    }
+    18% {
+        translate: -2px -3px;
+        --float-rotate-x: .85deg;
+        --float-rotate-y: -1.15deg;
+        --float-light-x: 62%;
+        --float-light-y: 56%;
+        --float-chroma: .07;
+    }
+    39% {
+        translate: 1px -4px;
+        --float-rotate-x: 1.2deg;
+        --float-rotate-y: .55deg;
+        --float-light-x: 43%;
+        --float-light-y: 64%;
+        --float-chroma: .05;
+    }
+    61% {
+        translate: 2.5px 1px;
+        --float-rotate-x: -.65deg;
+        --float-rotate-y: 1.25deg;
+        --float-light-x: 34%;
+        --float-light-y: 40%;
+        --float-chroma: .075;
+    }
+    81% {
+        translate: -1px 3px;
+        --float-rotate-x: -1.1deg;
+        --float-rotate-y: -.45deg;
+        --float-light-x: 58%;
+        --float-light-y: 31%;
+        --float-chroma: .055;
+    }
+}
 /* Keep the edge above custom media without covering or intercepting controls. */
 #main > .screen-card:before {
     content: "";
@@ -779,13 +899,16 @@ display:none;
     inset: 0;
     z-index: 30;
     border-radius: inherit;
-    padding: 1px;
+    padding: 2px;
     background: var(--card-edge-gradient);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     pointer-events: none;
+    filter:
+        drop-shadow(-.45px 0 rgba(76,224,235,var(--float-chroma)))
+        drop-shadow(.45px 0 rgba(175,104,255,var(--float-chroma)));
 }
 #main > .screen-card:after {
     content: "";
@@ -793,7 +916,7 @@ display:none;
     inset: 0;
     z-index: 31;
     border-radius: inherit;
-    padding: 1px;
+    padding: 2px;
     background: linear-gradient(115deg, transparent 38%, rgba(232,242,255,.65) 49%, transparent 60%) 100% 50% / 300% 100%;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -812,6 +935,7 @@ display:none;
 }
 @media (prefers-reduced-motion: reduce) {
     #main > .screen-card.is-edge-reflecting:after { animation: none; }
+    #main.active > .screen-card.is-active { animation: none; }
 }
 .screen-card.is-wheel-scrubbing {
     transition: transform .22s cubic-bezier(.22,.82,.25,1), opacity .22s ease, filter .22s ease;
@@ -826,6 +950,33 @@ display:none;
     z-index: -3;
     overflow: hidden;
     background: linear-gradient(145deg, #182233 0%, #090909 58%, #241633 100%);
+}
+.card-media:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at var(--float-light-x) var(--float-light-y), rgba(255,255,255,.115) 0%, rgba(150,224,238,.052) 13%, transparent 34%),
+        linear-gradient(108deg, rgba(255,255,255,.065) 0%, transparent 15%, transparent 72%, rgba(92,205,219,.05) 100%),
+        repeating-linear-gradient(115deg, rgba(255,255,255,.016) 0 1px, transparent 1px 4px);
+    mix-blend-mode: overlay;
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.07),
+        inset 0 0 22px rgba(110,200,220,.035),
+        inset 0 -16px 30px rgba(0,0,0,.07);
+}
+.card-media:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: .04;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
+    background-size: 132px 132px;
 }
 .card-video {
     position: absolute;
@@ -917,8 +1068,12 @@ display:none;
     animation: cardLightSweep 1100ms var(--ease-soft) 900ms backwards;
 }
 /* Reveal identity text once per card, after the intro has cleared. */
-.profile-card.has-entered .profile-name h1,
-.profile-card.has-entered .profile-name p,
+.profile-card.has-entered .profile-name h1 {
+    animation: profileTitleEntrance 620ms var(--ease-soft) 80ms backwards;
+}
+.profile-card.has-entered .profile-name p {
+    animation: profileMetaEntrance 620ms var(--ease-soft) 180ms backwards;
+}
 .role-card.has-entered .role-text {
     animation: identityEntrance 620ms var(--ease-soft) 80ms backwards;
 }
@@ -936,8 +1091,31 @@ display:none;
     100% { opacity: 0; transform: translate3d(120%, 0, 0); }
 }
 @keyframes identityEntrance {
-    from { opacity: 0; transform: translate3d(0, 12px, 0); }
-    to { transform: translate3d(0, 0, 0); }
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes profileTitleEntrance {
+    from {
+        opacity: 0;
+        text-shadow: 0 0 28px rgba(130,226,255,.72), 0 0 9px rgba(185,123,255,.48), 0 2px 12px rgba(0,0,0,.18);
+    }
+    55% {
+        text-shadow: 0 0 14px rgba(130,226,255,.28), 0 0 5px rgba(185,123,255,.18), 0 2px 12px rgba(0,0,0,.30);
+    }
+    to {
+        opacity: 1;
+        text-shadow: 0 2px 12px rgba(0,0,0,.38);
+    }
+}
+@keyframes profileMetaEntrance {
+    from {
+        opacity: 0;
+        text-shadow: 0 0 18px rgba(130,226,255,.58), 0 0 7px rgba(185,123,255,.34), 0 2px 12px rgba(0,0,0,.18);
+    }
+    to {
+        opacity: .82;
+        text-shadow: 0 2px 12px rgba(0,0,0,.38);
+    }
 }
 /* =========================================================
    PROFILE
@@ -947,21 +1125,36 @@ display:none;
     align-items: flex-end;
 }
 .profile-name {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
     margin-bottom: 8vh;
+}
+.profile-name:before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -34px -28px -26px;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 28% 55%, rgba(3,7,14,.56), rgba(3,7,14,.18) 48%, transparent 72%);
+    filter: blur(8px);
 }
 .profile-name h1 {
     font-family: "Pretendard", sans-serif;
     font-size: clamp( 46px, 13vw, 90px );
-    line-height: .95;
-    font-weight: 700;
-    letter-spacing: -.07em;
+    line-height: .9;
+    font-weight: 800;
+    letter-spacing: -.055em;
+    text-shadow: 0 2px 12px rgba(0,0,0,.38);
 }
 .profile-name p {
-    margin-top: 12px;
+    margin-top: 10px;
     font-family: "Paperlogy", sans-serif;
     font-size: 24px;
-    letter-spacing: .15em;
-    opacity: .65;
+    font-weight: 500;
+    letter-spacing: .08em;
+    opacity: .82;
+    text-shadow: 0 2px 12px rgba(0,0,0,.38);
 }
 /* =========================================================
    CIRCLE ACTION
@@ -1489,11 +1682,11 @@ min( 30vw, 600px );
 @media (max-width:767px) {
  .fixed-header,.fixed-intro-logo{width:34px}.screen-card{border-radius:20px}
  .intro-stack.spread .stack-card{animation-duration:1150ms}
- @keyframes cardDropRise1{0%{transform:translate3d(0,8px,40px) rotate(-1.2deg)}38%{transform:translate3d(0,calc(76vh + 8px),40px) rotate(-.6deg)}100%{transform:translate3d(0,0,40px) rotate(0)}}
- @keyframes cardDropRise2{0%{transform:translate3d(10px,2px,20px) rotate(-.6deg)}38%{transform:translate3d(10px,calc(76vh + 2px),20px) rotate(-.3deg)}100%{transform:translate3d(0,0,20px) rotate(0)}}
- @keyframes cardDropRise3{0%{transform:translate3d(20px,-4px,0) rotate(0deg)}38%{transform:translate3d(20px,calc(76vh - 4px),0) rotate(0deg)}100%{transform:translate3d(0,0,0) rotate(0)}}
- @keyframes cardDropRise4{0%{transform:translate3d(30px,-10px,-20px) rotate(.6deg)}38%{transform:translate3d(30px,calc(76vh - 10px),-20px) rotate(.3deg)}100%{transform:translate3d(0,0,-20px) rotate(0)}}
- @keyframes cardDropRise5{0%{transform:translate3d(40px,-16px,-40px) rotate(1.2deg)}38%{transform:translate3d(40px,calc(76vh - 16px),-40px) rotate(.6deg)}100%{transform:translate3d(0,0,-40px) rotate(0)}}
+ @keyframes cardDropRise1{0%{transform:translate3d(0,8px,40px) rotate(-1.2deg) scale(1)}38%{transform:translate3d(0,calc(76vh + 8px),40px) rotate(-.6deg) scale(1)}100%{transform:translate3d(0,0,40px) rotate(0) scale(1)}}
+ @keyframes cardDropRise2{0%{transform:translate3d(18px,0,20px) rotate(-.55deg) scale(.985)}38%{transform:translate3d(18px,76vh,20px) rotate(-.3deg) scale(.985)}100%{transform:translate3d(0,0,20px) rotate(0) scale(1)}}
+ @keyframes cardDropRise3{0%{transform:translate3d(31px,-7px,0) rotate(0deg) scale(.971)}38%{transform:translate3d(31px,calc(76vh - 7px),0) rotate(0deg) scale(.971)}100%{transform:translate3d(0,0,0) rotate(0) scale(1)}}
+ @keyframes cardDropRise4{0%{transform:translate3d(40px,-13px,-20px) rotate(.55deg) scale(.960)}38%{transform:translate3d(40px,calc(76vh - 13px),-20px) rotate(.3deg) scale(.960)}100%{transform:translate3d(0,0,-20px) rotate(0) scale(1)}}
+ @keyframes cardDropRise5{0%{transform:translate3d(46px,-18px,-40px) rotate(1.05deg) scale(.952)}38%{transform:translate3d(46px,calc(76vh - 18px),-40px) rotate(.6deg) scale(.952)}100%{transform:translate3d(0,0,-40px) rotate(0) scale(1)}}
 }
 
 /* Local press feedback; scale stays independent of card reveal transforms. */
@@ -3973,6 +4166,10 @@ function renderDeck(options = {}){
   const cardHeight = DOM.main?.clientHeight || window.innerHeight;
   const dragProgress = clampDeck(Math.abs(dragOffset) / Math.max(cardHeight, 1), 0, 1);
   const isDragging = state.deckDragging;
+  DOM.main?.classList.toggle(
+    "is-deck-busy",
+    state.deckAnimating || state.deckDragging || state.deckWheelScrubbing
+  );
 
   DOM.cards.forEach(
     (card, index) => {
@@ -3984,27 +4181,25 @@ function renderDeck(options = {}){
       let opacity = 1;
       let zIndex = 1;
       let visible = true;
+      let depthFilter = "brightness(1) saturate(1) blur(0px)";
+      let depthShadow = "inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(2,6,12,.72), 0 5px 10px rgba(0,0,0,.40), 0 26px 56px rgba(0,0,0,.30)";
 
       if(relative === 0){
         y = isDragging ? dragOffset : 0;
         scale = isDragging ? 1 - dragProgress * .025 : 1;
         rotate = isDragging ? dragOffset * -.0125 : 0;
         zIndex = 100;
-      }else if(relative > 0 && relative <= 3){
-        y = relative * 14;
-        scale = 1 - relative * .035;
-        opacity = 1 - relative * .12;
-        zIndex = 100 - relative;
-
-        if(isDragging && dragOffset < 0 && relative === 1){
-          y = 14 * (1 - dragProgress);
-          scale = .965 + dragProgress * .035;
-          opacity = .88 + dragProgress * .12;
-        }
+      }else if(relative === 1 && isDragging && dragOffset < 0){
+          y = 18 * (1 - dragProgress);
+          scale = .985 + dragProgress * .015;
+          opacity = dragProgress;
+          depthFilter = `brightness(${.92 + dragProgress * .08}) saturate(${.90 + dragProgress * .10}) blur(${.2 * (1 - dragProgress)}px)`;
+          zIndex = 99;
       }else if(relative === -1 && isDragging && dragOffset > 0){
-        y = -14 * (1 - dragProgress);
-        scale = .965 + dragProgress * .035;
-        opacity = .88 + dragProgress * .12;
+        y = -18 * (1 - dragProgress);
+        scale = .985 + dragProgress * .015;
+        opacity = dragProgress;
+        depthFilter = `brightness(${.92 + dragProgress * .08}) saturate(${.90 + dragProgress * .10}) blur(${.2 * (1 - dragProgress)}px)`;
         zIndex = 99;
       }else{
         visible = false;
@@ -4028,6 +4223,8 @@ function renderDeck(options = {}){
       card.style.setProperty("--deck-rotate", `${rotate}deg`);
       card.style.setProperty("--deck-opacity", opacity);
       card.style.setProperty("--deck-z", zIndex);
+      card.style.setProperty("--deck-filter", depthFilter);
+      card.style.setProperty("--deck-shadow", depthShadow);
       card.style.pointerEvents = relative === 0 && !state.deckAnimating ? "auto" : "none";
       card.setAttribute("aria-hidden", relative === 0 ? "false" : "true");
 
@@ -4088,6 +4285,9 @@ function animateDeckTo(target, options = {}){
   // This removes the visible pause at the end of the deck animation.
   syncCardVideos(target);
   window.ZNUS?.preloadCardMedia?.(target);
+  if(state.introComplete){
+    nextCard.classList.add("has-entered");
+  }
 
   renderDeck({immediate:true});
 
@@ -4131,7 +4331,7 @@ function animateDeckTo(target, options = {}){
     nextCard.classList.remove("is-edge-reflecting");
     state.deckAnimating = false;
     state.deckOffsetY = 0;
-    renderDeck();
+    renderDeck({immediate:true});
     updateNavigation(target);
     syncCardVideos(target);
     window.ZNUS?.preloadCardMedia?.(target);
