@@ -9,6 +9,7 @@ const { mkdir, stat, readFile } = require('node:fs/promises');
 const { pipeline } = require('node:stream/promises');
 const Busboy = require('busboy');
 const { Pool } = require('pg');
+const { attachDatabasePool } = require('@vercel/functions');
 const nodemailer = require('nodemailer');
 const {
   normalizeEmail, randomToken, hashToken, otpCode, constantTimeEqual
@@ -85,7 +86,13 @@ const dbPoolOptions = useSupabaseDatabase
       max: Number(process.env.DB_POOL_MAX || 10)
     };
 
-let activePool = new Pool(dbPoolOptions);
+function createDbPool() {
+  const pool = new Pool(dbPoolOptions);
+  if (vercelRuntime) attachDatabasePool(pool);
+  return pool;
+}
+
+let activePool = createDbPool();
 
 function isRetryableDbError(error) {
   const code = String(error?.code || '');
@@ -97,7 +104,7 @@ function isRetryableDbError(error) {
 
 async function recycleDbPool() {
   const stalePool = activePool;
-  activePool = new Pool(dbPoolOptions);
+  activePool = createDbPool();
   stalePool.end().catch(() => {});
 }
 
