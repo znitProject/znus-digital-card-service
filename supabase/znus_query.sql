@@ -17,7 +17,7 @@ begin
 
   -- Replace PostgreSQL placeholders from right to left so $10 is not
   -- accidentally matched as $1. Values are quoted before insertion.
-  for index in reverse 1..jsonb_array_length(params) loop
+  for index in reverse jsonb_array_length(params)..1 loop
     rendered := replace(rendered, '$' || index::text,
       quote_nullable(params ->> (index - 1)));
   end loop;
