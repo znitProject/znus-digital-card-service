@@ -231,11 +231,16 @@ function requestUsesHttps(req) {
 }
 
 function sessionCookie(req, token, maxAge) {
-  return `znus_input_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${requestUsesHttps(req) ? '; Secure' : ''}`;
+  // The Codex in-app browser uses a partitioned browser context. A Lax-only
+  // cookie is not restored there after an authentication navigation, whereas
+  // a partitioned secure cookie works in both embedded and normal browsers.
+  const secure = requestUsesHttps(req);
+  return `znus_input_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Max-Age=${maxAge}${secure ? '; Secure; SameSite=None; Partitioned' : '; SameSite=Lax'}`;
 }
 
 function expiredCookie(req) {
-  return 'znus_input_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (requestUsesHttps(req) ? '; Secure' : '');
+  const secure = requestUsesHttps(req);
+  return 'znus_input_session=; Path=/; HttpOnly; Max-Age=0' + (secure ? '; Secure; SameSite=None; Partitioned' : '; SameSite=Lax');
 }
 
 function readJson(req, limit = 256 * 1024) {
