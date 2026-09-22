@@ -19,6 +19,28 @@
   </main>
 </div><script src="/media-cropper.js"></script><script>
 const $ = s => document.querySelector(s), state = {};
+function formatPhone(value){
+  const digits=value.replace(/\D/g,'').slice(0,11);
+  const prefix=digits.startsWith('02')?2:3;
+  if(digits.length<=prefix)return digits;
+  if(digits.length<=prefix+4)return digits.slice(0,prefix)+'-'+digits.slice(prefix);
+  const middle=digits.length-prefix>7?4:3;
+  return [digits.slice(0,prefix),digits.slice(prefix,prefix+middle),digits.slice(prefix+middle)].join('-');
+}
+const phoneInput=$('[name="mobilePhone"]');
+phoneInput.inputMode='tel';
+phoneInput.autocomplete='tel-national';
+phoneInput.addEventListener('input',()=>{
+  const position=phoneInput.selectionStart??phoneInput.value.length;
+  const digitsBefore=phoneInput.value.slice(0,position).replace(/\D/g,'').length;
+  phoneInput.value=formatPhone(phoneInput.value);
+  let caret=0,count=0;
+  while(caret<phoneInput.value.length&&count<digitsBefore){
+    if(/\d/.test(phoneInput.value[caret]))count++;
+    caret++;
+  }
+  phoneInput.setSelectionRange(caret,caret);
+});
 state.preparedMedia = {};
 document.querySelectorAll('.background-item input[type="file"]').forEach(input => input.addEventListener('change', async () => {
   const file = input.files?.[0];
