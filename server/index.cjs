@@ -220,12 +220,17 @@ function parseCookies(req) {
   }).filter(([key]) => key));
 }
 
-function sessionCookie(token, maxAge) {
-  return `znus_input_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secureCookies ? '; Secure' : ''}`;
+function requestUsesHttps(req) {
+  return secureCookies || String(req.headers['x-forwarded-proto'] || '')
+    .split(',').some(protocol => protocol.trim() === 'https');
 }
 
-function expiredCookie() {
-  return 'znus_input_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (secureCookies ? '; Secure' : '');
+function sessionCookie(req, token, maxAge) {
+  return `znus_input_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${requestUsesHttps(req) ? '; Secure' : ''}`;
+}
+
+function expiredCookie(req) {
+  return 'znus_input_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (requestUsesHttps(req) ? '; Secure' : '');
 }
 
 function readJson(req, limit = 256 * 1024) {
@@ -363,12 +368,12 @@ async function verifyOtp(req, res) {
   const rawSession = randomToken(32), maxAge = sessionHours * 60 * 60;
   await pool.query(`INSERT INTO input_sessions(id, token_hash, employee_id, expires_at) VALUES($1, $2, $3, now() + ($4 * interval '1 second'))`, [crypto.randomUUID(), hashToken(rawSession), employee.id, maxAge]);
   await pool.query(`INSERT INTO audit_logs(employee_id, action) VALUES($1, $2)`, [employee.id, 'INPUT_ACCESS_VERIFIED']);
-  json(res, 200, {employee: publicEmployee(employee)}, {'Set-Cookie': sessionCookie(rawSession, maxAge)});
+  json(res, 200, {employee: publicEmployee(employee)}, {'Set-Cookie': sessionCookie(req, rawSession, maxAge)});
 }
 
 async function saveEmployee(req, res) {
   const employee = await sessionEmployee(req);
-  if (!employee) return json(res, 401, {error: '입력 세션이 없거나 만료되었습니다.'}, {'Set-Cookie': expiredCookie()});
+  if (!employee) return json(res, 401, {error: '입력 세션이 없거나 만료되었습니다.'}, {'Set-Cookie': expiredCookie(req)});
   const input = validateCardInput(await readJson(req));
   const profileAsset = (await pool.query(`
     SELECT a.id
@@ -383,7 +388,7 @@ async function saveEmployee(req, res) {
     WHERE id=$9 AND status='ACTIVE' RETURNING *
   `, [input.nameKo, input.nameEn, input.department, input.jobTitleKo, input.jobTitleEn, input.mobilePhone, input.publicEmail, roleItems, employee.id])).rows[0];
   await pool.query(`INSERT INTO audit_logs(employee_id, action, metadata) VALUES($1, $2, $3::jsonb)`, [employee.id, 'EMPLOYEE_CARD_SAVED', JSON.stringify({published: true})]);
-  json(res, 200, {employee: publicEmployee(saved)}, {'Set-Cookie': expiredCookie()});
+  json(res, 200, {employee: publicEmployee(saved)}, {'Set-Cookie': expiredCookie(req)});
 }
 
 async function uploadMedia(req, res, slot) {
@@ -767,7 +772,7 @@ async function route(req, res) {
   }
   if (req.method === 'GET' && url.pathname === '/input') {
     const editMode = url.searchParams.get('edit') === '1';
-    return html(res, 200, viewHtml('input.html'), editMode ? {} : {'Set-Cookie': expiredCookie()});
+    return html(res, 200, viewHtml('input.html'), editMode ? {} : {'Set-Cookie': expiredCookie(req)});
   }
   if (req.method === 'GET' && url.pathname === '/input/complete') return html(res, 200, viewHtml('complete.html'));
   if (req.method === 'GET' && url.pathname === '/admin') return html(res, 200, viewHtml('admin.html'));
