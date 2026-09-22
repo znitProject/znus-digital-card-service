@@ -1280,7 +1280,8 @@ display:none;
     display: block;
     width: 100%;
     font-family: "pretendard", sans-serif;
-    font-size: clamp(92px, 64vw, 6.5em);
+    /* Scale from the card container so small previews never overflow. */
+    font-size: clamp(64px, 34cqw, 136px);
     line-height: .95;
     letter-spacing: -.065em;
     white-space: pre-line;
