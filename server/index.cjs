@@ -555,6 +555,11 @@ async function adminEmployees(req, res) {
 }
 
 async function withTransaction(work) {
+  // Each Supabase Data API RPC call runs atomically in PostgreSQL, but cannot
+  // issue explicit BEGIN/COMMIT statements from inside the RPC function.
+  // Keep the same query interface for admin mutations without sending
+  // unsupported transaction-control commands through the HTTP fallback.
+  if (useSupabaseHttpDatabase) return work(pool);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
