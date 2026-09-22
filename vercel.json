@@ -5,7 +5,6 @@
   ],
   "functions": {
     "api/index.cjs": {
-      "runtime": "nodejs20.x",
       "includeFiles": "**",
       "maxDuration": 60
     }
