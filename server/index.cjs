@@ -107,7 +107,9 @@ async function supabaseHttpQuery(text, values = []) {
       Authorization: `Bearer ${supabaseServiceRoleKey}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({query: String(text), params: values})
+    // The deployed RPC classifies statements with ltrim(), which only removes
+    // spaces. Strip JS template-literal newlines before sending every query.
+    body: JSON.stringify({query: String(text).trim(), params: values})
   });
   if (!response.ok) {
     const detail = await response.text();

@@ -22,8 +22,7 @@ begin
       quote_nullable(params ->> (index - 1)));
   end loop;
 
-  if lower(ltrim(rendered)) like 'select %'
-    or lower(ltrim(rendered)) like 'with %' then
+  if rendered ~* '^\s*(select|with)\s' then
     execute format('select coalesce(jsonb_agg(to_jsonb(row_data)), ''[]''::jsonb) from (%s) row_data', rendered)
       into result;
   elsif position('returning' in lower(rendered)) > 0 then
