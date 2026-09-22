@@ -35,6 +35,9 @@ const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '
 const supabaseStorageBucket = String(process.env.SUPABASE_STORAGE_BUCKET || 'znus-media').trim();
 const useSupabaseDatabase = production && Boolean(supabaseDatabaseUrl);
 const useSupabaseStorage = production && vercelRuntime && Boolean(supabaseUrl && supabaseServiceRoleKey);
+const supabaseDatabaseUrlForRuntime = useSupabaseDatabase && vercelRuntime
+  ? supabaseDatabaseUrl.replace(/(\.pooler\.supabase\.com):5432(?=\/)/, '$1:6543')
+  : supabaseDatabaseUrl;
 const cardDesignPath = path.join(root, 'cardDesign', '명함_디자인', 'index.html');
 const cardPageSlots = ['profile', 'role', 'contact', 'company', 'links'];
 const defaultBackgroundPages = ['role', 'contact', 'company', 'links'];
@@ -63,7 +66,7 @@ if (smtpHost && (!smtpUser || !smtpPassword)) {
 
 const dbPoolOptions = useSupabaseDatabase
   ? {
-      connectionString: supabaseDatabaseUrl,
+      connectionString: supabaseDatabaseUrlForRuntime,
       ssl: {rejectUnauthorized: false},
       connectionTimeoutMillis: 8000,
       keepAlive: true,
