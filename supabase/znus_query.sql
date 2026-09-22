@@ -23,9 +23,11 @@ begin
   end loop;
 
   if lower(ltrim(rendered)) like 'select %'
-    or lower(ltrim(rendered)) like 'with %'
-    or position('returning' in lower(rendered)) > 0 then
+    or lower(ltrim(rendered)) like 'with %' then
     execute format('select coalesce(jsonb_agg(to_jsonb(row_data)), ''[]''::jsonb) from (%s) row_data', rendered)
+      into result;
+  elsif position('returning' in lower(rendered)) > 0 then
+    execute format('with result_rows as (%s) select coalesce(jsonb_agg(to_jsonb(result_rows)), ''[]''::jsonb) from result_rows', rendered)
       into result;
   else
     execute rendered;
