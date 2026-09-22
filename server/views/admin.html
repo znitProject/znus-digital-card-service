@@ -153,7 +153,7 @@
           <option value="생성완료">생성 완료</option>
           <option value="입력완료">입력 완료</option>
           <option value="비활성">비활성</option>
-          <option value="삭제됨">삭제됨</option>
+          <option value="비공개">비공개</option>
           <option value="검토필요">검토 필요</option>
         </select>
         <button class="btn primary" id="refreshButton" type="button">새로고침</button>
@@ -346,34 +346,19 @@
           if (!response.ok) throw new Error(body.error || '상태 변경에 실패했습니다.');
           loadEmployees();
         };
-        const isDeleted = employee.status === '삭제됨';
         const visibilityButton = $('#visibilityButton');
         const deleteButton = $('#deleteButton');
-        if (isDeleted) {
-          visibilityButton.textContent = '삭제됨';
-          visibilityButton.disabled = true;
-          deleteButton.className = 'btn primary';
-          deleteButton.textContent = '복구';
-        } else {
-          visibilityButton.textContent = employee.status === '생성완료' ? '비공개로 전환' : '공개하기';
-        }
+        visibilityButton.textContent = employee.status === '생성완료' ? '비공개로 전환' : '공개하기';
         visibilityButton.addEventListener('click', () => {
-          if (isDeleted) return;
           changeState(employee.status === '생성완료' ? 'private' : 'publish')
             .catch((error) => showError(error.message));
         });
-        if (isDeleted) {
-          deleteButton.addEventListener('click', () => {
-            changeState('recover').catch((error) => showError(error.message));
-          });
-        } else {
-          deleteButton.addEventListener('click', () => {
-            if (!window.confirm('이 직원의 명함을 삭제할까요? 삭제 후에는 복구 메뉴에서만 되돌릴 수 있습니다.')) return;
-            fetch('/api/admin/employees/' + encodeURIComponent(employee.employeeId), {method:'DELETE', headers:{'x-admin-key':adminKey}})
-              .then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || '삭제에 실패했습니다.'); loadEmployees(); })
-              .catch((error) => showError(error.message));
-          });
-        }
+        deleteButton.addEventListener('click', () => {
+          if (!window.confirm('이 직원의 명함과 업로드한 미디어를 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+          fetch('/api/admin/employees/' + encodeURIComponent(employee.employeeId), {method:'DELETE', headers:{'x-admin-key':adminKey}})
+            .then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || '영구 삭제에 실패했습니다.'); loadEmployees(); })
+            .catch((error) => showError(error.message));
+        });
       }
 
       function selectEmployee(employeeId) {

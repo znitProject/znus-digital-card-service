@@ -205,6 +205,20 @@ async function deleteSupabaseObject(storageKey) {
   } catch (_) { /* 데이터 정리를 위한 부가 작업이므로 원래 요청은 계속 처리합니다. */ }
 }
 
+async function deleteEmployeeMedia(storageKey) {
+  if (useSupabaseStorage) {
+    const response = await fetch(`${supabaseUrl}/storage/v1/object/${encodeURIComponent(supabaseStorageBucket)}/${supabaseStoragePath(storageKey)}`, {
+      method: 'DELETE',
+      headers: {apikey: supabaseServiceRoleKey, Authorization: `Bearer ${supabaseServiceRoleKey}`}
+    });
+    if (!response.ok && response.status !== 404) throw new Error(`미디어 삭제 실패 (${response.status})`);
+    return;
+  }
+  const absolute = path.resolve(dataDir, String(storageKey));
+  if (!absolute.startsWith(path.resolve(dataDir) + path.sep)) return;
+  try { fs.unlinkSync(absolute); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+
 function html(res, status, body, headers = {}) {
   res.writeHead(status, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', ...headers});
   res.end(body);
@@ -623,7 +637,9 @@ async function adminEmployees(req, res) {
     return {employeeId: row.id, name: row.name_ko, nameEn: row.name_en, department: row.department,
       position: row.job_title_ko, positionEn: row.job_title_en, phone: row.mobile_phone, email: row.public_email,
       accountEmail: row.company_email, mobileUrl: row.status === 'ACTIVE' && row.published ? publicCardPath(row.public_token) : '',
-      status: row.status === 'DELETED' ? '삭제됨' : (row.status === 'INACTIVE' ? '비활성' : (row.published ? '생성완료' : '입력완료')), missingFields: [], errorMessage: '', updatedAt: row.updated_at,
+      // 이전 버전의 DELETED 레코드는 실제 데이터가 남아 있는 비공개 처리였다.
+      // 관리자 화면에서는 새 정책에 맞춰 비공개로 표시하고 다시 공개할 수 있게 한다.
+      status: row.status === 'DELETED' ? '비공개' : (row.status === 'INACTIVE' ? '비활성' : (row.published ? '생성완료' : (row.name_ko ? '비공개' : '입력완료'))), missingFields: [], errorMessage: '', updatedAt: row.updated_at,
       roles: (roles.ko || []).map((ko, index) => ({ko, en: (roles.en || [])[index] || ''})), backgrounds: backgroundMap.get(row.id) || []};
   }));
 }
@@ -656,11 +672,14 @@ async function adminEmployeeAction(req, res, id) {
   if (!row) return json(res, 404, {error: '직원을 찾을 수 없습니다.'});
   const changes = {publish: {status: 'ACTIVE', published: true}, private: {status: 'ACTIVE', published: false}, enable: {status: 'ACTIVE', published: row.published}, disable: {status: 'INACTIVE', published: false}, recover: {status: 'ACTIVE', published: false}}[action];
   if (action === 'delete') {
+    const assets = (await pool.query(`SELECT storage_key FROM media_assets WHERE employee_id=$1`, [id])).rows;
+    // 영구 삭제는 DB 레코드를 없애기 전에 원본 파일부터 제거한다.
+    await Promise.all(assets.map(asset => deleteEmployeeMedia(asset.storage_key)));
     await withTransaction(async (client) => {
       await client.query(`INSERT INTO deleted_tokens(public_token) VALUES($1) ON CONFLICT DO NOTHING`, [row.public_token]);
-      await client.query(`UPDATE employees SET status='DELETED', published=false, updated_at=now() WHERE id=$1`, [id]);
-      await client.query(`DELETE FROM input_sessions WHERE employee_id=$1`, [id]);
-      await client.query(`INSERT INTO audit_logs(employee_id, action) VALUES($1, 'EMPLOYEE_DELETED')`, [id]);
+      await client.query(`INSERT INTO audit_logs(employee_id, action, metadata) VALUES($1, 'EMPLOYEE_HARD_DELETED', $2::jsonb)`, [id, JSON.stringify({mediaCount: assets.length})]);
+      // FK cascade removes sessions, OTPs, page-background records, and media rows.
+      await client.query(`DELETE FROM employees WHERE id=$1`, [id]);
     });
   } else if (action === 'recover') {
     await withTransaction(async (client) => {
