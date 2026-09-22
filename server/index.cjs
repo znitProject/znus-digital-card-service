@@ -34,7 +34,8 @@ const supabaseDatabaseUrl = String(process.env.SUPABASE_DATABASE_URL || '').trim
 const supabaseUrl = String(process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
 const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const supabaseStorageBucket = String(process.env.SUPABASE_STORAGE_BUCKET || 'znus-media').trim();
-const useSupabaseDatabase = production && Boolean(supabaseDatabaseUrl);
+const useSupabaseHttpDatabase = production && vercelRuntime && Boolean(supabaseUrl && supabaseServiceRoleKey);
+const useSupabaseDatabase = production && Boolean(supabaseDatabaseUrl) && !useSupabaseHttpDatabase;
 const useSupabaseStorage = production && vercelRuntime && Boolean(supabaseUrl && supabaseServiceRoleKey);
 const supabaseDatabaseUrlForRuntime = useSupabaseDatabase && vercelRuntime
   ? supabaseDatabaseUrl.replace(/(\.pooler\.supabase\.com):5432(?=\/)/, '$1:6543')
@@ -58,7 +59,7 @@ const cardPageInfo = {
   links: {title: '링크 페이지', description: '공유 링크와 QR 코드가 표시되는 마지막 화면입니다.'}
 };
 
-if (production && !process.env.DB_PASSWORD && !useSupabaseDatabase) throw new Error('DB_PASSWORD or SUPABASE_DATABASE_URL is required in production.');
+if (production && !process.env.DB_PASSWORD && !useSupabaseDatabase && !useSupabaseHttpDatabase) throw new Error('DB_PASSWORD, SUPABASE_DATABASE_URL, or Supabase HTTP credentials are required in production.');
 if (production && !allowedDomains.length) throw new Error('ALLOWED_EMAIL_DOMAINS is required in production.');
 if (production && !process.env.SMTP_HOST) throw new Error('SMTP_HOST is required in production.');
 if (smtpHost && (!smtpUser || !smtpPassword)) {
@@ -92,6 +93,24 @@ function createDbPool() {
   return pool;
 }
 
+async function supabaseHttpQuery(text, values = []) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/znus_query`, {
+    method: 'POST',
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({query: String(text), params: values})
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Supabase Data API query failed (${response.status}): ${detail.slice(0, 300)}`);
+  }
+  const payload = await response.json();
+  return {rows: Array.isArray(payload) ? payload : []};
+}
+
 let activePool = createDbPool();
 
 function isRetryableDbError(error) {
@@ -119,10 +138,15 @@ async function withDbRetry(operation) {
   }
 }
 
-const pool = {
-  query: (...args) => withDbRetry(() => activePool.query(...args)),
-  connect: (...args) => withDbRetry(() => activePool.connect(...args))
-};
+const pool = useSupabaseHttpDatabase
+  ? {
+      query: (text, values) => supabaseHttpQuery(text, values),
+      connect: async () => ({query: (text, values) => supabaseHttpQuery(text, values), release() {}})
+    }
+  : {
+      query: (...args) => withDbRetry(() => activePool.query(...args)),
+      connect: (...args) => withDbRetry(() => activePool.connect(...args))
+    };
 
 function viewHtml(name) {
   return fs.readFileSync(path.join(views, name), 'utf8');
