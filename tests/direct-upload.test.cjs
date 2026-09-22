@@ -94,3 +94,42 @@ test('large direct upload is verified before attaching to a card; retries are id
   assert.equal((await request('/api/input/media/prepare?slot=profile', {mime: 'video/mp4', size: 31 * 1024 * 1024})).status, 400);
   assert.equal((await request('/api/input/media/prepare?slot=profile', {mime: 'text/html', size: 100})).status, 400);
 });
+
+test('admin default backgrounds use the same direct upload path', async () => {
+  const filename = path.resolve(__dirname, '../server/index.cjs');
+  const localRequire = createRequire(filename);
+  const queries = [];
+  const sandbox = {
+    module: {exports: {}}, __dirname: path.dirname(filename), console, URL, URLSearchParams, Buffer,
+    process: {env: {VERCEL: '1', SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test-only', ADMIN_ACCESS_KEY: 'admin-test'}},
+    require(name) {
+      if (name === 'pg') return {Pool: class {}};
+      if (name === '@vercel/functions') return {attachDatabasePool() {}};
+      return localRequire(name);
+    },
+    async fetch(url, options) {
+      if (url.endsWith('/rpc/znus_query')) {
+        const {query} = JSON.parse(options.body);
+        queries.push(query);
+        return {ok: true, json: async () => []};
+      }
+      if (options.method === 'HEAD') return {ok: true, headers: new Map([['content-length', '6291456'], ['content-type', 'video/mp4']])};
+      return {ok: true, json: async () => ({url: url.split('/storage/v1')[1] + '?token=default-scoped-test-token'})};
+    }
+  };
+  vm.runInNewContext(fs.readFileSync(filename, 'utf8'), sandbox, {filename});
+  async function request(endpoint, body) {
+    const req = Readable.from([JSON.stringify(body)]);
+    Object.assign(req, {method: 'POST', url: endpoint, headers: {host: 'example.invalid', 'x-admin-key': 'admin-test'}});
+    let status, payload;
+    await sandbox.module.exports(req, {writeHead(code) {status = code;}, end(body) {payload = JSON.parse(body);}});
+    return {status, payload};
+  }
+  const prepared = await request('/api/admin/default-backgrounds/prepare?page=company', {name: 'company.mp4', mime: 'video/mp4', size: 6291456});
+  assert.equal(prepared.status, 200);
+  assert.equal(prepared.payload.direct, true);
+  assert.ok(prepared.payload.uploadUrl.includes('/object/upload/sign/'));
+  assert.equal((await request('/api/admin/default-backgrounds/complete?page=company', {ticket: prepared.payload.ticket})).status, 201);
+  assert.ok(queries.some(query => query.includes('card_page_default_backgrounds')));
+  assert.equal((await request('/api/admin/default-backgrounds/prepare?page=profile', {mime: 'video/mp4', size: 100})).status, 400);
+});

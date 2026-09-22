@@ -709,6 +709,52 @@ async function adminDefaultBackgrounds(req, res) {
   }])));
 }
 
+async function directDefaultBackgroundUpload(req, res, page, complete) {
+  if (!adminAccessKey || req.headers['x-admin-key'] !== adminAccessKey) return json(res, 401, {error: '관리자 인증이 필요합니다.'});
+  if (!defaultBackgroundPages.includes(page)) return json(res, 400, {error: '프로필은 기본 배경을 사용할 수 없습니다.'});
+  if (!useSupabaseStorage) return json(res, 200, {direct: false});
+  const input = await readJson(req);
+  const storageHeaders = {apikey: supabaseServiceRoleKey, Authorization: 'Bearer ' + supabaseServiceRoleKey};
+  if (!complete) {
+    const mime = String(input.mime || '').toLowerCase();
+    const extensions = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4'};
+    if (!extensions[mime]) return json(res, 400, {error: 'JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.'});
+    if (!Number.isSafeInteger(input.size) || input.size <= 0 || input.size > 30 * 1024 * 1024) return json(res, 400, {error: '파일은 0바이트보다 크고 30MB 이하이어야 합니다.'});
+    const id = crypto.randomUUID();
+    const key = 'defaults/' + id + '.' + extensions[mime];
+    const data = {
+      id, key, employeeId: 'default-background', page, mime, size: input.size,
+      name: String(input.name || page + '.' + extensions[mime]).slice(0, 255),
+      kind: mime === 'video/mp4' ? 'VIDEO' : 'IMAGE',
+      x: cropValue(input.cropX, 50, 0, 100), y: cropValue(input.cropY, 50, 0, 100),
+      scale: cropValue(input.cropScale, 1, 1, 2), expires: Date.now() + 2 * 60 * 60 * 1000
+    };
+    const signed = await fetch(supabaseUrl + '/storage/v1/object/upload/sign/' + encodeURIComponent(supabaseStorageBucket) + '/' + supabaseStoragePath(key), {
+      method: 'POST', headers: {...storageHeaders, 'Content-Type': 'application/json'}, body: '{}'
+    });
+    if (!signed.ok) return json(res, 502, {error: '파일 업로드 주소를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.'});
+    const result = await signed.json();
+    const uploadUrl = new URL(supabaseUrl + '/storage/v1' + result.url);
+    if (uploadUrl.origin !== new URL(supabaseUrl).origin || !uploadUrl.searchParams.has('token')) throw new Error('파일 업로드 주소가 올바르지 않습니다.');
+    return json(res, 200, {direct: true, uploadUrl: uploadUrl.href, ticket: signUpload(data, supabaseServiceRoleKey)}, {'Cache-Control': 'no-store'});
+  }
+  const data = verifyUpload(input.ticket, supabaseServiceRoleKey, 'default-background');
+  if (data.page !== page) return json(res, 400, {error: '업로드 페이지가 일치하지 않습니다.'});
+  const uploaded = await fetch(supabaseUrl + '/storage/v1/object/authenticated/' + encodeURIComponent(supabaseStorageBucket) + '/' + supabaseStoragePath(data.key), {method: 'HEAD', headers: storageHeaders});
+  if (!uploaded.ok) return json(res, 400, {error: '파일 전송이 완료되지 않았습니다. 다시 저장해 주세요.'});
+  const size = Number(uploaded.headers.get('content-length'));
+  const mime = String(uploaded.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (size !== data.size || size > 30 * 1024 * 1024 || mime !== data.mime) return json(res, 400, {error: '업로드된 파일 크기 또는 형식이 일치하지 않습니다.'});
+  const old = (await pool.query('SELECT d.media_asset_id, a.storage_key FROM card_page_default_backgrounds d JOIN media_assets a ON a.id=d.media_asset_id WHERE d.page=$1', [page])).rows[0];
+  await withTransaction(async client => {
+    await client.query('INSERT INTO media_assets(id, employee_id, slot, kind, storage_key, original_name, mime_type, size_bytes) VALUES($1,NULL,$2,$3,$4,$5,$6,$7)', [data.id, page, data.kind, data.key, data.name, data.mime, size]);
+    await client.query('INSERT INTO card_page_default_backgrounds(id, page, media_asset_id, crop_x, crop_y, crop_scale) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT (page) DO UPDATE SET media_asset_id=EXCLUDED.media_asset_id, crop_x=EXCLUDED.crop_x, crop_y=EXCLUDED.crop_y, crop_scale=EXCLUDED.crop_scale, created_at=now()', [crypto.randomUUID(), page, data.id, data.x, data.y, data.scale]);
+    if (old) await client.query('DELETE FROM media_assets WHERE id=$1', [old.media_asset_id]);
+  });
+  if (old?.storage_key) await deleteSupabaseObject(old.storage_key);
+  return json(res, 201, {page, assetId: data.id, url: '/media/' + data.id, kind: data.kind});
+}
+
 async function uploadDefaultBackground(req, res, page) {
   if (!adminAccessKey || req.headers['x-admin-key'] !== adminAccessKey) return json(res, 401, {error: '관리자 인증이 필요합니다.'});
   if (!defaultBackgroundPages.includes(page)) return json(res, 400, {error: '프로필은 기본 배경을 사용할 수 없습니다.'});
@@ -883,6 +929,8 @@ async function route(req, res) {
   if ((req.method === 'PATCH' || req.method === 'DELETE') && /^\/api\/admin\/employees\/[0-9a-f-]{36}$/i.test(url.pathname)) return adminEmployeeAction(req, res, url.pathname.split('/').pop());
   if (req.method === 'GET' && url.pathname === '/api/admin/default-backgrounds') return adminDefaultBackgrounds(req, res);
   if (req.method === 'POST' && url.pathname === '/api/admin/default-backgrounds') return uploadDefaultBackground(req, res, url.searchParams.get('page'));
+  if (req.method === 'POST' && url.pathname === '/api/admin/default-backgrounds/prepare') return directDefaultBackgroundUpload(req, res, url.searchParams.get('page'), false);
+  if (req.method === 'POST' && url.pathname === '/api/admin/default-backgrounds/complete') return directDefaultBackgroundUpload(req, res, url.searchParams.get('page'), true);
   if ((req.method === 'GET' || req.method === 'PUT') && url.pathname === '/api/admin/company') return companySettings(req, res);
   if (req.method === 'GET' && /^\/media\/[0-9a-f-]{36}$/i.test(url.pathname)) return serveMedia(req, res, url.pathname.split('/').pop());
   if (req.method === 'GET' && /^\/assets\/[A-Za-z0-9_.-]+$/.test(url.pathname)) return serveAsset(req, res, url.pathname.split('/').pop());

@@ -420,6 +420,37 @@
       let refreshInFlight = false;
       const companyFields = ['companyName','companyWebsite','companyPhone','companyFax','officeAddress','sloganLine1','sloganLine2','sloganLine3'];
       const defaultBackgroundPages = ['role','contact','company','links'];
+      async function readUploadResponse(response) {
+        const text = await response.text();
+        let body;
+        try { body = JSON.parse(text); } catch (_) {}
+        if (!response.ok) {
+          if (response.status === 413) throw new Error('파일 용량이 업로드 허용 범위를 초과했습니다. 파일은 30MB 이하로 선택해 주세요.');
+          throw new Error(body?.error || body?.message || ('파일을 저장하지 못했습니다. (HTTP ' + response.status + ')'));
+        }
+        if (!body) throw new Error('서버 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        return body;
+      }
+      async function uploadDefaultBackgroundDirect(page, file, prepared) {
+        if (file.size > 30 * 1024 * 1024) throw new Error('파일은 30MB 이하만 업로드할 수 있습니다.');
+        const metadata = {name:file.name, mime:file.type, size:file.size, cropX:prepared?.x ?? 50, cropY:prepared?.y ?? 50, cropScale:prepared?.scale ?? 1};
+        const headers = {'Content-Type':'application/json', 'x-admin-key':adminKey};
+        const plan = await readUploadResponse(await fetch('/api/admin/default-backgrounds/prepare?page=' + encodeURIComponent(page), {method:'POST', headers, body:JSON.stringify(metadata)}));
+        if (plan.direct) {
+          const formData = new FormData();
+          formData.append('cacheControl', '3600');
+          formData.append('', file);
+          await readUploadResponse(await fetch(plan.uploadUrl, {method:'PUT', credentials:'omit', body:formData}));
+          await readUploadResponse(await fetch('/api/admin/default-backgrounds/complete?page=' + encodeURIComponent(page), {method:'POST', headers, body:JSON.stringify({ticket:plan.ticket})}));
+          return;
+        }
+        const formData = new FormData();
+        formData.append('cropX', String(metadata.cropX));
+        formData.append('cropY', String(metadata.cropY));
+        formData.append('cropScale', String(metadata.cropScale));
+        formData.append('file', file);
+        await readUploadResponse(await fetch('/api/admin/default-backgrounds?page=' + encodeURIComponent(page), {method:'POST', headers:{'x-admin-key':adminKey}, body:formData}));
+      }
       document.querySelectorAll('[data-default-background]').forEach((input) => input.addEventListener('change', async () => {
         const file = input.files?.[0];
         if (!file) return;
@@ -521,14 +552,8 @@
             const prepared = state.defaultPrepared[page];
             const file = prepared?.file || input?.files?.[0];
             if (!file) continue;
-            const formData = new FormData();
-            formData.append('cropX', String(prepared?.x ?? 50));
-            formData.append('cropY', String(prepared?.y ?? 50));
-            formData.append('cropScale', String(prepared?.scale ?? 1));
-            formData.append('file', file);
-            const upload = await fetch('/api/admin/default-backgrounds?page=' + encodeURIComponent(page), {method:'POST', headers:{'x-admin-key':adminKey}, body:formData});
-            const uploadBody = await upload.json().catch(() => ({}));
-            if (!upload.ok) throw new Error(uploadBody.error || page + ' 기본 배경을 저장하지 못했습니다.');
+            showSettingsMessage(page + ' 기본 배경 업로드 중...');
+            await uploadDefaultBackgroundDirect(page, file, prepared);
             input.value = '';
             delete state.defaultPrepared[page];
           }
