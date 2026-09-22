@@ -1,4 +1,5 @@
 const http = require('node:http');
+const dns = require('node:dns');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -37,6 +38,12 @@ const useSupabaseStorage = production && vercelRuntime && Boolean(supabaseUrl &&
 const cardDesignPath = path.join(root, 'cardDesign', '명함_디자인', 'index.html');
 const cardPageSlots = ['profile', 'role', 'contact', 'company', 'links'];
 const defaultBackgroundPages = ['role', 'contact', 'company', 'links'];
+
+// Vercel's serverless runtime can prefer an IPv6 DNS result even when the
+// Supabase Session Pooler endpoint is intended for IPv4 clients.
+if (useSupabaseDatabase && typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 const publicTokenPattern = /^[A-Za-z0-9_-]{12,30}$/;
 const publicCardPath = token => `/${token}`;
 const cardPageInfo = {
