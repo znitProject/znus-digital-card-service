@@ -211,7 +211,6 @@ async function requestOtp(req, res) {
   await pool.query(`INSERT INTO otp_challenges(id, email, code_hash, expires_at) VALUES($1, $2, $3, now() + ($4 * interval '1 minute'))`, [crypto.randomUUID(), email, hashToken(code), otpMinutes]);
   await sendOtp(email, code);
   const body = {message: '인증번호를 입력한 이메일로 보냈습니다.'};
-  if (!production && process.env.DEV_RETURN_OTP === 'true') body.debugCode = code;
   json(res, 200, body);
 }
 
