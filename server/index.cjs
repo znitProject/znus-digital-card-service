@@ -2,8 +2,9 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const os = require('node:os');
 const { createReadStream, createWriteStream } = require('node:fs');
-const { mkdir, stat } = require('node:fs/promises');
+const { mkdir, stat, readFile } = require('node:fs/promises');
 const { pipeline } = require('node:stream/promises');
 const Busboy = require('busboy');
 const { Pool } = require('pg');
@@ -15,6 +16,7 @@ const {
 const root = path.resolve(__dirname, '..');
 const views = path.join(__dirname, 'views');
 const production = process.env.NODE_ENV === 'production';
+const vercelRuntime = process.env.VERCEL === '1';
 const port = Number(process.env.PORT || 4173);
 const sessionHours = Number(process.env.INPUT_SESSION_HOURS || 24);
 const otpMinutes = Number(process.env.OTP_EXPIRES_MINUTES || 10);
@@ -26,6 +28,12 @@ const smtpUser = String(process.env.SMTP_USER || '').trim();
 const smtpPassword = String(process.env.SMTP_PASSWORD || '');
 const smtpFrom = String(process.env.SMTP_FROM || smtpUser).trim();
 const dataDir = path.resolve(process.env.DATA_DIR || path.join(root, '.data'));
+const supabaseDatabaseUrl = String(process.env.SUPABASE_DATABASE_URL || '').trim();
+const supabaseUrl = String(process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const supabaseStorageBucket = String(process.env.SUPABASE_STORAGE_BUCKET || 'znus-media').trim();
+const useSupabaseDatabase = production && Boolean(supabaseDatabaseUrl);
+const useSupabaseStorage = production && vercelRuntime && Boolean(supabaseUrl && supabaseServiceRoleKey);
 const cardDesignPath = path.join(root, 'cardDesign', '명함_디자인', 'index.html');
 const cardPageSlots = ['profile', 'role', 'contact', 'company', 'links'];
 const defaultBackgroundPages = ['role', 'contact', 'company', 'links'];
@@ -39,22 +47,30 @@ const cardPageInfo = {
   links: {title: '링크 페이지', description: '공유 링크와 QR 코드가 표시되는 마지막 화면입니다.'}
 };
 
-if (production && !process.env.DB_PASSWORD) throw new Error('DB_PASSWORD is required in production.');
+if (production && !process.env.DB_PASSWORD && !useSupabaseDatabase) throw new Error('DB_PASSWORD or SUPABASE_DATABASE_URL is required in production.');
 if (production && !allowedDomains.length) throw new Error('ALLOWED_EMAIL_DOMAINS is required in production.');
 if (production && !process.env.SMTP_HOST) throw new Error('SMTP_HOST is required in production.');
 if (smtpHost && (!smtpUser || !smtpPassword)) {
   throw new Error('SMTP_USER and SMTP_PASSWORD are required when SMTP_HOST is configured.');
 }
 
-const pool = new Pool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || 5432),
-  database: process.env.DB_NAME || 'znus_cards',
-  user: process.env.DB_USER || 'znus',
-  password: process.env.DB_PASSWORD,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-  max: Number(process.env.DB_POOL_MAX || 10)
-});
+const pool = new Pool(useSupabaseDatabase
+  ? {
+      connectionString: supabaseDatabaseUrl,
+      ssl: {rejectUnauthorized: false},
+      connectionTimeoutMillis: 8000,
+      max: Number(process.env.DB_POOL_MAX || 5)
+    }
+  : {
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: Number(process.env.DB_PORT || 5432),
+      database: process.env.DB_NAME || 'znus_cards',
+      user: process.env.DB_USER || 'znus',
+      password: process.env.DB_PASSWORD,
+      ssl: process.env.DB_SSL === 'true' ? {rejectUnauthorized: false} : undefined,
+      connectionTimeoutMillis: 8000,
+      max: Number(process.env.DB_POOL_MAX || 10)
+    });
 
 function viewHtml(name) {
   return fs.readFileSync(path.join(views, name), 'utf8');
@@ -64,6 +80,39 @@ function json(res, status, body, headers = {}) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', ...headers});
   res.end(payload);
+}
+
+function supabaseStoragePath(storageKey) {
+  return String(storageKey).split('/').map(encodeURIComponent).join('/');
+}
+
+function supabaseObjectUrl(storageKey) {
+  return `${supabaseUrl}/storage/v1/object/public/${encodeURIComponent(supabaseStorageBucket)}/${supabaseStoragePath(storageKey)}`;
+}
+
+async function uploadSupabaseObject(storageKey, body, mimeType) {
+  if (!useSupabaseStorage) throw new Error('Vercel Supabase Storage 환경변수가 설정되지 않았습니다.');
+  const response = await fetch(`${supabaseUrl}/storage/v1/object/${encodeURIComponent(supabaseStorageBucket)}/${supabaseStoragePath(storageKey)}`, {
+    method: 'POST',
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      'Content-Type': mimeType,
+      'x-upsert': 'true'
+    },
+    body
+  });
+  if (!response.ok) throw new Error(`Supabase Storage 업로드 실패 (${response.status})`);
+}
+
+async function deleteSupabaseObject(storageKey) {
+  if (!useSupabaseStorage) return;
+  try {
+    await fetch(`${supabaseUrl}/storage/v1/object/${encodeURIComponent(supabaseStorageBucket)}/${supabaseStoragePath(storageKey)}`, {
+      method: 'DELETE',
+      headers: {apikey: supabaseServiceRoleKey, Authorization: `Bearer ${supabaseServiceRoleKey}`}
+    });
+  } catch (_) { /* 데이터 정리를 위한 부가 작업이므로 원래 요청은 계속 처리합니다. */ }
 }
 
 function html(res, status, body, headers = {}) {
@@ -260,10 +309,12 @@ async function uploadMedia(req, res, slot) {
   if (!employee) return json(res, 401, {error: '입력 세션이 없거나 만료되었습니다.'});
   if (!['profile', 'role', 'contact', 'company', 'links'].includes(slot)) return json(res, 400, {error: '업로드 슬롯이 올바르지 않습니다.'});
   if (!String(req.headers['content-type'] || '').startsWith('multipart/form-data')) return json(res, 415, {error: 'multipart/form-data 업로드가 필요합니다.'});
-  await mkdir(path.join(dataDir, 'uploads', employee.id), {recursive: true});
+  if (vercelRuntime && !useSupabaseStorage) throw new Error('Vercel Supabase Storage 환경변수가 설정되지 않았습니다.');
+  const uploadDataDir = useSupabaseStorage ? path.join(os.tmpdir(), 'znus-card-service') : dataDir;
+  await mkdir(path.join(uploadDataDir, 'uploads', employee.id), {recursive: true});
   const upload = await new Promise((resolve, reject) => {
     const bb = Busboy({headers: req.headers, limits: {files: 1, fileSize: 30 * 1024 * 1024}});
-    let result = null, writePromise = null, tooLarge = false;
+    let result = null, writePromise = null, tooLarge = false, uploadedToSupabase = false;
     const crop = {x: 50, y: 50, scale: 1};
     bb.on('field', (name, value) => {
       if (name === 'cropX') crop.x = cropValue(value, 50, 0, 100);
@@ -277,7 +328,7 @@ async function uploadMedia(req, res, slot) {
       if (!image && !video) { file.resume(); reject(new Error('JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.')); return; }
       const extension = image ? mime.split('/')[1].replace('jpeg', 'jpg') : 'mp4';
       const relative = path.join('uploads', employee.id, `${crypto.randomUUID()}.${extension}`);
-      const absolute = path.join(dataDir, relative);
+      const absolute = path.join(uploadDataDir, relative);
       result = {relative: relative.replaceAll(path.sep, '/'), absolute, mime, kind: image ? 'IMAGE' : 'VIDEO', name: info.filename || `${slot}.${extension}`};
       file.on('limit', () => {tooLarge = true;});
       writePromise = pipeline(file, createWriteStream(absolute));
@@ -287,8 +338,13 @@ async function uploadMedia(req, res, slot) {
         if (writePromise) await writePromise;
         if (tooLarge) throw new Error('파일은 30MB 이하만 업로드할 수 있습니다.');
         if (!result) throw new Error('업로드 파일이 없습니다.');
+        const sizeBytes = (await stat(result.absolute)).size;
+        if (useSupabaseStorage) {
+          await uploadSupabaseObject(result.relative, await readFile(result.absolute), result.mime);
+          uploadedToSupabase = true;
+        }
         const assetId = crypto.randomUUID();
-        const asset = (await pool.query(`INSERT INTO media_assets(id, employee_id, slot, kind, storage_key, original_name, mime_type, size_bytes) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [assetId, employee.id, slot, result.kind, result.relative, result.name, result.mime, (await stat(result.absolute)).size])).rows[0];
+        const asset = (await pool.query(`INSERT INTO media_assets(id, employee_id, slot, kind, storage_key, original_name, mime_type, size_bytes) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [assetId, employee.id, slot, result.kind, result.relative, result.name, result.mime, sizeBytes])).rows[0];
         if (cardPageSlots.includes(slot)) {
           await pool.query(`
             INSERT INTO card_page_backgrounds(id, employee_id, page, media_asset_id, crop_x, crop_y, crop_scale)
@@ -298,7 +354,11 @@ async function uploadMedia(req, res, slot) {
           `, [crypto.randomUUID(), employee.id, slot, asset.id, crop.x, crop.y, crop.scale]);
         }
         resolve({assetId: asset.id, url: `/media/${asset.id}`, kind: result.kind});
-      } catch (error) { if (result) try { require('node:fs').unlinkSync(result.absolute); } catch (_) {} reject(error); }
+      } catch (error) {
+        if (uploadedToSupabase && result) await deleteSupabaseObject(result.relative);
+        if (result) try { require('node:fs').unlinkSync(result.absolute); } catch (_) {}
+        reject(error);
+      }
     });
     bb.on('error', reject);
     req.pipe(bb);
@@ -486,10 +546,12 @@ async function uploadDefaultBackground(req, res, page) {
   if (!adminAccessKey || req.headers['x-admin-key'] !== adminAccessKey) return json(res, 401, {error: '관리자 인증이 필요합니다.'});
   if (!defaultBackgroundPages.includes(page)) return json(res, 400, {error: '프로필은 기본 배경을 사용할 수 없습니다.'});
   if (!String(req.headers['content-type'] || '').startsWith('multipart/form-data')) return json(res, 415, {error: 'multipart/form-data 업로드가 필요합니다.'});
-  await mkdir(path.join(dataDir, 'defaults'), {recursive: true});
+  if (vercelRuntime && !useSupabaseStorage) throw new Error('Vercel Supabase Storage 환경변수가 설정되지 않았습니다.');
+  const uploadDataDir = useSupabaseStorage ? path.join(os.tmpdir(), 'znus-card-service') : dataDir;
+  await mkdir(path.join(uploadDataDir, 'defaults'), {recursive: true});
   const upload = await new Promise((resolve, reject) => {
     const bb = Busboy({headers: req.headers, limits: {files: 1, fileSize: 30 * 1024 * 1024}});
-    let result = null, writePromise = null, tooLarge = false;
+    let result = null, writePromise = null, tooLarge = false, uploadedToSupabase = false;
     const crop = {x: 50, y: 50, scale: 1};
     bb.on('field', (name, value) => {
       if (name === 'cropX') crop.x = cropValue(value, 50, 0, 100);
@@ -503,7 +565,7 @@ async function uploadDefaultBackground(req, res, page) {
       if (!image && !video) { file.resume(); reject(new Error('JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.')); return; }
       const extension = image ? mime.split('/')[1].replace('jpeg', 'jpg') : 'mp4';
       const relative = path.join('defaults', crypto.randomUUID() + '.' + extension);
-      const absolute = path.join(dataDir, relative);
+      const absolute = path.join(uploadDataDir, relative);
       result = {relative: relative.replaceAll(path.sep, '/'), absolute, mime, kind: image ? 'IMAGE' : 'VIDEO', name: info.filename || page + '.' + extension};
       file.on('limit', () => {tooLarge = true;});
       writePromise = pipeline(file, createWriteStream(absolute));
@@ -513,16 +575,28 @@ async function uploadDefaultBackground(req, res, page) {
         if (writePromise) await writePromise;
         if (tooLarge) throw new Error('파일은 30MB 이하만 업로드할 수 있습니다.');
         if (!result) throw new Error('업로드 파일이 없습니다.');
+        const sizeBytes = (await stat(result.absolute)).size;
+        if (useSupabaseStorage) {
+          await uploadSupabaseObject(result.relative, await readFile(result.absolute), result.mime);
+          uploadedToSupabase = true;
+        }
         const assetId = crypto.randomUUID();
         const old = (await pool.query(`SELECT d.media_asset_id, a.storage_key FROM card_page_default_backgrounds d JOIN media_assets a ON a.id=d.media_asset_id WHERE d.page=$1`, [page])).rows[0];
         await withTransaction(async (client) => {
-          await client.query(`INSERT INTO media_assets(id, employee_id, slot, kind, storage_key, original_name, mime_type, size_bytes) VALUES($1,NULL,$2,$3,$4,$5,$6,$7)`, [assetId, page, result.kind, result.relative, result.name, result.mime, (await stat(result.absolute)).size]);
+          await client.query(`INSERT INTO media_assets(id, employee_id, slot, kind, storage_key, original_name, mime_type, size_bytes) VALUES($1,NULL,$2,$3,$4,$5,$6,$7)`, [assetId, page, result.kind, result.relative, result.name, result.mime, sizeBytes]);
           await client.query(`INSERT INTO card_page_default_backgrounds(id, page, media_asset_id, crop_x, crop_y, crop_scale) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT (page) DO UPDATE SET media_asset_id=EXCLUDED.media_asset_id, crop_x=EXCLUDED.crop_x, crop_y=EXCLUDED.crop_y, crop_scale=EXCLUDED.crop_scale, created_at=now()`, [crypto.randomUUID(), page, assetId, crop.x, crop.y, crop.scale]);
           if (old) await client.query(`DELETE FROM media_assets WHERE id=$1`, [old.media_asset_id]);
         });
-        if (old?.storage_key) { try { require('node:fs').unlinkSync(path.resolve(dataDir, old.storage_key)); } catch (_) {} }
+        if (old?.storage_key) {
+          if (useSupabaseStorage) await deleteSupabaseObject(old.storage_key);
+          else try { require('node:fs').unlinkSync(path.resolve(dataDir, old.storage_key)); } catch (_) {}
+        }
         resolve({page, assetId, url: '/media/' + assetId, kind: result.kind});
-      } catch (error) { if (result) try { require('node:fs').unlinkSync(result.absolute); } catch (_) {} reject(error); }
+      } catch (error) {
+        if (uploadedToSupabase && result) await deleteSupabaseObject(result.relative);
+        if (result) try { require('node:fs').unlinkSync(result.absolute); } catch (_) {}
+        reject(error);
+      }
     });
     bb.on('error', reject);
     req.pipe(bb);
@@ -533,6 +607,10 @@ async function serveMedia(req, res, id) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
   const asset = (await pool.query(`SELECT a.* FROM media_assets a LEFT JOIN employees e ON e.id=a.employee_id LEFT JOIN card_page_default_backgrounds d ON d.media_asset_id=a.id WHERE a.id=$1 AND ((e.status='ACTIVE' AND e.published=true) OR d.media_asset_id IS NOT NULL)`, [id])).rows[0];
   if (!asset) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
+  if (useSupabaseStorage) {
+    res.writeHead(302, {'Location': supabaseObjectUrl(asset.storage_key), 'Cache-Control': 'public, max-age=300'});
+    return res.end();
+  }
   const absolute = path.resolve(dataDir, asset.storage_key);
   if (!absolute.startsWith(path.resolve(dataDir) + path.sep) || !fs.existsSync(absolute)) return json(res, 404, {error: '파일을 찾을 수 없습니다.'});
   return serveVideoFile(req, res, absolute, asset.mime_type, 'public, max-age=300');

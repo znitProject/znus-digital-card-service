@@ -19,15 +19,18 @@ if (fs.existsSync(envPath)) {
 
 const prismaCommand = process.argv[2] || '';
 const needsDatabasePassword = !['generate', 'format', 'validate', 'version', '--help', '-h'].includes(prismaCommand);
-const required = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER'];
-if (needsDatabasePassword) required.push('DB_PASSWORD');
+const hasSupabaseDatabaseUrl = Boolean(String(process.env.SUPABASE_DATABASE_URL || '').trim());
+const required = hasSupabaseDatabaseUrl ? [] : ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER'];
+if (needsDatabasePassword && !hasSupabaseDatabaseUrl) required.push('DB_PASSWORD');
 const missing = required.filter(name => !process.env[name]);
 if (missing.length) {
   console.error(`Missing database setting: ${missing.join(', ')}`);
   process.exit(1);
 }
 
-if (process.env.DB_PASSWORD) {
+if (hasSupabaseDatabaseUrl) {
+  process.env.DATABASE_URL = process.env.SUPABASE_DATABASE_URL;
+} else if (process.env.DB_PASSWORD) {
   const ssl = process.env.DB_SSL === 'true' ? '&sslmode=require' : '';
   process.env.DATABASE_URL = [
     `postgresql://${encodeURIComponent(process.env.DB_USER)}:${encodeURIComponent(process.env.DB_PASSWORD)}`,
