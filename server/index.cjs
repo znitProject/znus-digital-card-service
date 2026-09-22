@@ -61,12 +61,15 @@ if (smtpHost && (!smtpUser || !smtpPassword)) {
   throw new Error('SMTP_USER and SMTP_PASSWORD are required when SMTP_HOST is configured.');
 }
 
-const pool = new Pool(useSupabaseDatabase
+const dbPoolOptions = useSupabaseDatabase
   ? {
       connectionString: supabaseDatabaseUrl,
       ssl: {rejectUnauthorized: false},
       connectionTimeoutMillis: 8000,
-      max: Number(process.env.DB_POOL_MAX || 5)
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
+      idleTimeoutMillis: 5000,
+      max: Number(process.env.DB_POOL_MAX || 1)
     }
   : {
       host: process.env.DB_HOST || '127.0.0.1',
@@ -77,7 +80,39 @@ const pool = new Pool(useSupabaseDatabase
       ssl: process.env.DB_SSL === 'true' ? {rejectUnauthorized: false} : undefined,
       connectionTimeoutMillis: 8000,
       max: Number(process.env.DB_POOL_MAX || 10)
-    });
+    };
+
+let activePool = new Pool(dbPoolOptions);
+
+function isRetryableDbError(error) {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '').toLowerCase();
+  return ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', '57P01'].includes(code)
+    || message.includes('connection timeout')
+    || message.includes('connection terminated unexpectedly');
+}
+
+async function recycleDbPool() {
+  const stalePool = activePool;
+  activePool = new Pool(dbPoolOptions);
+  stalePool.end().catch(() => {});
+}
+
+async function withDbRetry(operation) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!useSupabaseDatabase || !isRetryableDbError(error) || attempt === 1) throw error;
+      await recycleDbPool();
+    }
+  }
+}
+
+const pool = {
+  query: (...args) => withDbRetry(() => activePool.query(...args)),
+  connect: (...args) => withDbRetry(() => activePool.connect(...args))
+};
 
 function viewHtml(name) {
   return fs.readFileSync(path.join(views, name), 'utf8');
