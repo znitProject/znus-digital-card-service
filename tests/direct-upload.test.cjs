@@ -35,6 +35,12 @@ test('browser sends the file only to the signed storage URL and handles text err
   await assert.rejects(() => context.readResponse({ok: false, status: 413, text: async () => 'Request Entity Too Large'}), /30MB/);
 });
 
+test('admin save button shows a background upload count', () => {
+  const html = fs.readFileSync(path.resolve(__dirname, '../server/views/admin.html'), 'utf8');
+  assert.match(html, /기본 배경 업로드 중 \('\s*\+\s*uploadedCount\s*\+\s*'\/'\s*\+\s*queuedPages\.length/);
+  assert.match(html, /button\.textContent = originalButtonText/);
+});
+
 test('upload tickets reject tampering, other employees, and expiry', () => {
   const data = {employeeId: 'employee', expires: Date.now() + 60000};
   const ticket = signUpload(data, 'test-secret');

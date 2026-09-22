@@ -542,16 +542,25 @@
         }));
         const button = $('#saveCompanyButton');
         button.disabled = true;
+        const originalButtonText = button.textContent;
+        const queuedPages = defaultBackgroundPages.filter((page) => {
+          const input = document.querySelector('[data-default-background="' + page + '"]');
+          return Boolean(state.defaultPrepared[page]?.file || input?.files?.[0]);
+        });
+        button.textContent = queuedPages.length ? '회사 설정 저장 중...' : '저장 중...';
         showSettingsMessage('회사 설정 저장 중...');
         try {
           const response = await fetch('/api/admin/company', {method:'PUT', headers:{'Content-Type':'application/json', 'x-admin-key':adminKey}, body:JSON.stringify(payload)});
           const body = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(body.error || '회사 설정을 저장하지 못했습니다.');
+          let uploadedCount = 0;
           for (const page of defaultBackgroundPages) {
             const input = document.querySelector('[data-default-background="' + page + '"]');
             const prepared = state.defaultPrepared[page];
             const file = prepared?.file || input?.files?.[0];
             if (!file) continue;
+            uploadedCount += 1;
+            button.textContent = '기본 배경 업로드 중 (' + uploadedCount + '/' + queuedPages.length + ')...';
             showSettingsMessage(page + ' 기본 배경 업로드 중...');
             await uploadDefaultBackgroundDirect(page, file, prepared);
             input.value = '';
@@ -563,6 +572,7 @@
           showSettingsMessage(error.message, 'error');
         } finally {
           button.disabled = false;
+          button.textContent = originalButtonText;
         }
       });
       async function loadDefaultBackgrounds() {
