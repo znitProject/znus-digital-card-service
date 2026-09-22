@@ -164,6 +164,11 @@ function json(res, status, body, headers = {}) {
   res.end(payload);
 }
 
+function redirect(res, location, headers = {}) {
+  res.writeHead(303, {'Location': location, 'Cache-Control': 'no-store', ...headers});
+  res.end();
+}
+
 function supabaseStoragePath(storageKey) {
   return String(storageKey).split('/').map(encodeURIComponent).join('/');
 }
@@ -246,6 +251,20 @@ function readJson(req, limit = 256 * 1024) {
       try { resolve(data ? JSON.parse(data) : {}); }
       catch (_) { reject(new Error('JSON 형식이 올바르지 않습니다.')); }
     });
+    req.on('error', reject);
+  });
+}
+
+function readForm(req, limit = 256 * 1024) {
+  return new Promise((resolve, reject) => {
+    let data = '', size = 0;
+    req.setEncoding('utf8');
+    req.on('data', chunk => {
+      size += Buffer.byteLength(chunk);
+      if (size > limit) { reject(new Error('요청이 너무 큽니다.')); req.destroy(); return; }
+      data += chunk;
+    });
+    req.on('end', () => resolve(Object.fromEntries(new URLSearchParams(data))));
     req.on('error', reject);
   });
 }
@@ -351,24 +370,29 @@ async function requestOtp(req, res) {
 }
 
 async function verifyOtp(req, res) {
-  const input = await readJson(req);
-  const email = normalizeEmail(input.email), code = String(input.code || '').trim();
-  if (!/^\d{6}$/.test(code)) throw new Error('6자리 인증번호를 입력해 주세요.');
-  const challenge = (await pool.query(`SELECT * FROM otp_challenges WHERE email = $1 AND consumed_at IS NULL AND expires_at > now() ORDER BY created_at DESC LIMIT 1`, [email])).rows[0];
-  if (!challenge || challenge.attempts >= 5 || !constantTimeEqual(challenge.code_hash, hashToken(code))) {
-    if (challenge) await pool.query(`UPDATE otp_challenges SET attempts = attempts + 1 WHERE id = $1`, [challenge.id]);
-    throw new Error('인증번호가 올바르지 않거나 만료되었습니다.');
+  const formPost = String(req.headers['content-type'] || '').toLowerCase().startsWith('application/x-www-form-urlencoded');
+  try {
+    const input = formPost ? await readForm(req) : await readJson(req);
+    const email = normalizeEmail(input.email), code = String(input.code || '').trim();
+    if (!/^\d{6}$/.test(code)) throw new Error('6자리 인증번호를 입력해 주세요.');
+    const challenge = (await pool.query(`SELECT * FROM otp_challenges WHERE email = $1 AND consumed_at IS NULL AND expires_at > now() ORDER BY created_at DESC LIMIT 1`, [email])).rows[0];
+    if (!challenge || challenge.attempts >= 5 || !constantTimeEqual(challenge.code_hash, hashToken(code))) {
+      if (challenge) await pool.query(`UPDATE otp_challenges SET attempts = attempts + 1 WHERE id = $1`, [challenge.id]);
+      throw new Error('인증번호가 올바르지 않거나 만료되었습니다.');
+    }
+    await pool.query(`UPDATE otp_challenges SET consumed_at = now() WHERE id = $1`, [challenge.id]);
+    let employee = (await pool.query(`SELECT * FROM employees WHERE company_email = $1`, [email])).rows[0];
+    if (employee && employee.status !== 'ACTIVE') throw new Error('비활성화된 직원입니다. 관리자에게 문의해 주세요.');
+    if (!employee) employee = (await pool.query(`INSERT INTO employees(id, company_email, public_token) VALUES($1, $2, $3) RETURNING *`, [crypto.randomUUID(), email, randomToken(12)])).rows[0];
+    const rawSession = randomToken(32), maxAge = sessionHours * 60 * 60;
+    await pool.query(`INSERT INTO input_sessions(id, token_hash, employee_id, expires_at) VALUES($1, $2, $3, now() + ($4 * interval '1 second'))`, [crypto.randomUUID(), hashToken(rawSession), employee.id, maxAge]);
+    await pool.query(`INSERT INTO audit_logs(employee_id, action) VALUES($1, $2)`, [employee.id, 'INPUT_ACCESS_VERIFIED']);
+    if (formPost) return redirect(res, '/input?edit=1', {'Set-Cookie': sessionCookie(req, rawSession, maxAge)});
+    json(res, 200, {employee: publicEmployee(employee)}, {'Set-Cookie': sessionCookie(req, rawSession, maxAge)});
+  } catch (error) {
+    if (formPost) return redirect(res, '/input?auth_error=' + encodeURIComponent(error.message || '요청을 처리하지 못했습니다.'));
+    throw error;
   }
-  await pool.query(`UPDATE otp_challenges SET consumed_at = now() WHERE id = $1`, [challenge.id]);
-  let employee = (await pool.query(`SELECT * FROM employees WHERE company_email = $1`, [email])).rows[0];
-  if (employee && employee.status !== 'ACTIVE') throw new Error('비활성화된 직원입니다. 관리자에게 문의해 주세요.');
-  if (!employee) {
-    employee = (await pool.query(`INSERT INTO employees(id, company_email, public_token) VALUES($1, $2, $3) RETURNING *`, [crypto.randomUUID(), email, randomToken(12)])).rows[0];
-  }
-  const rawSession = randomToken(32), maxAge = sessionHours * 60 * 60;
-  await pool.query(`INSERT INTO input_sessions(id, token_hash, employee_id, expires_at) VALUES($1, $2, $3, now() + ($4 * interval '1 second'))`, [crypto.randomUUID(), hashToken(rawSession), employee.id, maxAge]);
-  await pool.query(`INSERT INTO audit_logs(employee_id, action) VALUES($1, $2)`, [employee.id, 'INPUT_ACCESS_VERIFIED']);
-  json(res, 200, {employee: publicEmployee(employee)}, {'Set-Cookie': sessionCookie(req, rawSession, maxAge)});
 }
 
 async function saveEmployee(req, res) {
