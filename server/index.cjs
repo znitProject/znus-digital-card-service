@@ -407,12 +407,6 @@ async function saveEmployee(req, res) {
   const employee = await sessionEmployee(req);
   if (!employee) return json(res, 401, {error: '입력 세션이 없거나 만료되었습니다.'}, {'Set-Cookie': expiredCookie(req)});
   const input = validateCardInput(await readJson(req));
-  const profileAsset = (await pool.query(`
-    SELECT a.id
-    FROM card_page_backgrounds b JOIN media_assets a ON a.id=b.media_asset_id
-    WHERE b.employee_id=$1 AND b.page='profile'
-  `, [employee.id])).rows[0];
-  if (!profileAsset) throw new Error('프로필 페이지의 배경 이미지 또는 MP4 영상을 먼저 업로드해 주세요.');
   const roleItems = JSON.stringify({ko: input.rolesKo, en: input.rolesEn});
   const saved = (await pool.query(`
     UPDATE employees SET name_ko=$1, name_en=$2, department=$3, job_title_ko=$4, job_title_en=$5,

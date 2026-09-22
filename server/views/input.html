@@ -31,8 +31,7 @@ function addRequirementBadge(element, required){
 }
 document.querySelectorAll('#form .form-grid .field label').forEach(label=>addRequirementBadge(label,true));
 document.querySelectorAll('.background-item').forEach(item=>{
-  const file=item.querySelector('input[type="file"]');
-  addRequirementBadge(item.querySelector('.background-item__title'),file?.name==='backgroundProfile');
+  addRequirementBadge(item.querySelector('.background-item__title'),false);
 });
 function formatPhone(value){
   const digits=value.replace(/\D/g,'').slice(0,11);
@@ -69,7 +68,7 @@ document.querySelectorAll('.background-item input[type="file"]').forEach(input =
     if (status) { status.textContent = '선택됨: '+file.name+' · 모바일 구도 설정 완료'; status.classList.remove('empty'); }
   } catch (error) { input.value=''; showMessage(error.message, true); }
 }));
-$('.background-guide > p').textContent='공개 명함은 아래 5개 페이지를 순서대로 보여줍니다. 각 페이지의 용도를 확인하고, 페이지마다 배경 이미지 또는 영상을 하나씩 선택해 주세요. 프로필 페이지 배경은 필수이며, 나머지는 입력하지 않으면 기본 디자인 배경을 사용합니다.';
+$('.background-guide > p').textContent='공개 명함은 아래 5개 페이지를 순서대로 보여줍니다. 배경 이미지 또는 영상은 모두 선택 입력이며, 선택하지 않은 페이지는 기본 디자인 배경을 사용합니다.';
 function showMessage(text, error=false){const el=$('#message');el.textContent=text;el.className='notice'+(error?' error':'');if(!error&&(text.startsWith('저장 및 공개 완료')||text.startsWith('현재 명함은 저장 및 공개 상태'))){setStep(3);const match=text.match(/\/c\/([A-Za-z0-9_-]+)/);if(match)showPublicResult(match[1]);}}
 function showAccessMessage(text, error=false){const el=$('#accessMessage');el.textContent=text;el.className='notice'+(error?' error':'');if(error)setStep(1);}
 const stepItems=[...document.querySelectorAll('.steps .step')];
