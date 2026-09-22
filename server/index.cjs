@@ -11,6 +11,7 @@ const Busboy = require('busboy');
 const { Pool } = require('pg');
 const { attachDatabasePool } = require('@vercel/functions');
 const nodemailer = require('nodemailer');
+const {signUpload, verifyUpload} = require('./upload-ticket.cjs');
 const {
   normalizeEmail, randomToken, hashToken, otpCode, constantTimeEqual
 } = require('./security.cjs');
@@ -420,6 +421,49 @@ async function saveEmployee(req, res) {
   `, [input.nameKo, input.nameEn, input.department, input.jobTitleKo, input.jobTitleEn, input.mobilePhone, input.publicEmail, roleItems, employee.id])).rows[0];
   await pool.query(`INSERT INTO audit_logs(employee_id, action, metadata) VALUES($1, $2, $3::jsonb)`, [employee.id, 'EMPLOYEE_CARD_SAVED', JSON.stringify({published: true})]);
   json(res, 200, {employee: publicEmployee(saved)}, {'Set-Cookie': expiredCookie(req)});
+}
+
+async function directMediaUpload(req, res, slot, complete) {
+  const employee = await sessionEmployee(req);
+  if (!employee) return json(res, 401, {error: '입력 세션이 없거나 만료되었습니다.'});
+  if (!cardPageSlots.includes(slot)) return json(res, 400, {error: '업로드 슬롯이 올바르지 않습니다.'});
+  if (!useSupabaseStorage) return json(res, 200, {direct: false});
+  const input = await readJson(req);
+  const storageHeaders = {apikey: supabaseServiceRoleKey, Authorization: 'Bearer ' + supabaseServiceRoleKey};
+  if (!complete) {
+    const mime = String(input.mime || '').toLowerCase();
+    const extensions = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4'};
+    if (!extensions[mime]) return json(res, 400, {error: 'JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.'});
+    if (!Number.isSafeInteger(input.size) || input.size <= 0 || input.size > 30 * 1024 * 1024) return json(res, 400, {error: '파일은 0바이트보다 크고 30MB 이하이어야 합니다.'});
+    const id = crypto.randomUUID();
+    const key = 'uploads/' + employee.id + '/' + id + '.' + extensions[mime];
+    const data = {
+      id, key, employeeId: employee.id, slot, mime, size: input.size,
+      name: String(input.name || slot + '.' + extensions[mime]).slice(0, 255),
+      kind: mime === 'video/mp4' ? 'VIDEO' : 'IMAGE',
+      x: cropValue(input.cropX, 50, 0, 100), y: cropValue(input.cropY, 50, 0, 100),
+      scale: cropValue(input.cropScale, 1, 1, 2), expires: Date.now() + 2 * 60 * 60 * 1000
+    };
+    const signed = await fetch(supabaseUrl + '/storage/v1/object/upload/sign/' + encodeURIComponent(supabaseStorageBucket) + '/' + supabaseStoragePath(key), {
+      method: 'POST', headers: {...storageHeaders, 'Content-Type': 'application/json'}, body: '{}'
+    });
+    if (!signed.ok) return json(res, 502, {error: '파일 업로드 주소를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.'});
+    const result = await signed.json();
+    const uploadUrl = new URL(supabaseUrl + '/storage/v1' + result.url);
+    if (uploadUrl.origin !== new URL(supabaseUrl).origin || !uploadUrl.searchParams.has('token')) throw new Error('파일 업로드 주소가 올바르지 않습니다.');
+    return json(res, 200, {direct: true, uploadUrl: uploadUrl.href, ticket: signUpload(data, supabaseServiceRoleKey)}, {'Cache-Control': 'no-store'});
+  }
+  const data = verifyUpload(input.ticket, supabaseServiceRoleKey, employee.id);
+  if (data.slot !== slot) return json(res, 400, {error: '업로드 페이지가 일치하지 않습니다.'});
+  const uploaded = await fetch(supabaseUrl + '/storage/v1/object/authenticated/' + encodeURIComponent(supabaseStorageBucket) + '/' + supabaseStoragePath(data.key), {method: 'HEAD', headers: storageHeaders});
+  if (!uploaded.ok) return json(res, 400, {error: '파일 전송이 완료되지 않았습니다. 다시 저장해 주세요.'});
+  const size = Number(uploaded.headers.get('content-length'));
+  const mime = String(uploaded.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (size !== data.size || size > 30 * 1024 * 1024 || mime !== data.mime) return json(res, 400, {error: '업로드된 파일 크기 또는 형식이 일치하지 않습니다.'});
+  await pool.query('INSERT INTO media_assets(id, employee_id, slot, kind, storage_key, original_name, mime_type, size_bytes) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (id) DO NOTHING', [data.id, employee.id, slot, data.kind, data.key, data.name, data.mime, size]);
+  await pool.query('INSERT INTO card_page_backgrounds(id, employee_id, page, media_asset_id, crop_x, crop_y, crop_scale) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (employee_id, page) DO UPDATE SET media_asset_id=EXCLUDED.media_asset_id, crop_x=EXCLUDED.crop_x, crop_y=EXCLUDED.crop_y, crop_scale=EXCLUDED.crop_scale, created_at=now()', [crypto.randomUUID(), employee.id, slot, data.id, data.x, data.y, data.scale]);
+  await pool.query('INSERT INTO audit_logs(employee_id, action, metadata) VALUES($1,$2,$3::jsonb)', [employee.id, 'MEDIA_UPLOADED', JSON.stringify({slot})]);
+  return json(res, 201, {assetId: data.id, url: '/media/' + data.id, kind: data.kind});
 }
 
 async function uploadMedia(req, res, slot) {
@@ -832,6 +876,8 @@ async function route(req, res) {
   }
   if (req.method === 'PUT' && url.pathname === '/api/input/me') return saveEmployee(req, res);
   if (req.method === 'POST' && url.pathname === '/api/input/media') return uploadMedia(req, res, url.searchParams.get('slot'));
+  if (req.method === 'POST' && url.pathname === '/api/input/media/prepare') return directMediaUpload(req, res, url.searchParams.get('slot'), false);
+  if (req.method === 'POST' && url.pathname === '/api/input/media/complete') return directMediaUpload(req, res, url.searchParams.get('slot'), true);
   if (req.method === 'GET' && /^\/api\/cards\/[A-Za-z0-9_-]+$/.test(url.pathname)) return publicCard(res, decodeURIComponent(url.pathname.split('/').pop()));
   if (req.method === 'GET' && url.pathname === '/api/admin/employees') return adminEmployees(req, res);
   if ((req.method === 'PATCH' || req.method === 'DELETE') && /^\/api\/admin\/employees\/[0-9a-f-]{36}$/i.test(url.pathname)) return adminEmployeeAction(req, res, url.pathname.split('/').pop());
