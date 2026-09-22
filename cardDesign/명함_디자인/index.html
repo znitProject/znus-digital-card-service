@@ -2623,7 +2623,9 @@ function prepareVideos(){
         ""
       );
 
-      video.preload = index === 0 ? "auto" : "metadata";
+      // 카드가 열리기 전에 모든 영상을 내려받는다. 전환 시점의 추가
+      // 네트워크 요청을 없애고, 현재 카드만 실제로 재생한다.
+      video.preload = "auto";
 
       video.addEventListener(
         "canplay",
@@ -2642,7 +2644,7 @@ function prepareVideos(){
 
       try{
 
-        if(index === 0 && video.readyState === 0){
+        if(video.readyState === 0){
           video.load();
         }
 
@@ -3334,10 +3336,6 @@ function getVideoLoadProgress(video){
     return 0;
   }
 
-  if(video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA){
-    return 1;
-  }
-
   const duration = video.duration;
   if(
     Number.isFinite(duration) &&
@@ -3350,8 +3348,12 @@ function getVideoLoadProgress(video){
 
     return Math.min(
       bufferedEnd / duration,
-      .98
+      .99
     );
+  }
+
+  if(video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA){
+    return .99;
   }
 
   if(video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA){
@@ -3375,9 +3377,24 @@ function areLoadingVideosReady(){
 
   return state.loadingVideos.length === 0 ||
     state.loadingVideos.every(
-      video =>
-        !video.error &&
-        video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+      video => {
+        if(video.error){
+          return false;
+        }
+
+        const duration = video.duration;
+        if(!Number.isFinite(duration) || duration <= 0){
+          return video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA;
+        }
+
+        if(!video.buffered.length){
+          return false;
+        }
+
+        // 브라우저가 마지막 프레임 직전까지 받은 경우도 완료로 취급한다.
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        return bufferedEnd >= duration - .25;
+      }
     );
 
 }
