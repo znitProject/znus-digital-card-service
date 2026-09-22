@@ -6,10 +6,7 @@
   "functions": {
     "api/index.cjs": {
       "runtime": "nodejs20.x",
-      "includeFiles": [
-        "server/**",
-        "cardDesign/**"
-      ],
+      "includeFiles": "**",
       "maxDuration": 60
     }
   }
