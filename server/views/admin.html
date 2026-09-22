@@ -394,7 +394,7 @@
           deleteButton.textContent = '영구 삭제 중...';
           clearError();
           fetch('/api/admin/employees/' + encodeURIComponent(employee.employeeId), {method:'DELETE', headers:{'x-admin-key':adminKey}})
-            .then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || '영구 삭제에 실패했습니다.'); showActionNotice('명함과 업로드한 미디어를 영구 삭제했습니다.'); loadEmployees(); })
+            .then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || '영구 삭제에 실패했습니다.'); showActionNotice('명함과 업로드한 미디어를 영구 삭제했습니다. 목록을 새로고침합니다.'); window.setTimeout(() => window.location.reload(), 500); })
             .catch((error) => { showError(error.message); buttons.forEach((item, index) => { item.disabled = originalDisabled[index]; item.textContent = originalTexts[index]; }); });
         });
       }

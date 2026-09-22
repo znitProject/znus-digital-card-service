@@ -10,6 +10,7 @@ test('admin state actions show progress, confirmation, and completion feedback',
   assert.match(admin, /비공개 처리 중\.\.\./);
   assert.match(admin, /비활성화 중\.\.\./);
   assert.match(admin, /영구 삭제 중\.\.\./);
-  assert.match(admin, /showActionNotice\('명함과 업로드한 미디어를 영구 삭제했습니다\.'/);
+  assert.match(admin, /명함과 업로드한 미디어를 영구 삭제했습니다\. 목록을 새로고침합니다/);
+  assert.match(admin, /window\.location\.reload\(\)/);
   assert.match(admin, /공개 명함과 입력 접근이 중지됩니다/);
 });
