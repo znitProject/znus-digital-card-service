@@ -19,6 +19,7 @@ const root = path.resolve(__dirname, '..');
 const views = path.join(__dirname, 'views');
 const production = process.env.NODE_ENV === 'production';
 const vercelRuntime = process.env.VERCEL === '1';
+const secureCookies = production || vercelRuntime;
 const port = Number(process.env.PORT || 4173);
 const sessionHours = Number(process.env.INPUT_SESSION_HOURS || 24);
 const otpMinutes = Number(process.env.OTP_EXPIRES_MINUTES || 10);
@@ -220,11 +221,11 @@ function parseCookies(req) {
 }
 
 function sessionCookie(token, maxAge) {
-  return `znus_input_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${production ? '; Secure' : ''}`;
+  return `znus_input_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secureCookies ? '; Secure' : ''}`;
 }
 
 function expiredCookie() {
-  return 'znus_input_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (production ? '; Secure' : '');
+  return 'znus_input_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (secureCookies ? '; Secure' : '');
 }
 
 function readJson(req, limit = 256 * 1024) {
