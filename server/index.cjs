@@ -181,7 +181,7 @@ function supabaseObjectUrl(storageKey) {
 }
 
 async function uploadSupabaseObject(storageKey, body, mimeType) {
-  if (!useSupabaseStorage) throw new Error('Vercel Supabase Storage 환경변수가 설정되지 않았습니다.');
+  if (!useSupabaseStorage) throw requestError(503, '파일 저장 서비스를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.');
   const response = await fetch(`${supabaseUrl}/storage/v1/object/${encodeURIComponent(supabaseStorageBucket)}/${supabaseStoragePath(storageKey)}`, {
     method: 'POST',
     headers: {
@@ -192,7 +192,7 @@ async function uploadSupabaseObject(storageKey, body, mimeType) {
     },
     body
   });
-  if (!response.ok) throw new Error(`Supabase Storage 업로드 실패 (${response.status})`);
+  if (!response.ok) throw requestError(502, '파일 저장 서비스에 업로드하지 못했습니다. 잠시 후 다시 시도해 주세요.');
 }
 
 async function deleteSupabaseObject(storageKey) {
@@ -222,6 +222,29 @@ async function deleteEmployeeMedia(storageKey) {
 function html(res, status, body, headers = {}) {
   res.writeHead(status, {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', ...headers});
   res.end(body);
+}
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function requestError(status, message) {
+  return new HttpError(status, message);
+}
+
+function sendRouteError(res, error) {
+  const status = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
+    ? error.status
+    : 500;
+  const message = status >= 500
+    ? '서버 요청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+    : (error?.message || '요청을 처리하지 못했습니다.');
+  if (status >= 500) console.error(error);
+  if (!res.headersSent) json(res, status, {error: message});
+  else if (!res.writableEnded) res.end();
 }
 
 function viewAsset(res, name, contentType) {
@@ -266,12 +289,12 @@ function readJson(req, limit = 256 * 1024) {
     req.setEncoding('utf8');
     req.on('data', chunk => {
       size += Buffer.byteLength(chunk);
-      if (size > limit) { reject(new Error('요청이 너무 큽니다.')); req.destroy(); return; }
+      if (size > limit) { reject(requestError(413, '요청이 너무 큽니다.')); req.destroy(); return; }
       data += chunk;
     });
     req.on('end', () => {
       try { resolve(data ? JSON.parse(data) : {}); }
-      catch (_) { reject(new Error('JSON 형식이 올바르지 않습니다.')); }
+      catch (_) { reject(requestError(400, 'JSON 형식이 올바르지 않습니다.')); }
     });
     req.on('error', reject);
   });
@@ -283,7 +306,7 @@ function readForm(req, limit = 256 * 1024) {
     req.setEncoding('utf8');
     req.on('data', chunk => {
       size += Buffer.byteLength(chunk);
-      if (size > limit) { reject(new Error('요청이 너무 큽니다.')); req.destroy(); return; }
+      if (size > limit) { reject(requestError(413, '요청이 너무 큽니다.')); req.destroy(); return; }
       data += chunk;
     });
     req.on('end', () => resolve(Object.fromEntries(new URLSearchParams(data))));
@@ -294,7 +317,7 @@ function readForm(req, limit = 256 * 1024) {
 function assertAllowedEmail(email) {
   if (!allowedDomains.length && !production) return;
   const domain = email.split('@')[1];
-  if (!allowedDomains.includes(domain)) throw new Error('등록된 회사 이메일 도메인이 아닙니다.');
+  if (!allowedDomains.includes(domain)) throw requestError(403, '등록된 회사 이메일 도메인이 아닙니다.');
 }
 
 function validateCardInput(input) {
@@ -309,11 +332,11 @@ function validateCardInput(input) {
   };
   for (const [key, text] of Object.entries(fields)) {
     if (key.startsWith('roles')) continue;
-    if (!text) throw new Error(`${key}: 필수 입력입니다.`);
-    if (text.length > 500) throw new Error(`${key}: 최대 500자까지 입력할 수 있습니다.`);
+    if (!text) throw requestError(422, `${key}: 필수 입력입니다.`);
+    if (text.length > 500) throw requestError(422, `${key}: 최대 500자까지 입력할 수 있습니다.`);
   }
-  if (fields.rolesKo.length !== 5 || fields.rolesEn.length !== 5) throw new Error('주요 업무는 국문·영문 각각 5개가 필요합니다.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.publicEmail)) throw new Error('공개 이메일 형식을 확인해 주세요.');
+  if (fields.rolesKo.length !== 5 || fields.rolesEn.length !== 5) throw requestError(422, '주요 업무는 국문·영문 각각 5개가 필요합니다.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.publicEmail)) throw requestError(422, '공개 이메일 형식을 확인해 주세요.');
   return fields;
 }
 
@@ -370,23 +393,34 @@ async function sendOtp(email, code) {
     secure: process.env.SMTP_SECURE === 'true',
     auth: {user: smtpUser, pass: smtpPassword}
   });
-  await transporter.sendMail({
-    from: smtpFrom,
-    to: email, subject: '[ZNUS] 디지털 명함 인증번호',
-    text: `ZNUS 디지털 명함 입력 인증번호는 ${code} 입니다. ${otpMinutes}분 안에 입력해 주세요.`
-  });
+  try {
+    await transporter.sendMail({
+      from: smtpFrom,
+      to: email, subject: '[ZNUS] 디지털 명함 인증번호',
+      text: `ZNUS 디지털 명함 입력 인증번호는 ${code} 입니다. ${otpMinutes}분 안에 입력해 주세요.`
+    });
+  } catch (error) {
+    const smtpStatus = Number(error?.responseCode || 0);
+    if (error?.code === 'EENVELOPE' || (smtpStatus >= 500 && smtpStatus < 600)) {
+      throw requestError(422, '수신 이메일 주소를 확인해 주세요. 메일을 전달할 수 없습니다.');
+    }
+    throw requestError(502, '인증 메일 전송 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+  }
 }
 
 async function requestOtp(req, res) {
   const input = await readJson(req);
-  const email = normalizeEmail(input.email);
+  let email;
+  try { email = normalizeEmail(input.email); }
+  catch (_) { throw requestError(400, '회사 이메일 형식을 확인해 주세요.'); }
   assertAllowedEmail(email);
   const recent = (await pool.query(`SELECT count(*)::int AS count FROM otp_challenges WHERE email=$1 AND created_at > now() - interval '1 minute'`, [email])).rows[0];
-  if (recent && recent.count >= 3) throw new Error('인증번호는 1분에 3번까지만 요청할 수 있습니다.');
+  if (recent && recent.count >= 3) throw requestError(429, '인증번호는 1분에 3번까지만 요청할 수 있습니다.');
   const code = otpCode();
+  // 전송에 실패한 주소에는 만료될 인증번호를 남기지 않는다.
+  await sendOtp(email, code);
   await pool.query(`UPDATE otp_challenges SET consumed_at = now() WHERE email = $1 AND consumed_at IS NULL`, [email]);
   await pool.query(`INSERT INTO otp_challenges(id, email, code_hash, expires_at) VALUES($1, $2, $3, now() + ($4 * interval '1 minute'))`, [crypto.randomUUID(), email, hashToken(code), otpMinutes]);
-  await sendOtp(email, code);
   const body = {message: '인증번호를 입력한 이메일로 보냈습니다.'};
   json(res, 200, body);
 }
@@ -395,16 +429,19 @@ async function verifyOtp(req, res) {
   const formPost = String(req.headers['content-type'] || '').toLowerCase().startsWith('application/x-www-form-urlencoded');
   try {
     const input = formPost ? await readForm(req) : await readJson(req);
-    const email = normalizeEmail(input.email), code = String(input.code || '').trim();
-    if (!/^\d{6}$/.test(code)) throw new Error('6자리 인증번호를 입력해 주세요.');
+    let email;
+    try { email = normalizeEmail(input.email); }
+    catch (_) { throw requestError(400, '회사 이메일 형식을 확인해 주세요.'); }
+    const code = String(input.code || '').trim();
+    if (!/^\d{6}$/.test(code)) throw requestError(400, '6자리 인증번호를 입력해 주세요.');
     const challenge = (await pool.query(`SELECT * FROM otp_challenges WHERE email = $1 AND consumed_at IS NULL AND expires_at > now() ORDER BY created_at DESC LIMIT 1`, [email])).rows[0];
     if (!challenge || challenge.attempts >= 5 || !constantTimeEqual(challenge.code_hash, hashToken(code))) {
       if (challenge) await pool.query(`UPDATE otp_challenges SET attempts = attempts + 1 WHERE id = $1`, [challenge.id]);
-      throw new Error('인증번호가 올바르지 않거나 만료되었습니다.');
+      throw requestError(401, '인증번호가 올바르지 않거나 만료되었습니다.');
     }
     await pool.query(`UPDATE otp_challenges SET consumed_at = now() WHERE id = $1`, [challenge.id]);
     let employee = (await pool.query(`SELECT * FROM employees WHERE company_email = $1`, [email])).rows[0];
-    if (employee && employee.status !== 'ACTIVE') throw new Error('비활성화된 직원입니다. 관리자에게 문의해 주세요.');
+    if (employee && employee.status !== 'ACTIVE') throw requestError(403, '비활성화된 직원입니다. 관리자에게 문의해 주세요.');
     if (!employee) employee = (await pool.query(`INSERT INTO employees(id, company_email, public_token) VALUES($1, $2, $3) RETURNING *`, [crypto.randomUUID(), email, randomToken(12)])).rows[0];
     const rawSession = randomToken(32), maxAge = sessionHours * 60 * 60;
     await pool.query(`INSERT INTO input_sessions(id, token_hash, employee_id, expires_at) VALUES($1, $2, $3, now() + ($4 * interval '1 second'))`, [crypto.randomUUID(), hashToken(rawSession), employee.id, maxAge]);
@@ -458,10 +495,12 @@ async function directMediaUpload(req, res, slot, complete) {
     if (!signed.ok) return json(res, 502, {error: '파일 업로드 주소를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.'});
     const result = await signed.json();
     const uploadUrl = new URL(supabaseUrl + '/storage/v1' + result.url);
-    if (uploadUrl.origin !== new URL(supabaseUrl).origin || !uploadUrl.searchParams.has('token')) throw new Error('파일 업로드 주소가 올바르지 않습니다.');
+    if (uploadUrl.origin !== new URL(supabaseUrl).origin || !uploadUrl.searchParams.has('token')) throw requestError(502, '파일 업로드 주소를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     return json(res, 200, {direct: true, uploadUrl: uploadUrl.href, ticket: signUpload(data, supabaseServiceRoleKey)}, {'Cache-Control': 'no-store'});
   }
-  const data = verifyUpload(input.ticket, supabaseServiceRoleKey, employee.id);
+  let data;
+  try { data = verifyUpload(input.ticket, supabaseServiceRoleKey, employee.id); }
+  catch (error) { throw requestError(400, error.message || '업로드 확인 정보가 올바르지 않습니다.'); }
   if (data.slot !== slot) return json(res, 400, {error: '업로드 페이지가 일치하지 않습니다.'});
   const uploaded = await fetch(supabaseUrl + '/storage/v1/object/authenticated/' + encodeURIComponent(supabaseStorageBucket) + '/' + supabaseStoragePath(data.key), {method: 'HEAD', headers: storageHeaders});
   if (!uploaded.ok) return json(res, 400, {error: '파일 전송이 완료되지 않았습니다. 다시 저장해 주세요.'});
@@ -479,7 +518,7 @@ async function uploadMedia(req, res, slot) {
   if (!employee) return json(res, 401, {error: '입력 세션이 없거나 만료되었습니다.'});
   if (!['profile', 'role', 'contact', 'company', 'links'].includes(slot)) return json(res, 400, {error: '업로드 슬롯이 올바르지 않습니다.'});
   if (!String(req.headers['content-type'] || '').startsWith('multipart/form-data')) return json(res, 415, {error: 'multipart/form-data 업로드가 필요합니다.'});
-  if (vercelRuntime && !useSupabaseStorage) throw new Error('Vercel Supabase Storage 환경변수가 설정되지 않았습니다.');
+  if (vercelRuntime && !useSupabaseStorage) throw requestError(503, '파일 저장 서비스를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.');
   const uploadDataDir = useSupabaseStorage ? path.join(os.tmpdir(), 'znus-card-service') : dataDir;
   await mkdir(path.join(uploadDataDir, 'uploads', employee.id), {recursive: true});
   const upload = await new Promise((resolve, reject) => {
@@ -495,7 +534,7 @@ async function uploadMedia(req, res, slot) {
       const mime = String(info.mimeType || '').toLowerCase();
       const image = ['image/jpeg', 'image/png', 'image/webp'].includes(mime);
       const video = mime === 'video/mp4';
-      if (!image && !video) { file.resume(); reject(new Error('JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.')); return; }
+      if (!image && !video) { file.resume(); reject(requestError(415, 'JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.')); return; }
       const extension = image ? mime.split('/')[1].replace('jpeg', 'jpg') : 'mp4';
       const relative = path.join('uploads', employee.id, `${crypto.randomUUID()}.${extension}`);
       const absolute = path.join(uploadDataDir, relative);
@@ -506,8 +545,8 @@ async function uploadMedia(req, res, slot) {
     bb.on('finish', async () => {
       try {
         if (writePromise) await writePromise;
-        if (tooLarge) throw new Error('파일은 30MB 이하만 업로드할 수 있습니다.');
-        if (!result) throw new Error('업로드 파일이 없습니다.');
+        if (tooLarge) throw requestError(413, '파일은 30MB 이하만 업로드할 수 있습니다.');
+        if (!result) throw requestError(400, '업로드 파일이 없습니다.');
         const sizeBytes = (await stat(result.absolute)).size;
         if (useSupabaseStorage) {
           await uploadSupabaseObject(result.relative, await readFile(result.absolute), result.mime);
@@ -748,10 +787,12 @@ async function directDefaultBackgroundUpload(req, res, page, complete) {
     if (!signed.ok) return json(res, 502, {error: '파일 업로드 주소를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.'});
     const result = await signed.json();
     const uploadUrl = new URL(supabaseUrl + '/storage/v1' + result.url);
-    if (uploadUrl.origin !== new URL(supabaseUrl).origin || !uploadUrl.searchParams.has('token')) throw new Error('파일 업로드 주소가 올바르지 않습니다.');
+    if (uploadUrl.origin !== new URL(supabaseUrl).origin || !uploadUrl.searchParams.has('token')) throw requestError(502, '파일 업로드 주소를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     return json(res, 200, {direct: true, uploadUrl: uploadUrl.href, ticket: signUpload(data, supabaseServiceRoleKey)}, {'Cache-Control': 'no-store'});
   }
-  const data = verifyUpload(input.ticket, supabaseServiceRoleKey, 'default-background');
+  let data;
+  try { data = verifyUpload(input.ticket, supabaseServiceRoleKey, 'default-background'); }
+  catch (error) { throw requestError(400, error.message || '업로드 확인 정보가 올바르지 않습니다.'); }
   if (data.page !== page) return json(res, 400, {error: '업로드 페이지가 일치하지 않습니다.'});
   const uploaded = await fetch(supabaseUrl + '/storage/v1/object/authenticated/' + encodeURIComponent(supabaseStorageBucket) + '/' + supabaseStoragePath(data.key), {method: 'HEAD', headers: storageHeaders});
   if (!uploaded.ok) return json(res, 400, {error: '파일 전송이 완료되지 않았습니다. 다시 저장해 주세요.'});
@@ -772,7 +813,7 @@ async function uploadDefaultBackground(req, res, page) {
   if (!adminAccessKey || req.headers['x-admin-key'] !== adminAccessKey) return json(res, 401, {error: '관리자 인증이 필요합니다.'});
   if (!defaultBackgroundPages.includes(page)) return json(res, 400, {error: '프로필은 기본 배경을 사용할 수 없습니다.'});
   if (!String(req.headers['content-type'] || '').startsWith('multipart/form-data')) return json(res, 415, {error: 'multipart/form-data 업로드가 필요합니다.'});
-  if (vercelRuntime && !useSupabaseStorage) throw new Error('Vercel Supabase Storage 환경변수가 설정되지 않았습니다.');
+  if (vercelRuntime && !useSupabaseStorage) throw requestError(503, '파일 저장 서비스를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.');
   const uploadDataDir = useSupabaseStorage ? path.join(os.tmpdir(), 'znus-card-service') : dataDir;
   await mkdir(path.join(uploadDataDir, 'defaults'), {recursive: true});
   const upload = await new Promise((resolve, reject) => {
@@ -788,7 +829,7 @@ async function uploadDefaultBackground(req, res, page) {
       const mime = String(info.mimeType || '').toLowerCase();
       const image = ['image/jpeg', 'image/png', 'image/webp'].includes(mime);
       const video = mime === 'video/mp4';
-      if (!image && !video) { file.resume(); reject(new Error('JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.')); return; }
+      if (!image && !video) { file.resume(); reject(requestError(415, 'JPG, PNG, WEBP 이미지 또는 MP4 영상만 업로드할 수 있습니다.')); return; }
       const extension = image ? mime.split('/')[1].replace('jpeg', 'jpg') : 'mp4';
       const relative = path.join('defaults', crypto.randomUUID() + '.' + extension);
       const absolute = path.join(uploadDataDir, relative);
@@ -799,8 +840,8 @@ async function uploadDefaultBackground(req, res, page) {
     bb.on('finish', async () => {
       try {
         if (writePromise) await writePromise;
-        if (tooLarge) throw new Error('파일은 30MB 이하만 업로드할 수 있습니다.');
-        if (!result) throw new Error('업로드 파일이 없습니다.');
+        if (tooLarge) throw requestError(413, '파일은 30MB 이하만 업로드할 수 있습니다.');
+        if (!result) throw requestError(400, '업로드 파일이 없습니다.');
         const sizeBytes = (await stat(result.absolute)).size;
         if (useSupabaseStorage) {
           await uploadSupabaseObject(result.relative, await readFile(result.absolute), result.mime);
@@ -955,10 +996,7 @@ async function route(req, res) {
 }
 
 async function main() {
-  const server = http.createServer((req, res) => route(req, res).catch(error => {
-    console.error(error);
-    if (!res.headersSent) json(res, 400, {error: error.message || '요청을 처리하지 못했습니다.'});
-  }));
+  const server = http.createServer(routeHandler);
   server.listen(port, '0.0.0.0', () => console.log(`ZNUS card service listening on :${port}`));
   const close = async () => { server.close(); await pool.end(); process.exit(0); };
   process.on('SIGTERM', close); process.on('SIGINT', close);
@@ -968,4 +1006,8 @@ if (require.main === module) {
   main().catch(error => { console.error(error); process.exit(1); });
 }
 
-module.exports = route;
+function routeHandler(req, res) {
+  return route(req, res).catch(error => sendRouteError(res, error));
+}
+
+module.exports = routeHandler;
