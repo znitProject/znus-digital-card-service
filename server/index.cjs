@@ -34,9 +34,14 @@ const supabaseDatabaseUrl = String(process.env.SUPABASE_DATABASE_URL || '').trim
 const supabaseUrl = String(process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
 const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const supabaseStorageBucket = String(process.env.SUPABASE_STORAGE_BUCKET || 'znus-media').trim();
-const useSupabaseHttpDatabase = production && vercelRuntime && Boolean(supabaseUrl && supabaseServiceRoleKey);
-const useSupabaseDatabase = production && Boolean(supabaseDatabaseUrl) && !useSupabaseHttpDatabase;
-const useSupabaseStorage = production && vercelRuntime && Boolean(supabaseUrl && supabaseServiceRoleKey);
+// Vercel's NODE_ENV can be overridden by a project environment variable.  The
+// presence of the Supabase server credentials is the reliable deployment
+// signal, so do not let an unexpected NODE_ENV value route Vercel back to the
+// legacy PostgreSQL host.
+const hasSupabaseHttpCredentials = Boolean(supabaseUrl && supabaseServiceRoleKey);
+const useSupabaseHttpDatabase = vercelRuntime && hasSupabaseHttpCredentials;
+const useSupabaseDatabase = Boolean(supabaseDatabaseUrl) && !useSupabaseHttpDatabase;
+const useSupabaseStorage = vercelRuntime && hasSupabaseHttpCredentials;
 const supabaseDatabaseUrlForRuntime = useSupabaseDatabase && vercelRuntime
   ? supabaseDatabaseUrl.replace(/(\.pooler\.supabase\.com):5432(?=\/)/, '$1:6543')
   : supabaseDatabaseUrl;
