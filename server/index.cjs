@@ -660,6 +660,15 @@ function renderCardHtml(data, origin = '') {
       `<meta property="og:image" content="${escapeHtmlAttr(shareImage)}">`
     );
   }
+  const ownerName = String(row.name_ko || '').trim();
+  if (ownerName) {
+    const shareTitle = escapeHtmlAttr(`${ownerName}의 명함`);
+    html = html.replace(
+      '<meta property="og:description" content="ZNUS Digital Profile">',
+      `<meta property="og:description" content="${shareTitle}">`
+    );
+    html = html.replace('<title>ZNUS Digital Profile</title>', `<title>${shareTitle}</title>`);
+  }
   return html.replace('<script src="qrcode.min.js"></script>', bootstrap + cropBootstrap);
 }
 
