@@ -1770,8 +1770,8 @@ min( 30vw, 600px );
     
     <!-- =====================================================
          VIDEO START GATE
-         로딩 전에 사용자의 터치/클릭으로 영상 재생을 승인한다.
-         ===================================================== -->
+         손을 눌러 카드를 여는 단계는 잠시 사용하지 않는다.
+         =====================================================
     <button
       id="video-start-gate"
       class="video-start-gate"
@@ -1779,6 +1779,7 @@ min( 30vw, 600px );
       aria-label="배경 영상 시작">
       <span class="palm-icon" aria-hidden="true">✋</span>
     </button>
+    -->
     
     <!-- =====================================================
          LOADING
@@ -2712,11 +2713,14 @@ function syncCardVideos(activeIndex){
 
 function setupVideoStartGate(){
 
+  /*
+    손 버튼이 없으면 시작하지 않던 분기는 잠시 끈다.
   if(
     !DOM.videoStartGate
   ){
     return;
   }
+  */
 
 
   const approveAndStart =
@@ -2737,14 +2741,19 @@ function setupVideoStartGate(){
         시작 버튼은 즉시 숨긴다.
       */
 
-      DOM.videoStartGate.classList.add(
-        "is-hidden"
-      );
+      /*
+        손 버튼은 주석 처리되어 있다.
+      if(DOM.videoStartGate){
+        DOM.videoStartGate.classList.add(
+          "is-hidden"
+        );
 
-      DOM.videoStartGate.setAttribute(
-        "aria-hidden",
-        "true"
-      );
+        DOM.videoStartGate.setAttribute(
+          "aria-hidden",
+          "true"
+        );
+      }
+      */
 
 
       forceAutoplayAllVideos();
@@ -2770,30 +2779,37 @@ function setupVideoStartGate(){
     };
 
 
-  DOM.videoStartGate.addEventListener(
-    "click",
-    approveAndStart
-  );
+  /*
+    손 버튼을 눌러야 카드가 보이던 입력은 잠시 끈다.
+  if(DOM.videoStartGate){
+    DOM.videoStartGate.addEventListener(
+      "click",
+      approveAndStart
+    );
 
-  DOM.videoStartGate.addEventListener(
-    "pointerup",
-    approveAndStart,
-    {
-      passive:true
-    }
-  );
+    DOM.videoStartGate.addEventListener(
+      "pointerup",
+      approveAndStart,
+      {
+        passive:true
+      }
+    );
 
-  DOM.videoStartGate.onclick =
-    approveAndStart;
+    DOM.videoStartGate.onclick =
+      approveAndStart;
 
 
-  DOM.videoStartGate.addEventListener(
-    "touchend",
-    approveAndStart,
-    {
-      passive:true
-    }
-  );
+    DOM.videoStartGate.addEventListener(
+      "touchend",
+      approveAndStart,
+      {
+        passive:true
+      }
+    );
+  }
+  */
+
+  approveAndStart();
 
 }
 
@@ -3518,6 +3534,8 @@ function finishLoading(){
   DOM.loadingArea.classList.add(
     "ready-to-continue"
   );
+
+  continueAfterLoading();
 
 }
 

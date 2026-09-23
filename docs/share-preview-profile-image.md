@@ -26,3 +26,9 @@
 미리보기 둘째 줄의 `ZNUS Digital Profile`도 명함마다 다르게 넣는다. `renderCardHtml`이 한글 이름(`name_ko`)이 있으면 `og:description`을 `{이름}의 명함`으로 바꾼다. 브라우저 탭 제목(`<title>`)도 같은 문구로 맞춘다.
 
 굵은 첫 줄 `ZNUS`는 `og:title`이라 그대로 둔다. 이름이 없으면 `og:description`과 `<title>`은 기존 `ZNUS Digital Profile`을 유지한다.
+
+## 첫 화면 손 버튼
+
+카드를 열면 처음에 손 모양을 눌러야 카드가 보이던 단계를 잠시 뺐다. `cardDesign/명함_디자인/index.html`의 손 버튼(`#video-start-gate`)과 그 버튼을 눌러야 시작하던 분기는 삭제하지 않고 주석으로 남겼다.
+
+지금은 페이지가 열리면 그 단계 없이 로딩이 시작되고, 로딩이 끝나면 카드가 나타난다. 다시 쓰려면 주석을 되돌리면 된다.
